@@ -111,6 +111,16 @@
       "createdAt": "2025-05-04T02:42:39.471Z",
       "updatedAt": "2025-05-24T02:42:39.471Z",
       "publishedAt": null
+    },
+    {
+      "id": 6,
+      "name": "API测试模板",
+      "description": "通过API创建的测试模板",
+      "category": "测试分类",
+      "status": "draft",
+      "createdBy": 1,
+      "createdAt": "2025-05-26T03:02:36.154Z",
+      "updatedAt": "2025-05-26T03:02:36.154Z"
     }
   ],
   "form_fields": [
@@ -643,6 +653,19 @@
       "props": {},
       "createdAt": "2025-05-11T02:42:39.472Z",
       "updatedAt": "2025-05-05T02:42:39.472Z"
+    },
+    {
+      "id": 28,
+      "templateId": 6,
+      "fieldName": "testField",
+      "fieldLabel": "测试字段",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入测试内容",
+      "sortOrder": 1,
+      "createdAt": "2025-05-26T03:02:36.154Z",
+      "updatedAt": "2025-05-26T03:02:36.154Z"
     }
   ],
   "field_options": [
@@ -891,6 +914,16 @@
       "submittedAt": "2025-05-26T02:53:37.279Z",
       "createdAt": "2025-05-26T02:53:37.279Z",
       "updatedAt": "2025-05-26T02:53:37.279Z"
+    },
+    {
+      "id": 7,
+      "templateId": 1,
+      "instanceName": "API测试表单",
+      "status": "completed",
+      "submittedBy": 1,
+      "submittedAt": "2025-05-26T03:02:36.143Z",
+      "createdAt": "2025-05-26T03:02:36.143Z",
+      "updatedAt": "2025-05-26T03:02:36.143Z"
     }
   ],
   "form_data": [
@@ -1109,6 +1142,38 @@
       "fieldName": "gender",
       "fieldValue": "female",
       "createdAt": "2025-05-26T02:53:37.279Z"
+    },
+    {
+      "id": 28,
+      "instanceId": 7,
+      "fieldId": 1,
+      "fieldName": "patientName",
+      "fieldValue": "测试患者",
+      "createdAt": "2025-05-26T03:02:36.143Z"
+    },
+    {
+      "id": 29,
+      "instanceId": 7,
+      "fieldId": 2,
+      "fieldName": "patientAge",
+      "fieldValue": "30",
+      "createdAt": "2025-05-26T03:02:36.143Z"
+    },
+    {
+      "id": 30,
+      "instanceId": 7,
+      "fieldId": 3,
+      "fieldName": "gender",
+      "fieldValue": "male",
+      "createdAt": "2025-05-26T03:02:36.143Z"
+    },
+    {
+      "id": 31,
+      "instanceId": 7,
+      "fieldId": 5,
+      "fieldName": "phone",
+      "fieldValue": "13800138000",
+      "createdAt": "2025-05-26T03:02:36.143Z"
     }
   ],
   "workflows": [],

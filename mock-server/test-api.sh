@@ -44,53 +44,80 @@ test_api() {
     echo ""
 }
 
-echo "📋 1. 基础CRUD接口测试"
-echo "================================"
+# 检查服务器是否运行
+echo "🔍 检查服务器状态..."
+if ! curl -s "$BASE_URL/api/form_templates" > /dev/null; then
+    echo -e "${RED}❌ Mock服务器未运行，请先启动服务器${NC}"
+    echo "运行命令: cd mock-server && npm start"
+    exit 1
+fi
+echo -e "${GREEN}✅ Mock服务器正在运行${NC}"
+echo ""
 
-# 测试基础接口
-test_api "获取表单模板列表" "$BASE_URL/api/form_templates?_limit=3"
+# 基础CRUD接口测试
+echo "📋 测试基础CRUD接口..."
+test_api "获取表单模板列表" "$BASE_URL/api/form_templates"
 test_api "获取单个表单模板" "$BASE_URL/api/form_templates/1"
+test_api "获取表单字段" "$BASE_URL/api/form_fields?templateId=1"
 test_api "获取用户列表" "$BASE_URL/api/users"
 test_api "获取部门列表" "$BASE_URL/api/departments"
 test_api "获取分类列表" "$BASE_URL/api/form_categories"
 
-echo "🔧 2. 自定义业务接口测试"
-echo "================================"
-
-# 测试自定义接口
+# 自定义接口测试
+echo "🔧 测试自定义接口..."
 test_api "获取完整表单模板" "$BASE_URL/api/form-templates/1/full"
-test_api "生成SQL建表语句" "$BASE_URL/api/form-templates/1/sql"
-test_api "获取表单统计信息" "$BASE_URL/api/form-templates/1/statistics"
+test_api "生成SQL语句" "$BASE_URL/api/form-templates/1/sql"
+test_api "获取统计信息" "$BASE_URL/api/form-templates/1/statistics"
 
-# 测试提交表单
-test_data='{"templateId": 1, "instanceName": "测试脚本提交", "submittedBy": 1, "formData": {"patientName": "脚本测试患者", "patientAge": "25", "gender": "female"}}'
-test_api "提交表单实例" "$BASE_URL/api/form-instances" "POST" "$test_data"
+# POST接口测试
+echo "📝 测试POST接口..."
+test_api "提交表单实例" "$BASE_URL/api/form-instances" "POST" '{
+    "templateId": 1,
+    "instanceName": "API测试表单",
+    "submittedBy": 1,
+    "formData": {
+        "patientName": "测试患者",
+        "patientAge": "30",
+        "gender": "male",
+        "phone": "13800138000"
+    }
+}'
 
-test_api "获取表单实例列表" "$BASE_URL/api/form_instances?_limit=3"
-test_api "获取完整表单实例" "$BASE_URL/api/form-instances/1/full"
+test_api "保存表单设计" "$BASE_URL/api/form-templates/design" "POST" '{
+    "template": {
+        "name": "API测试模板",
+        "description": "通过API创建的测试模板",
+        "category": "测试分类",
+        "status": "draft",
+        "createdBy": 1
+    },
+    "fields": [
+        {
+            "fieldName": "testField",
+            "fieldLabel": "测试字段",
+            "fieldType": "text",
+            "dataType": "VARCHAR",
+            "required": true,
+            "placeholder": "请输入测试内容"
+        }
+    ]
+}'
 
-echo "📊 3. 查询功能测试"
-echo "================================"
-
-# 测试查询功能
+# 查询参数测试
+echo "🔍 测试查询参数..."
 test_api "分页查询模板" "$BASE_URL/api/form_templates?_page=1&_limit=2"
-test_api "按状态过滤模板" "$BASE_URL/api/form_templates?status=published"
-test_api "按分类过滤模板" "$BASE_URL/api/form_templates?category=医疗表单"
+test_api "排序查询模板" "$BASE_URL/api/form_templates?_sort=createdAt&_order=desc"
+test_api "过滤查询模板" "$BASE_URL/api/form_templates?status=published"
 test_api "搜索模板" "$BASE_URL/api/form_templates?q=患者"
-test_api "排序查询" "$BASE_URL/api/form_templates?_sort=createdAt&_order=desc"
 
-echo "🔗 4. 关联查询测试"
-echo "================================"
+# 关联查询测试
+echo "🔗 测试关联查询..."
+test_api "模板包含字段" "$BASE_URL/api/form_templates?_embed=form_fields"
+test_api "字段展开模板" "$BASE_URL/api/form_fields?_expand=template&templateId=1"
 
-# 测试关联查询
-test_api "获取模板的字段" "$BASE_URL/api/form_fields?templateId=1&_sort=sortOrder"
-test_api "获取字段的选项" "$BASE_URL/api/field_options?fieldId=3"
-test_api "获取实例的数据" "$BASE_URL/api/form_data?instanceId=1"
-
-echo "✅ API测试完成！"
+echo "🎉 API测试完成！"
 echo ""
 echo "💡 提示："
 echo "   - 如果有测试失败，请检查Mock服务器是否正常运行"
-echo "   - 可以通过浏览器访问 $BASE_URL/api 查看所有数据"
-echo "   - 前端应用地址: http://localhost:3001"
-echo "   - API测试页面: http://localhost:3001/api-test" 
+echo "   - 可以通过浏览器访问 http://localhost:3003/api 查看所有接口"
+echo "   - 前端测试页面: http://localhost:3001/api-test" 

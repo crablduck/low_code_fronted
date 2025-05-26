@@ -72,197 +72,202 @@ npm run dev
 
 ### Mock API服务
 - **json-server**: RESTful API模拟服务器
-- **自定义中间件**: 业务逻辑处理
-- **CORS支持**: 跨域请求处理
-- **数据持久化**: JSON文件存储
+- **自定义中间件**: 支持CORS、延迟模拟等
+- **完整数据模型**: 医疗行业表单系统数据结构
+- **自定义业务接口**: 表单设计、SQL生成、统计分析等
 
-## 🗄️ 数据模型
+## 🎯 核心功能
 
-### 核心实体关系
-```
-用户 (users)
-├── 表单模板 (form_templates) - 一对多
-│   ├── 表单字段 (form_fields) - 一对多
-│   │   └── 字段选项 (field_options) - 一对多
-│   ├── 表单实例 (form_instances) - 一对多
-│   │   └── 表单数据 (form_data) - 一对多
-│   └── 工作流 (workflows) - 一对一
-│       ├── 工作流节点 (workflow_nodes) - 一对多
-│       ├── 工作流连线 (workflow_edges) - 一对多
-│       └── 工作流实例 (workflow_instances) - 一对多
-│           └── 工作流任务 (workflow_tasks) - 一对多
-├── 表单分类 (form_categories) - 多对多
-└── 部门 (departments) - 多对一
+### 1. 表单设计器
+- 拖拽式表单字段设计
+- 支持多种字段类型（文本、数字、选择、日期等）
+- 字段属性配置（验证规则、默认值等）
+- 实时预览功能
+- 表单模板管理
+
+### 2. 工作流设计器
+- 可视化流程节点编排
+- 支持多种节点类型（开始、审批、处理、结束）
+- 条件分支和并行处理
+- 流程实例管理
+- 任务分配和跟踪
+
+### 3. API测试中心
+- **快速测试**: 一键测试所有预定义接口
+- **自定义测试**: 支持自定义HTTP请求
+- **测试历史**: 记录所有测试结果和统计信息
+- **性能监控**: 接口响应时间分析
+- **批量测试**: 支持批量接口测试
+
+### 4. 数据管理
+- 表单实例管理
+- 数据查询和导出
+- 统计分析报表
+- 用户权限管理
+
+## 🔌 API接口文档
+
+### Mock API服务地址
+- **基础URL**: http://localhost:3003/api
+- **文档地址**: http://localhost:3003
+- **测试页面**: http://localhost:3001/api-test
+
+### 核心接口
+
+#### 表单模板管理
+```http
+GET    /api/form_templates              # 获取模板列表
+GET    /api/form_templates/:id          # 获取单个模板
+POST   /api/form_templates              # 创建模板
+PUT    /api/form_templates/:id          # 更新模板
+DELETE /api/form_templates/:id          # 删除模板
+
+# 自定义业务接口
+GET    /api/form-templates/:id/full     # 获取完整模板（含字段）
+POST   /api/form-templates/design       # 保存表单设计
+GET    /api/form-templates/:id/sql      # 生成SQL建表语句
+GET    /api/form-templates/:id/statistics # 获取统计信息
 ```
 
-### 预置数据
-- **5个用户**: 管理员、医生、护士等不同角色
-- **8个部门**: 内科、外科、儿科等医疗科室
-- **6个分类**: 医疗表单、设备管理、人事管理等
-- **5个表单模板**: 患者入院登记、设备申请、员工入职等
-- **27个表单字段**: 包含各种字段类型和验证规则
-- **23个字段选项**: 单选、多选等选项数据
+#### 表单实例管理
+```http
+GET    /api/form_instances              # 获取实例列表
+GET    /api/form_instances/:id          # 获取单个实例
+POST   /api/form_instances              # 创建实例
+PUT    /api/form_instances/:id          # 更新实例
+DELETE /api/form_instances/:id          # 删除实例
 
-## 🔌 API接口
-
-### 基础CRUD接口
-所有实体都支持标准的RESTful接口：
-```
-GET    /api/{resource}           # 获取列表
-GET    /api/{resource}/:id       # 获取详情
-POST   /api/{resource}           # 创建
-PUT    /api/{resource}/:id       # 更新
-PATCH  /api/{resource}/:id       # 部分更新
-DELETE /api/{resource}/:id       # 删除
+# 自定义业务接口
+GET    /api/form-instances/:id/full     # 获取完整实例（含数据）
 ```
 
-### 自定义业务接口
-```
-GET  /api/form-templates/:id/full        # 获取完整表单模板
-POST /api/form-templates/design          # 保存表单设计
-POST /api/form-instances                 # 提交表单实例
-GET  /api/form-instances/:id/full        # 获取表单实例详情
-GET  /api/form-templates/:id/sql         # 生成SQL建表语句
-GET  /api/form-templates/:id/statistics  # 获取表单统计
+#### 基础数据管理
+```http
+GET    /api/users                       # 用户管理
+GET    /api/departments                 # 部门管理
+GET    /api/form_categories             # 分类管理
+GET    /api/form_fields                 # 字段管理
+GET    /api/field_options               # 字段选项管理
 ```
 
-### 查询功能
-```
+### 查询参数支持
+```http
 # 分页
-GET /api/form_templates?_page=1&_limit=10
+?_page=1&_limit=10
 
 # 排序
-GET /api/form_templates?_sort=createdAt&_order=desc
+?_sort=createdAt&_order=desc
 
 # 过滤
-GET /api/form_templates?status=published
+?status=published&category=医疗表单
 
 # 搜索
-GET /api/form_templates?q=患者
+?q=患者
 
 # 关联查询
-GET /api/form_templates?_embed=form_fields
+?_embed=form_fields    # 包含关联数据
+?_expand=template      # 展开关联数据
 ```
 
-## 🧪 测试
+## 🧪 API测试
 
-### API测试
+### 使用测试脚本
 ```bash
-# 运行完整的API测试套件
+# 运行完整API测试
 ./mock-server/test-api.sh
 
-# 手动测试单个接口
-curl "http://localhost:3003/api/form_templates"
+# 生成测试数据
+cd mock-server && npm run seed
 ```
 
-### 前端测试
-访问 http://localhost:3001/api-test 进行可视化API测试
+### 使用前端测试页面
+1. 访问 http://localhost:3001/api-test
+2. 选择要测试的接口类型
+3. 查看测试结果和响应数据
+4. 支持自定义请求测试
 
 ## 📁 项目结构
 
 ```
 workflow-system/
 ├── src/                          # 前端源码
-│   ├── api/                      # API接口封装
-│   │   └── formApi.ts           # 表单相关API
 │   ├── components/              # Vue组件
-│   │   ├── FormDesigner.vue     # 表单设计器
+│   │   ├── FormDesigner.vue    # 表单设计器
 │   │   ├── WorkflowDesigner.vue # 工作流设计器
 │   │   └── Layout.vue           # 布局组件
 │   ├── views/                   # 页面组件
 │   │   ├── ApiTest.vue          # API测试页面
 │   │   ├── FormDesign.vue       # 表单设计页面
-│   │   └── ...                  # 其他页面
+│   │   └── ...
+│   ├── api/                     # API接口封装
+│   │   └── formApi.ts           # 表单相关API
 │   ├── router/                  # 路由配置
 │   └── types/                   # TypeScript类型定义
 ├── mock-server/                 # Mock API服务
-│   ├── server.js               # 服务器主文件
-│   ├── db.json                 # 数据库文件
-│   ├── seed.js                 # 种子数据生成
-│   ├── middleware.js           # 自定义中间件
-│   ├── test-api.sh            # API测试脚本
-│   └── README.md              # Mock服务器文档
-├── start-dev.sh               # 开发环境启动脚本
-└── README.md                  # 项目文档
-```
-
-## 🎯 Java后端实现
-
-### 技术栈建议
-- **Spring Boot 3.x**: 主框架
-- **Spring Data JPA**: 数据访问层
-- **MySQL 8.x**: 数据库
-- **Spring Security**: 安全框架
-- **Spring Validation**: 数据验证
-- **Swagger/OpenAPI**: API文档
-
-### 实体类示例
-```java
-@Entity
-@Table(name = "form_templates")
-public class FormTemplate {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(nullable = false, length = 100)
-    private String name;
-    
-    @Column(columnDefinition = "TEXT")
-    private String description;
-    
-    @Enumerated(EnumType.STRING)
-    private TemplateStatus status;
-    
-    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL)
-    private List<FormField> fields = new ArrayList<>();
-    
-    // getters and setters...
-}
-```
-
-### 控制器示例
-```java
-@RestController
-@RequestMapping("/api/form-templates")
-@CrossOrigin(origins = "*")
-public class FormTemplateController {
-    
-    @Autowired
-    private FormTemplateService formTemplateService;
-    
-    @GetMapping("/{id}/full")
-    public ResponseEntity<FormTemplateFullDto> getFullTemplate(@PathVariable Long id) {
-        FormTemplateFullDto template = formTemplateService.getFullTemplate(id);
-        return ResponseEntity.ok(template);
-    }
-    
-    @PostMapping("/design")
-    public ResponseEntity<FormDesignResponse> saveDesign(@RequestBody FormDesignRequest request) {
-        FormDesignResponse response = formTemplateService.saveDesign(request);
-        return ResponseEntity.ok(response);
-    }
-}
+│   ├── server.js                # 服务器主文件
+│   ├── db.json                  # 数据库文件
+│   ├── middleware.js            # 自定义中间件
+│   ├── seed.js                  # 数据种子文件
+│   ├── test-api.sh              # API测试脚本
+│   └── README.md                # Mock服务文档
+├── start-dev.sh                 # 开发环境启动脚本
+└── README.md                    # 项目文档
 ```
 
 ## 🔧 开发指南
 
-### 添加新的表单字段类型
-1. 在 `src/types/IFormKit.ts` 中定义字段类型
-2. 在 `FormDesigner.vue` 中添加字段组件
-3. 在 Mock API 的种子数据中添加示例
+### 前端开发
+```bash
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 类型检查
+npm run type-check
+
+# 代码格式化
+npm run format
+```
+
+### Mock API开发
+```bash
+# 启动Mock服务器
+cd mock-server && npm start
+
+# 开发模式（自动重启）
+cd mock-server && npm run dev
+
+# 重新生成测试数据
+cd mock-server && npm run seed
+
+# 运行API测试
+./mock-server/test-api.sh
+```
 
 ### 添加新的API接口
-1. 在 `mock-server/server.js` 中添加路由
-2. 在 `src/api/formApi.ts` 中添加接口方法
-3. 在测试脚本中添加测试用例
+1. 在 `mock-server/server.js` 中添加自定义路由
+2. 在 `src/api/formApi.ts` 中添加前端接口封装
+3. 在 `src/views/ApiTest.vue` 中添加测试用例
+4. 更新 `mock-server/test-api.sh` 测试脚本
 
-### 自定义工作流节点
-1. 在 `src/components/nodes/` 中创建节点组件
-2. 在 `WorkflowDesigner.vue` 中注册节点类型
-3. 在数据模型中定义节点配置
+## 🎨 界面预览
 
-## 📝 部署说明
+### 主要页面
+- **首页**: 系统概览和快速导航
+- **表单设计**: 可视化表单设计器
+- **工作流设计**: 流程节点编排器
+- **API测试**: 接口测试和调试工具
+- **数据管理**: 表单实例和数据查看
+
+### 特色功能
+- **响应式设计**: 支持桌面和移动端
+- **暗色主题**: 支持主题切换
+- **国际化**: 支持多语言
+- **权限控制**: 基于角色的访问控制
+
+## 🚀 部署指南
 
 ### 前端部署
 ```bash
@@ -270,20 +275,77 @@ public class FormTemplateController {
 npm run build
 
 # 部署到静态服务器
-# dist/ 目录包含所有静态文件
+# 将 dist/ 目录内容部署到 Web 服务器
 ```
 
-### Mock服务器部署
+### Mock API部署
 ```bash
-# 使用PM2部署
+# 使用 PM2 部署
 npm install -g pm2
 cd mock-server
-pm2 start server.js --name workflow-mock
+pm2 start server.js --name "workflow-mock-api"
 
-# 使用Docker部署
-docker build -t workflow-mock .
-docker run -p 3003:3003 workflow-mock
+# 使用 Docker 部署
+docker build -t workflow-mock-api .
+docker run -p 3003:3003 workflow-mock-api
 ```
+
+## 🔄 Java后端迁移
+
+### 数据模型映射
+Mock API的数据结构可以直接映射为Java实体类：
+
+```java
+// 表单模板实体
+@Entity
+@Table(name = "form_templates")
+public class FormTemplate {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String name;
+    
+    private String description;
+    private String category;
+    private String version;
+    
+    @Enumerated(EnumType.STRING)
+    private TemplateStatus status;
+    
+    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL)
+    private List<FormField> fields;
+    
+    // getters and setters...
+}
+```
+
+### API接口实现
+```java
+@RestController
+@RequestMapping("/api/form-templates")
+public class FormTemplateController {
+    
+    @GetMapping("/{id}/full")
+    public ResponseEntity<FormTemplateFullDto> getFullTemplate(@PathVariable Long id) {
+        // 实现逻辑
+    }
+    
+    @PostMapping("/design")
+    public ResponseEntity<FormDesignResponse> saveDesign(@RequestBody FormDesignRequest request) {
+        // 实现逻辑
+    }
+}
+```
+
+### 推荐技术栈
+- **Spring Boot 3.x**: 主框架
+- **Spring Data JPA**: 数据访问层
+- **MySQL/PostgreSQL**: 数据库
+- **Redis**: 缓存
+- **Spring Security**: 安全框架
+- **Swagger/OpenAPI**: API文档
 
 ## 🤝 贡献指南
 
@@ -293,15 +355,24 @@ docker run -p 3003:3003 workflow-mock
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
 
+## 📝 更新日志
+
+### v1.0.0 (2024-01-01)
+- ✨ 初始版本发布
+- 🎨 完整的表单设计器
+- 🔧 工作流编排功能
+- 🧪 API测试中心
+- 📊 Mock API服务
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
 ## 📞 联系方式
 
-- 项目维护者: 医疗架构师
-- 邮箱: architect@hospital.com
-- 项目地址: http://172.16.0.238:3000/xiejw/workflow-system
+- **项目维护者**: 医疗架构师
+- **邮箱**: architect@hospital.com
+- **项目地址**: http://172.16.0.238:3000/xiejw/workflow-system
 
 ## 🙏 致谢
 
@@ -313,4 +384,4 @@ docker run -p 3003:3003 workflow-mock
 
 ---
 
-**注意**: 这是一个演示项目，用于展示医疗工作流表单系统的设计思路和技术实现。在生产环境中使用时，请确保符合相关的医疗数据安全和隐私保护法规。
+**注意**: 这是一个演示项目，用于展示医疗工作流表单系统的设计思路和技术实现。在生产环境中使用时，请根据实际需求进行安全加固和性能优化。
