@@ -67,14 +67,14 @@ npm run dev
 - **TypeScript**: 类型安全的JavaScript超集
 - **Element Plus**: Vue 3 UI组件库
 - **Vue Router**: 官方路由管理器
-- **Axios**: HTTP客户端库
+- **Pinia**: 状态管理库
 - **Vite**: 现代化构建工具
 
 ### Mock API服务
 - **json-server**: RESTful API模拟服务器
-- **自定义中间件**: 支持CORS、延迟模拟等
-- **完整数据模型**: 医疗行业表单系统数据结构
-- **自定义业务接口**: 表单设计、SQL生成、统计分析等
+- **Express**: 自定义中间件和路由
+- **Moment.js**: 日期时间处理
+- **Lodash**: 实用工具库
 
 ## 🎯 核心功能
 
@@ -171,20 +171,25 @@ GET    /api/field_options               # 字段选项管理
 
 ## 🧪 API测试
 
-### 使用测试脚本
+### 自动化测试
 ```bash
-# 运行完整API测试
+# 运行API测试脚本
 ./mock-server/test-api.sh
-
-# 生成测试数据
-cd mock-server && npm run seed
 ```
 
-### 使用前端测试页面
-1. 访问 http://localhost:3001/api-test
-2. 选择要测试的接口类型
-3. 查看测试结果和响应数据
-4. 支持自定义请求测试
+### 手动测试
+访问 http://localhost:3001/api-test 使用可视化API测试工具
+
+### 测试用例
+```bash
+# 获取表单模板
+curl http://localhost:3003/api/form_templates
+
+# 提交表单实例
+curl -X POST http://localhost:3003/api/form-instances \
+  -H "Content-Type: application/json" \
+  -d '{"templateId": 1, "instanceName": "测试表单", "submittedBy": 1, "formData": {"patientName": "张三"}}'
+```
 
 ## 📁 项目结构
 
@@ -202,6 +207,7 @@ workflow-system/
 │   ├── api/                     # API接口封装
 │   │   └── formApi.ts           # 表单相关API
 │   ├── router/                  # 路由配置
+│   ├── stores/                  # 状态管理
 │   └── types/                   # TypeScript类型定义
 ├── mock-server/                 # Mock API服务
 │   ├── server.js                # 服务器主文件
@@ -357,12 +363,12 @@ public class FormTemplateController {
 
 ## 📝 更新日志
 
-### v1.0.0 (2024-01-01)
-- ✨ 初始版本发布
-- 🎨 完整的表单设计器
-- 🔧 工作流编排功能
-- 🧪 API测试中心
-- 📊 Mock API服务
+### v1.0.0 (2025-05-26)
+- ✅ 完成基础表单设计器
+- ✅ 实现Mock API服务
+- ✅ 添加API测试工具
+- ✅ 完善医疗业务模型
+- ✅ 提供Java后端实现指南
 
 ## 📄 许可证
 
@@ -370,8 +376,8 @@ public class FormTemplateController {
 
 ## 📞 联系方式
 
-- **项目维护者**: 医疗架构师
-- **邮箱**: architect@hospital.com
+- **项目维护者**: 谢佳伟
+- **邮箱**: xiejw@hospital.com
 - **项目地址**: http://172.16.0.238:3000/xiejw/workflow-system
 
 ## 🙏 致谢
@@ -384,4 +390,4 @@ public class FormTemplateController {
 
 ---
 
-**注意**: 这是一个演示项目，用于展示医疗工作流表单系统的设计思路和技术实现。在生产环境中使用时，请根据实际需求进行安全加固和性能优化。
+**🏥 专为医疗行业打造的工作流表单系统，助力医疗信息化建设！**
