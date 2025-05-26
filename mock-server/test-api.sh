@@ -4,7 +4,7 @@
 echo "🧪 开始测试 Mock API 接口..."
 echo "================================"
 
-API_BASE="http://localhost:3003/api"
+API_BASE="http://localhost:5000/api"
 
 # 测试服务器连接
 echo "1. 测试服务器连接..."

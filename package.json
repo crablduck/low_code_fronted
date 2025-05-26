@@ -18,13 +18,20 @@
     "@vue-flow/minimap": "^1.5.3",
     "axios": "^1.9.0",
     "element-plus": "^2.5.6",
+    "html2pdf.js": "^0.10.3",
+    "jsbarcode": "^3.11.6",
+    "print-js": "^1.6.0",
+    "qrcode": "^1.5.4",
+    "uuid": "^11.1.0",
     "vue": "^3.4.15",
+    "vue-element-excel": "^1.1.0",
     "vue-router": "^4.5.1",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.3",
     "@vue/tsconfig": "^0.7.0",
+    "sass-embedded": "^1.89.0",
     "typescript": "^5.2.2",
     "vite": "^5.1.0",
     "vue-tsc": "^1.8.27"

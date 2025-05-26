@@ -17,6 +17,239 @@ server.use(jsonServer.bodyParser);
 
 // 自定义路由
 
+// 数据源相关API
+// 1. 获取数据源列表
+server.get('/api/data-sources', (req, res) => {
+  const dataSources = [
+    {
+      id: 1,
+      name: 'MySQL主库',
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      database: 'medical_system',
+      status: 'connected'
+    },
+    {
+      id: 2,
+      name: 'PostgreSQL数据仓库',
+      type: 'postgresql',
+      host: 'localhost',
+      port: 5432,
+      database: 'data_warehouse',
+      status: 'connected'
+    },
+    {
+      id: 3,
+      name: 'SQLite本地库',
+      type: 'sqlite',
+      database: 'local.db',
+      status: 'connected'
+    }
+  ];
+  res.json(dataSources);
+});
+
+// 2. 获取指定数据源的表列表
+server.get('/api/table-list', (req, res) => {
+  const { db } = req.query;
+  
+  let tables = [];
+  
+  if (db === '1') { // MySQL主库
+    tables = [
+      {
+        name: 'patients',
+        comment: '患者信息表',
+        columns: [
+          { name: 'id', type: 'bigint', comment: '主键', nullable: false },
+          { name: 'name', type: 'varchar(100)', comment: '患者姓名', nullable: false },
+          { name: 'gender', type: 'varchar(10)', comment: '性别', nullable: true },
+          { name: 'age', type: 'int', comment: '年龄', nullable: true },
+          { name: 'phone', type: 'varchar(20)', comment: '联系电话', nullable: true },
+          { name: 'address', type: 'text', comment: '地址', nullable: true },
+          { name: 'created_at', type: 'datetime', comment: '创建时间', nullable: false }
+        ]
+      },
+      {
+        name: 'medical_records',
+        comment: '病历记录表',
+        columns: [
+          { name: 'id', type: 'bigint', comment: '主键', nullable: false },
+          { name: 'patient_id', type: 'bigint', comment: '患者ID', nullable: false },
+          { name: 'diagnosis', type: 'text', comment: '诊断结果', nullable: true },
+          { name: 'symptoms', type: 'text', comment: '症状描述', nullable: true },
+          { name: 'treatment', type: 'text', comment: '治疗方案', nullable: true },
+          { name: 'doctor_id', type: 'bigint', comment: '医生ID', nullable: false },
+          { name: 'visit_date', type: 'date', comment: '就诊日期', nullable: false },
+          { name: 'created_at', type: 'datetime', comment: '创建时间', nullable: false }
+        ]
+      },
+      {
+        name: 'departments',
+        comment: '科室表',
+        columns: [
+          { name: 'id', type: 'bigint', comment: '主键', nullable: false },
+          { name: 'name', type: 'varchar(100)', comment: '科室名称', nullable: false },
+          { name: 'description', type: 'text', comment: '科室描述', nullable: true },
+          { name: 'head_doctor', type: 'varchar(100)', comment: '科室主任', nullable: true },
+          { name: 'location', type: 'varchar(200)', comment: '科室位置', nullable: true },
+          { name: 'created_at', type: 'datetime', comment: '创建时间', nullable: false }
+        ]
+      }
+    ];
+  } else if (db === '2') { // PostgreSQL数据仓库
+    tables = [
+      {
+        name: 'patient_statistics',
+        comment: '患者统计表',
+        columns: [
+          { name: 'id', type: 'bigserial', comment: '主键', nullable: false },
+          { name: 'date', type: 'date', comment: '统计日期', nullable: false },
+          { name: 'total_patients', type: 'integer', comment: '总患者数', nullable: false },
+          { name: 'new_patients', type: 'integer', comment: '新增患者数', nullable: false },
+          { name: 'department_id', type: 'bigint', comment: '科室ID', nullable: false }
+        ]
+      }
+    ];
+  } else if (db === '3') { // SQLite本地库
+    tables = [
+      {
+        name: 'local_cache',
+        comment: '本地缓存表',
+        columns: [
+          { name: 'id', type: 'integer', comment: '主键', nullable: false },
+          { name: 'key', type: 'text', comment: '缓存键', nullable: false },
+          { name: 'value', type: 'text', comment: '缓存值', nullable: true },
+          { name: 'expires_at', type: 'datetime', comment: '过期时间', nullable: true }
+        ]
+      }
+    ];
+  }
+  
+  res.json(tables);
+});
+
+// 3. 根据表结构生成表单字段
+server.get('/api/table-fields/:tableName', (req, res) => {
+  const { tableName } = req.params;
+  const { db } = req.query;
+  
+  // 模拟根据表结构生成表单字段
+  let fields = [];
+  
+  if (tableName === 'patients') {
+    fields = [
+      {
+        field: 'name',
+        label: '患者姓名',
+        type: 'text',
+        required: true,
+        placeholder: '请输入患者姓名'
+      },
+      {
+        field: 'gender',
+        label: '性别',
+        type: 'radio',
+        required: false,
+        options: ['男', '女']
+      },
+      {
+        field: 'age',
+        label: '年龄',
+        type: 'number',
+        required: false,
+        placeholder: '请输入年龄'
+      },
+      {
+        field: 'phone',
+        label: '联系电话',
+        type: 'text',
+        required: false,
+        placeholder: '请输入联系电话'
+      },
+      {
+        field: 'address',
+        label: '地址',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入详细地址'
+      }
+    ];
+  } else if (tableName === 'medical_records') {
+    fields = [
+      {
+        field: 'patient_id',
+        label: '患者ID',
+        type: 'number',
+        required: true,
+        placeholder: '请输入患者ID'
+      },
+      {
+        field: 'diagnosis',
+        label: '诊断结果',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入诊断结果'
+      },
+      {
+        field: 'symptoms',
+        label: '症状描述',
+        type: 'textarea',
+        required: false,
+        placeholder: '请描述症状'
+      },
+      {
+        field: 'treatment',
+        label: '治疗方案',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入治疗方案'
+      },
+      {
+        field: 'visit_date',
+        label: '就诊日期',
+        type: 'date',
+        required: true,
+        placeholder: '请选择就诊日期'
+      }
+    ];
+  } else if (tableName === 'departments') {
+    fields = [
+      {
+        field: 'name',
+        label: '科室名称',
+        type: 'text',
+        required: true,
+        placeholder: '请输入科室名称'
+      },
+      {
+        field: 'description',
+        label: '科室描述',
+        type: 'textarea',
+        required: false,
+        placeholder: '请输入科室描述'
+      },
+      {
+        field: 'head_doctor',
+        label: '科室主任',
+        type: 'text',
+        required: false,
+        placeholder: '请输入科室主任姓名'
+      },
+      {
+        field: 'location',
+        label: '科室位置',
+        type: 'text',
+        required: false,
+        placeholder: '请输入科室位置'
+      }
+    ];
+  }
+  
+  res.json(fields);
+});
+
 // 1. 获取表单模板及其字段（关联查询）
 server.get('/api/form-templates/:id/full', (req, res) => {
   const db = router.db;
@@ -285,7 +518,7 @@ server.get('/api/form-templates/:id/statistics', (req, res) => {
 server.use('/api', router);
 
 // 启动服务器
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Mock Server 运行在 http://localhost:${PORT}`);
   console.log(`📊 数据库接口: http://localhost:${PORT}/api`);

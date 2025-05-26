@@ -381,3 +381,379 @@ public class FormTemplateController {
 ---
 
 **🏥 专为医疗行业打造的工作流表单系统，助力医疗信息化建设！**
+
+# 快速表单生成向导
+
+一个基于 Vue3 + Element Plus 的快速表单生成向导组件，帮助医疗行业架构师快速构建前后端项目。
+
+## ✨ 特性
+
+- 🚀 **3步快速创建** - 通过向导式流程，3步完成表单创建
+- 🎯 **智能模板** - 内置个人信息、商品信息等常用模板
+- 🔧 **自动生成** - 自动生成数据表结构、菜单导航、路由配置
+- 💡 **智能建议** - 根据表单名称自动生成路由路径和页面标题
+- 🎨 **现代UI** - 基于 Element Plus 的现代化界面设计
+- 📱 **响应式** - 支持各种屏幕尺寸的设备
+
+## 🏗️ 架构设计
+
+### 组件结构
+```
+src/
+├── components/
+│   └── FormWizard/
+│       └── QuickFormWizard.vue     # 主向导组件
+├── views/
+│   └── FormDesigner/
+│       └── index.vue               # 表单设计器主页面
+├── types/
+│   └── form-wizard.ts              # TypeScript 类型定义
+└── README.md                       # 使用说明
+```
+
+### 核心流程
+
+#### 步骤一：基本信息配置
+- 表单名称（必填）
+- 表单说明（可选）
+- 数据源选择（接口：`/api/data-sources`）
+- 现有数据表选择（接口：`/api/table-list?db=xxx`）
+
+#### 步骤二：字段模板选择
+- **个人信息模板**：姓名、性别、出生日期、手机号、邮箱
+- **商品信息模板**：商品名称、价格、库存、分类、描述
+- **空模板**：从零开始手动创建字段
+
+#### 步骤三：页面生成配置
+- 自动生成菜单（默认开启）
+- 菜单挂载位置（接口：`/api/menu-list`）
+- 路由路径（自动生成，可编辑）
+- 页面标题（自动填充，可编辑）
+
+## 🚀 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install vue@^3.0.0 element-plus @element-plus/icons-vue
+```
+
+### 2. 引入组件
+
+```vue
+<template>
+  <div>
+    <!-- 触发按钮 -->
+    <el-button type="primary" @click="showWizard = true">
+      快速创建表单
+    </el-button>
+    
+    <!-- 向导组件 -->
+    <QuickFormWizard
+      v-model="showWizard"
+      @done="handleWizardDone"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import QuickFormWizard from '@/components/FormWizard/QuickFormWizard.vue'
+
+const showWizard = ref(false)
+
+const handleWizardDone = (config) => {
+  console.log('表单配置:', config)
+  // 处理表单创建完成后的逻辑
+}
+</script>
+```
+
+### 3. 配置API接口
+
+确保以下API接口可用：
+
+```javascript
+// 获取数据源列表
+GET /api/data-sources
+// 响应格式：
+{
+  "code": 200,
+  "data": [
+    {
+      "id": "mysql_main",
+      "name": "主数据库",
+      "type": "mysql"
+    }
+  ]
+}
+
+// 获取数据表列表
+GET /api/table-list?db={dataSourceId}
+// 响应格式：
+{
+  "code": 200,
+  "data": [
+    {
+      "name": "users",
+      "comment": "用户表"
+    }
+  ]
+}
+
+// 获取菜单列表
+GET /api/menu-list
+// 响应格式：
+{
+  "code": 200,
+  "data": [
+    {
+      "id": "system",
+      "name": "系统管理",
+      "path": "/system"
+    }
+  ]
+}
+```
+
+## 📋 配置数据结构
+
+### FormConfig 完整配置
+
+```typescript
+interface FormConfig {
+  basic: {
+    name: string              // 表单名称
+    description: string       // 表单说明
+    dataSource: string        // 数据源ID
+    existingTable: string     // 现有表名
+  }
+  template: {
+    selectedTemplate: string  // 选中模板ID
+    fields: FieldDefinition[] // 字段列表
+  }
+  page: {
+    autoGenerateMenu: boolean // 自动生成菜单
+    parentMenu: string        // 父菜单ID
+    routePath: string         // 路由路径
+    pageTitle: string         // 页面标题
+  }
+}
+```
+
+### 字段定义结构
+
+```typescript
+interface FieldDefinition {
+  name: string                // 字段标识
+  label: string               // 显示名称
+  type: FieldType             // 字段类型
+  required: boolean           // 是否必填
+  placeholder?: string        // 提示信息
+  options?: string[]          // 选项列表
+  showInTable?: boolean       // 表格显示
+  showInSearch?: boolean      // 搜索条件
+}
+```
+
+## 🎯 使用场景
+
+### 医疗行业应用
+
+1. **患者信息管理**
+   - 使用个人信息模板
+   - 添加医保类型、科室等医疗特定字段
+
+2. **药品信息录入**
+   - 使用商品信息模板
+   - 添加药品编码、规格、厂家等字段
+
+3. **检查报告表单**
+   - 使用空模板
+   - 自定义检查项目、结果、建议等字段
+
+### 快速原型开发
+
+```javascript
+// 向导完成后的处理示例
+const handleWizardDone = async (config) => {
+  try {
+    // 1. 创建数据表
+    await createTable(config.basic.dataSource, config.template.fields)
+    
+    // 2. 生成Vue页面
+    await generateVuePage(config)
+    
+    // 3. 创建菜单项
+    if (config.page.autoGenerateMenu) {
+      await createMenuItem(config.page)
+    }
+    
+    // 4. 注册路由
+    await registerRoute(config.page.routePath)
+    
+    ElMessage.success('表单创建成功！')
+    
+    // 5. 跳转到编辑页面
+    router.push(`/form-designer/edit?config=${encodeURIComponent(JSON.stringify(config))}`)
+    
+  } catch (error) {
+    ElMessage.error('创建失败：' + error.message)
+  }
+}
+```
+
+## 🔧 自定义扩展
+
+### 添加新的字段模板
+
+```javascript
+// 在 QuickFormWizard.vue 中添加新模板
+const fieldTemplates = ref([
+  // 现有模板...
+  {
+    id: 'medical',
+    name: '医疗信息模板',
+    description: '适用于患者信息、病历记录等医疗场景',
+    icon: MedicalIcon,
+    fields: [
+      { name: 'patient_name', label: '患者姓名', type: 'input', required: true },
+      { name: 'id_card', label: '身份证号', type: 'input', required: true },
+      { name: 'medical_insurance', label: '医保类型', type: 'select', required: false },
+      { name: 'department', label: '科室', type: 'select', required: true },
+      { name: 'admission_date', label: '入院日期', type: 'date', required: true }
+    ]
+  }
+])
+```
+
+### 自定义字段类型
+
+```typescript
+// 在 types/form-wizard.ts 中扩展字段类型
+export type FieldType = 
+  | 'input'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  // ... 现有类型
+  | 'medical_code'    // 医疗编码输入
+  | 'diagnosis'       // 诊断选择
+  | 'prescription'    // 处方录入
+```
+
+## 🎨 样式自定义
+
+### 主题色彩
+
+```scss
+// 自定义主题变量
+:root {
+  --wizard-primary-color: #409eff;
+  --wizard-success-color: #67c23a;
+  --wizard-warning-color: #e6a23c;
+  --wizard-danger-color: #f56c6c;
+}
+
+// 自定义向导样式
+.wizard-steps {
+  --el-color-primary: var(--wizard-primary-color);
+}
+```
+
+### 模板卡片样式
+
+```scss
+.template-card {
+  // 自定义卡片样式
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  &.active {
+    border-color: var(--wizard-primary-color);
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  }
+}
+```
+
+## 📊 性能优化
+
+### 懒加载优化
+
+```javascript
+// 异步加载数据源
+const loadDataSources = async () => {
+  if (dataSources.value.length > 0) return // 避免重复加载
+  
+  dataSourceLoading.value = true
+  try {
+    const response = await fetch('/api/data-sources')
+    dataSources.value = await response.json()
+  } finally {
+    dataSourceLoading.value = false
+  }
+}
+```
+
+### 缓存策略
+
+```javascript
+// 使用 sessionStorage 缓存表单配置
+const saveFormConfig = (config) => {
+  sessionStorage.setItem('form_wizard_config', JSON.stringify(config))
+}
+
+const loadFormConfig = () => {
+  const saved = sessionStorage.getItem('form_wizard_config')
+  return saved ? JSON.parse(saved) : null
+}
+```
+
+## 🔍 调试技巧
+
+### 开发模式调试
+
+```javascript
+// 在开发环境下显示详细配置信息
+if (process.env.NODE_ENV === 'development') {
+  console.log('表单配置:', JSON.stringify(formConfig, null, 2))
+}
+
+// 添加配置验证
+const validateConfig = (config) => {
+  const errors = []
+  
+  if (!config.basic.name) errors.push('表单名称不能为空')
+  if (!config.basic.dataSource) errors.push('必须选择数据源')
+  if (!config.template.selectedTemplate) errors.push('必须选择字段模板')
+  
+  return errors
+}
+```
+
+## 🤝 贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 🙏 致谢
+
+- [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
+- [Element Plus](https://element-plus.org/) - 基于 Vue 3 的组件库
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript 的超集
+
+---
+
+**快速表单生成向导** - 让表单创建变得简单高效！ 🚀

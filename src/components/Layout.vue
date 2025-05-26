@@ -9,47 +9,8 @@
           <span class="logo-text">低代码工作流</span>
         </div>
 
-        <!-- 导航菜单 -->
-        <el-menu
-          :default-active="activeIndex"
-          mode="horizontal"
-          class="nav-menu"
-          @select="handleMenuSelect"
-          background-color="transparent"
-          text-color="#fff"
-          active-text-color="#ffd04b"
-        >
-          <el-menu-item index="/">
-            <el-icon><House /></el-icon>
-            <span>首页</span>
-          </el-menu-item>
-          <el-menu-item index="/form-design">
-            <el-icon><Edit /></el-icon>
-            <span>表单设计</span>
-          </el-menu-item>
-          <el-menu-item index="/workflow-design">
-            <el-icon><Connection /></el-icon>
-            <span>流程设计</span>
-          </el-menu-item>
-          <el-menu-item index="/api-test">
-            <el-icon><Monitor /></el-icon>
-            <span>API测试</span>
-          </el-menu-item>
-          <el-sub-menu index="more">
-            <template #title>
-              <el-icon><More /></el-icon>
-              <span>更多</span>
-            </template>
-            <el-menu-item index="/data-management" disabled>
-              <el-icon><DataBoard /></el-icon>
-              <span>数据管理</span>
-            </el-menu-item>
-            <el-menu-item index="/system-config" disabled>
-              <el-icon><Setting /></el-icon>
-              <span>系统配置</span>
-            </el-menu-item>
-          </el-sub-menu>
-        </el-menu>
+        <!-- 导航菜单组件 -->
+        <NavigationMenu />
 
         <!-- 用户信息 -->
         <div class="user-section">
@@ -90,36 +51,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
 import {
   DataBoard,
-  House,
-  Edit,
-  Connection,
-  More,
-  Setting,
   User,
   ArrowDown,
   SwitchButton,
-  Monitor
+  Setting
 } from '@element-plus/icons-vue'
+import NavigationMenu from './NavigationMenu.vue'
 
-const route = useRoute()
-const router = useRouter()
-
-// 用户头像（可以从用户信息中获取）
+// 响应式数据
 const userAvatar = ref('')
-
-// 当前激活的菜单项
-const activeIndex = computed(() => route.path)
-
-// 处理菜单选择
-const handleMenuSelect = (index: string) => {
-  if (index && !index.startsWith('more')) {
-    router.push(index)
-  }
-}
 </script>
 
 <style scoped>
@@ -133,8 +76,8 @@ const handleMenuSelect = (index: string) => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 0;
-  height: 60px;
-  line-height: 60px;
+  height: 70px;
+  line-height: 70px;
 }
 
 .header-content {
@@ -143,16 +86,21 @@ const handleMenuSelect = (index: string) => {
   justify-content: space-between;
   height: 100%;
   padding: 0 24px;
-  max-width: 1400px;
+  max-width: none;
   margin: 0 auto;
+  min-width: 2800px;
+  width: 100%;
+  overflow: visible;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   cursor: pointer;
   transition: opacity 0.3s;
+  min-width: 220px;
+  flex-shrink: 0;
 }
 
 .logo-section:hover {
@@ -160,59 +108,97 @@ const handleMenuSelect = (index: string) => {
 }
 
 .logo-icon {
-  font-size: 32px;
+  font-size: 36px;
   color: #ffd04b;
 }
 
 .logo-text {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: white;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
 }
 
 .nav-menu {
   flex: 1;
   margin: 0 40px;
   border-bottom: none;
+  background-color: transparent !important;
+  overflow: visible;
+  min-width: 2500px;
+  max-width: none;
 }
 
 .nav-menu .el-menu-item,
 .nav-menu .el-sub-menu__title {
   border-bottom: none;
-  height: 60px;
-  line-height: 60px;
+  height: 70px;
+  line-height: 70px;
   padding: 0 20px;
+  margin: 0 2px;
   transition: all 0.3s;
+  background-color: transparent !important;
+  border-radius: 8px;
+  font-size: 15px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-menu .el-menu-item:hover,
 .nav-menu .el-sub-menu__title:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px);
 }
 
 .nav-menu .el-menu-item.is-active {
-  background-color: rgba(255, 208, 75, 0.2);
-  border-bottom: 2px solid #ffd04b;
+  background-color: rgba(255, 208, 75, 0.25) !important;
+  border-bottom: 3px solid #ffd04b;
+  box-shadow: 0 2px 8px rgba(255, 208, 75, 0.3);
+}
+
+/* 子菜单样式 */
+.nav-menu .el-sub-menu .el-menu {
+  background-color: rgba(102, 126, 234, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  margin-top: 8px;
+}
+
+.nav-menu .el-sub-menu .el-menu-item {
+  background-color: transparent !important;
+  color: #fff !important;
+  height: 48px;
+  line-height: 48px;
+  padding: 0 20px;
+  margin: 4px 8px;
+  border-radius: 6px;
+}
+
+.nav-menu .el-sub-menu .el-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .user-section {
   flex-shrink: 0;
+  min-width: 180px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   color: white;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: background-color 0.3s;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+  font-size: 15px;
 }
 
 .user-info:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .username {
@@ -232,7 +218,29 @@ const handleMenuSelect = (index: string) => {
   background: #f5f7fa;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 调整断点 */
+@media (max-width: 1800px) {
+  .header-content {
+    padding: 0 20px;
+  }
+  
+  .nav-menu {
+    margin: 0 30px;
+    min-width: 1000px;
+  }
+}
+
+@media (max-width: 1600px) {
+  .header-content {
+    padding: 0 16px;
+  }
+  
+  .nav-menu {
+    margin: 0 25px;
+    min-width: 900px;
+  }
+}
+
 @media (max-width: 768px) {
   .header-content {
     padding: 0 16px;
@@ -244,6 +252,7 @@ const handleMenuSelect = (index: string) => {
 
   .nav-menu {
     margin: 0 20px;
+    min-width: 600px;
   }
 
   .nav-menu .el-menu-item span,

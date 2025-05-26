@@ -1,0 +1,20 @@
+{
+  "name": "node_backend",
+  "version": "1.0.0",
+  "description": "低代码工作流系统后端API服务",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["lowcode", "workflow", "api", "sqlite"],
+  "author": "Mr.Crab",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

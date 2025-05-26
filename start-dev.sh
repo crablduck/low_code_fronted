@@ -1,4 +1,12 @@
 #!/bin/bash
+###
+ # @Author: Mr.Crab wei17306927526@gmail.com
+ # @Date: 2025-05-26 10:45:06
+ # @LastEditors: Mr.Crab wei17306927526@gmail.com
+ # @LastEditTime: 2025-05-26 15:50:11
+ # @FilePath: /workflow-system/start-dev.sh
+ # @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+### 
 
 # 工作流系统开发环境启动脚本
 echo "🚀 启动工作流系统开发环境..."
@@ -15,7 +23,7 @@ if [ ! -d "mock-server/node_modules" ]; then
 fi
 
 # 启动Mock服务器（后台运行）
-echo "🔧 启动Mock API服务器 (端口: 3003)..."
+echo "🔧 启动Mock API服务器 (端口: 5000)..."
 cd mock-server
 npm start &
 MOCK_PID=$!
@@ -34,15 +42,15 @@ echo "✅ 开发环境启动完成！"
 echo ""
 echo "📊 服务地址："
 echo "   前端应用: http://localhost:3000"
-echo "   Mock API: http://localhost:3003"
-echo "   API文档: http://localhost:3003/api"
+echo "   Mock API: http://localhost:5000"
+echo "   API文档: http://localhost:5000/api"
 echo ""
 echo "🧪 测试页面："
 echo "   API测试: http://localhost:3000/api-test"
 echo ""
 echo "💡 使用说明："
 echo "   - 前端项目运行在 3000 端口"
-echo "   - Mock API 服务运行在 3003 端口"
+echo "   - Mock API 服务运行在 5000 端口"
 echo "   - 可以通过 API 测试页面验证接口连通性"
 echo "   - 按 Ctrl+C 停止所有服务"
 echo ""

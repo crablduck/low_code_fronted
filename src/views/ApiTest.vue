@@ -1,414 +1,589 @@
 <template>
   <div class="api-test">
-    <el-card class="test-card">
+    <el-card>
       <template #header>
-        <div class="card-header">
-          <span>🧪 API 接口测试</span>
-          <el-button @click="checkServerStatus" :loading="checking" type="primary" size="small">
-            重新检测
+        <div class="header-content">
+          <h2>API连接测试</h2>
+          <el-button @click="testAllApis" :loading="allTestsLoading" type="success">
+            一键测试所有API
           </el-button>
         </div>
       </template>
-
-      <el-row :gutter="20">
-        <!-- 表单模板测试 -->
-        <el-col :span="12">
-          <el-card shadow="hover">
-            <template #header>
-              <span>📝 表单模板接口</span>
-            </template>
-            
-            <el-space direction="vertical" style="width: 100%">
-              <el-button @click="testGetTemplates" type="primary" :loading="loading.templates">
-                获取模板列表
-              </el-button>
-              
-              <el-button @click="testGetFullTemplate" type="success" :loading="loading.fullTemplate">
-                获取完整模板 (ID: 1)
-              </el-button>
-              
-              <el-button @click="testGenerateSQL" type="warning" :loading="loading.sql">
-                生成SQL语句 (ID: 1)
-              </el-button>
-              
-              <el-button @click="testGetStatistics" type="info" :loading="loading.statistics">
-                获取统计信息 (ID: 1)
-              </el-button>
-            </el-space>
-          </el-card>
-        </el-col>
-
-        <!-- 表单实例测试 -->
-        <el-col :span="12">
-          <el-card shadow="hover">
-            <template #header>
-              <span>📋 表单实例接口</span>
-            </template>
-            
-            <el-space direction="vertical" style="width: 100%">
-              <el-button @click="testGetInstances" type="primary" :loading="loading.instances">
-                获取实例列表
-              </el-button>
-              
-              <el-button @click="testGetFullInstance" type="success" :loading="loading.fullInstance">
-                获取完整实例 (ID: 1)
-              </el-button>
-              
-              <el-button @click="testSubmitForm" type="warning" :loading="loading.submit">
-                提交测试表单
-              </el-button>
-            </el-space>
-          </el-card>
-        </el-col>
-      </el-row>
-
-      <!-- 基础数据测试 -->
-      <el-row :gutter="20" style="margin-top: 20px">
-        <el-col :span="8">
-          <el-card shadow="hover">
-            <template #header>
-              <span>👥 用户接口</span>
-            </template>
-            <el-button @click="testGetUsers" type="primary" :loading="loading.users" style="width: 100%">
-              获取用户列表
-            </el-button>
-          </el-card>
-        </el-col>
-
-        <el-col :span="8">
-          <el-card shadow="hover">
-            <template #header>
-              <span>🏢 部门接口</span>
-            </template>
-            <el-button @click="testGetDepartments" type="primary" :loading="loading.departments" style="width: 100%">
-              获取部门列表
-            </el-button>
-          </el-card>
-        </el-col>
-
-        <el-col :span="8">
-          <el-card shadow="hover">
-            <template #header>
-              <span>📂 分类接口</span>
-            </template>
-            <el-button @click="testGetCategories" type="primary" :loading="loading.categories" style="width: 100%">
-              获取分类列表
-            </el-button>
-          </el-card>
-        </el-col>
-      </el-row>
-    </el-card>
-
-    <!-- 测试结果显示 -->
-    <el-card class="result-card" v-if="testResult">
-      <template #header>
-        <div class="card-header">
-          <span>📊 测试结果</span>
-          <el-button @click="clearResult" size="small">清空</el-button>
-        </div>
-      </template>
       
-      <el-alert
-        :title="testResult.title"
-        :type="testResult.type"
-        :description="testResult.description"
-        show-icon
-        style="margin-bottom: 15px"
-      />
-      
-      <el-collapse v-if="testResult.data">
-        <el-collapse-item title="响应数据" name="data">
-          <pre class="json-display">{{ JSON.stringify(testResult.data, null, 2) }}</pre>
-        </el-collapse-item>
-      </el-collapse>
+      <el-space direction="vertical" size="large" style="width: 100%">
+        <!-- 基础API测试 -->
+        <el-card>
+          <template #header>
+            <h3>🔧 基础API测试</h3>
+          </template>
+          
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>健康检查</template>
+                <el-button @click="testHealth" :loading="healthLoading" type="primary" style="width: 100%">
+                  测试健康检查
+                </el-button>
+                <div v-if="healthResult" class="result">
+                  <el-tag :type="healthResult.code === 200 ? 'success' : 'danger'">
+                    {{ healthResult.code === 200 ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <pre>{{ JSON.stringify(healthResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>菜单列表</template>
+                <el-button @click="testMenus" :loading="menuLoading" type="primary" style="width: 100%">
+                  测试菜单列表
+                </el-button>
+                <div v-if="menuResult" class="result">
+                  <el-tag :type="menuResult.code === 200 ? 'success' : 'danger'">
+                    {{ menuResult.code === 200 ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    菜单数量: {{ menuResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(menuResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>数据源列表</template>
+                <el-button @click="testDataSources" :loading="dataSourceLoading" type="primary" style="width: 100%">
+                  测试数据源列表
+                </el-button>
+                <div v-if="dataSourceResult" class="result">
+                  <el-tag :type="dataSourceResult.code === 200 ? 'success' : 'danger'">
+                    {{ dataSourceResult.code === 200 ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    数据源数量: {{ dataSourceResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(dataSourceResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </el-card>
+
+        <!-- 表单配置API测试 -->
+        <el-card>
+          <template #header>
+            <h3>📝 表单配置API测试</h3>
+          </template>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-card shadow="hover">
+                <template #header>表单配置列表</template>
+                <el-button @click="testFormConfigs" :loading="formConfigsLoading" type="primary" style="width: 100%">
+                  测试表单配置列表
+                </el-button>
+                <div v-if="formConfigsResult" class="result">
+                  <el-tag :type="formConfigsResult.code === 200 ? 'success' : 'danger'">
+                    {{ formConfigsResult.code === 200 ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    表单数量: {{ formConfigsResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(formConfigsResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+            
+            <el-col :span="12">
+              <el-card shadow="hover">
+                <template #header>表格列表</template>
+                <el-button @click="testTableList" :loading="tableListLoading" type="primary" style="width: 100%">
+                  测试表格列表
+                </el-button>
+                <div v-if="tableListResult" class="result">
+                  <el-tag :type="tableListResult.code === 200 ? 'success' : 'danger'">
+                    {{ tableListResult.code === 200 ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    表格数量: {{ tableListResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(tableListResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </el-card>
+
+        <!-- Mock Server API测试 -->
+        <el-card>
+          <template #header>
+            <h3>🎭 Mock Server API测试</h3>
+          </template>
+          
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>用户列表 (Mock)</template>
+                <el-button @click="testMockUsers" :loading="mockUsersLoading" type="warning" style="width: 100%">
+                  测试Mock用户列表
+                </el-button>
+                <div v-if="mockUsersResult" class="result">
+                  <el-tag :type="mockUsersResult.success ? 'success' : 'danger'">
+                    {{ mockUsersResult.success ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    用户数量: {{ mockUsersResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(mockUsersResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>商品列表 (Mock)</template>
+                <el-button @click="testMockProducts" :loading="mockProductsLoading" type="warning" style="width: 100%">
+                  测试Mock商品列表
+                </el-button>
+                <div v-if="mockProductsResult" class="result">
+                  <el-tag :type="mockProductsResult.success ? 'success' : 'danger'">
+                    {{ mockProductsResult.success ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    商品数量: {{ mockProductsResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(mockProductsResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+            
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <template #header>订单列表 (Mock)</template>
+                <el-button @click="testMockOrders" :loading="mockOrdersLoading" type="warning" style="width: 100%">
+                  测试Mock订单列表
+                </el-button>
+                <div v-if="mockOrdersResult" class="result">
+                  <el-tag :type="mockOrdersResult.success ? 'success' : 'danger'">
+                    {{ mockOrdersResult.success ? '✅ 成功' : '❌ 失败' }}
+                  </el-tag>
+                  <div class="result-summary">
+                    订单数量: {{ mockOrdersResult.data?.length || 0 }}
+                  </div>
+                  <pre>{{ JSON.stringify(mockOrdersResult, null, 2) }}</pre>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </el-card>
+
+        <!-- 自定义API测试 -->
+        <el-card>
+          <template #header>
+            <h3>🔧 自定义API测试</h3>
+          </template>
+          
+          <el-form :model="customApiForm" label-width="100px">
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="请求方法">
+                  <el-select v-model="customApiForm.method" style="width: 100%">
+                    <el-option label="GET" value="GET" />
+                    <el-option label="POST" value="POST" />
+                    <el-option label="PUT" value="PUT" />
+                    <el-option label="DELETE" value="DELETE" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="16">
+                <el-form-item label="API地址">
+                  <el-input v-model="customApiForm.url" placeholder="输入API地址，如: http://localhost:4000/api/health" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            
+            <el-form-item label="请求体" v-if="customApiForm.method !== 'GET'">
+              <el-input 
+                v-model="customApiForm.body" 
+                type="textarea" 
+                :rows="4" 
+                placeholder="输入JSON格式的请求体（可选）"
+              />
+            </el-form-item>
+            
+            <el-form-item>
+              <el-button @click="testCustomApi" :loading="customApiLoading" type="primary">
+                发送请求
+              </el-button>
+              <el-button @click="clearCustomResult">清空结果</el-button>
+            </el-form-item>
+          </el-form>
+          
+          <div v-if="customApiResult" class="result">
+            <el-tag :type="customApiResult.success ? 'success' : 'danger'">
+              {{ customApiResult.success ? '✅ 成功' : '❌ 失败' }}
+            </el-tag>
+            <div class="result-summary">
+              状态码: {{ customApiResult.status }}
+            </div>
+            <pre>{{ JSON.stringify(customApiResult.data, null, 2) }}</pre>
+          </div>
+        </el-card>
+      </el-space>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import {
-  formTemplateApi,
-  formInstanceApi,
-  userApi,
-  departmentApi,
-  categoryApi,
-  handleApiError
-} from '@/api/formApi';
+import { ref, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
 
 // 响应式数据
-const checking = ref(false);
-const loading = ref({
-  templates: false,
-  fullTemplate: false,
-  sql: false,
-  statistics: false,
-  instances: false,
-  fullInstance: false,
-  submit: false,
-  users: false,
-  departments: false,
-  categories: false
-});
+const allTestsLoading = ref(false)
+const healthLoading = ref(false)
+const menuLoading = ref(false)
+const dataSourceLoading = ref(false)
+const formConfigsLoading = ref(false)
+const tableListLoading = ref(false)
+const mockUsersLoading = ref(false)
+const mockProductsLoading = ref(false)
+const mockOrdersLoading = ref(false)
+const customApiLoading = ref(false)
 
-interface TestResult {
-  title: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  description: string;
-  data?: any;
+const healthResult = ref(null)
+const menuResult = ref(null)
+const dataSourceResult = ref(null)
+const formConfigsResult = ref(null)
+const tableListResult = ref(null)
+const mockUsersResult = ref(null)
+const mockProductsResult = ref(null)
+const mockOrdersResult = ref(null)
+const customApiResult = ref(null)
+
+// 自定义API表单
+const customApiForm = reactive({
+  method: 'GET',
+  url: 'http://localhost:4000/api/health',
+  body: ''
+})
+
+// 测试健康检查
+const testHealth = async () => {
+  healthLoading.value = true
+  try {
+    const response = await fetch('http://localhost:4000/api/health')
+    const result = await response.json()
+    healthResult.value = result
+    ElMessage.success('健康检查成功')
+  } catch (error) {
+    console.error('健康检查失败:', error)
+    healthResult.value = { code: 500, message: error.message }
+    ElMessage.error('健康检查失败: ' + error.message)
+  } finally {
+    healthLoading.value = false
+  }
 }
 
-const testResult = ref<TestResult | null>(null);
-
-// 检查服务器连接状态
-const checkServerStatus = async () => {
-  checking.value = true;
+// 测试菜单列表
+const testMenus = async () => {
+  menuLoading.value = true
   try {
-    await formTemplateApi.getTemplates({ _limit: 1 });
-    ElMessage.success('Mock服务器连接成功！');
+    const response = await fetch('http://localhost:4000/api/menu-list')
+    const result = await response.json()
+    menuResult.value = result
+    ElMessage.success('菜单列表获取成功')
   } catch (error) {
-    ElMessage.error('Mock服务器连接失败，请确保服务器已启动');
+    console.error('菜单列表获取失败:', error)
+    menuResult.value = { code: 500, message: error.message }
+    ElMessage.error('菜单列表获取失败: ' + error.message)
   } finally {
-    checking.value = false;
+    menuLoading.value = false
   }
-};
+}
 
-// 显示测试结果
-const showResult = (title: string, type: 'success' | 'error', data?: any, description?: string) => {
-  testResult.value = {
-    title,
-    type,
-    description: description || (type === 'success' ? '请求成功' : '请求失败'),
-    data
-  };
-};
-
-// 清空测试结果
-const clearResult = () => {
-  testResult.value = null;
-};
-
-// 测试获取模板列表
-const testGetTemplates = async () => {
-  loading.value.templates = true;
+// 测试数据源列表
+const testDataSources = async () => {
+  dataSourceLoading.value = true
   try {
-    const response = await formTemplateApi.getTemplates({ _limit: 10 });
-    showResult('获取模板列表', 'success', response.data, `成功获取 ${response.data.length} 个模板`);
-    ElMessage.success('获取模板列表成功');
+    const response = await fetch('http://localhost:4000/api/data-sources')
+    const result = await response.json()
+    dataSourceResult.value = result
+    ElMessage.success('数据源列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取模板列表', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取模板列表失败');
+    console.error('数据源列表获取失败:', error)
+    dataSourceResult.value = { code: 500, message: error.message }
+    ElMessage.error('数据源列表获取失败: ' + error.message)
   } finally {
-    loading.value.templates = false;
+    dataSourceLoading.value = false
   }
-};
+}
 
-// 测试获取完整模板
-const testGetFullTemplate = async () => {
-  loading.value.fullTemplate = true;
+// 测试表单配置列表
+const testFormConfigs = async () => {
+  formConfigsLoading.value = true
   try {
-    const response = await formTemplateApi.getFullTemplate(1);
-    showResult('获取完整模板', 'success', response.data, `模板: ${response.data.name}, 字段数: ${response.data.fields?.length || 0}`);
-    ElMessage.success('获取完整模板成功');
+    const response = await fetch('http://localhost:4000/api/form-configs')
+    const result = await response.json()
+    formConfigsResult.value = result
+    ElMessage.success('表单配置列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取完整模板', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取完整模板失败');
+    console.error('表单配置列表获取失败:', error)
+    formConfigsResult.value = { code: 500, message: error.message }
+    ElMessage.error('表单配置列表获取失败: ' + error.message)
   } finally {
-    loading.value.fullTemplate = false;
+    formConfigsLoading.value = false
   }
-};
+}
 
-// 测试生成SQL
-const testGenerateSQL = async () => {
-  loading.value.sql = true;
+// 测试表格列表
+const testTableList = async () => {
+  tableListLoading.value = true
   try {
-    const response = await formTemplateApi.generateSQL(1);
-    showResult('生成SQL语句', 'success', response.data, `表名: ${response.data.tableName}`);
-    ElMessage.success('生成SQL语句成功');
+    const response = await fetch('http://localhost:4000/api/table-list?db=mysql_main')
+    const result = await response.json()
+    tableListResult.value = result
+    ElMessage.success('表格列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('生成SQL语句', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('生成SQL语句失败');
+    console.error('表格列表获取失败:', error)
+    tableListResult.value = { code: 500, message: error.message }
+    ElMessage.error('表格列表获取失败: ' + error.message)
   } finally {
-    loading.value.sql = false;
+    tableListLoading.value = false
   }
-};
+}
 
-// 测试获取统计信息
-const testGetStatistics = async () => {
-  loading.value.statistics = true;
+// 测试Mock用户列表
+const testMockUsers = async () => {
+  mockUsersLoading.value = true
   try {
-    const response = await formTemplateApi.getStatistics(1);
-    const stats = response.data.statistics;
-    showResult('获取统计信息', 'success', response.data, 
-      `总提交: ${stats.totalSubmissions}, 已完成: ${stats.completedSubmissions}`);
-    ElMessage.success('获取统计信息成功');
-  } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取统计信息', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取统计信息失败');
-  } finally {
-    loading.value.statistics = false;
-  }
-};
-
-// 测试获取实例列表
-const testGetInstances = async () => {
-  loading.value.instances = true;
-  try {
-    const response = await formInstanceApi.getInstances({ _limit: 10 });
-    showResult('获取实例列表', 'success', response.data, `成功获取 ${response.data.length} 个实例`);
-    ElMessage.success('获取实例列表成功');
-  } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取实例列表', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取实例列表失败');
-  } finally {
-    loading.value.instances = false;
-  }
-};
-
-// 测试获取完整实例
-const testGetFullInstance = async () => {
-  loading.value.fullInstance = true;
-  try {
-    const response = await formInstanceApi.getFullInstance(1);
-    showResult('获取完整实例', 'success', response.data, 
-      `实例: ${response.data.instanceName}, 模板: ${response.data.template?.name}`);
-    ElMessage.success('获取完整实例成功');
-  } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取完整实例', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取完整实例失败');
-  } finally {
-    loading.value.fullInstance = false;
-  }
-};
-
-// 测试提交表单
-const testSubmitForm = async () => {
-  loading.value.submit = true;
-  try {
-    const testData = {
-      templateId: 1,
-      instanceName: `API测试表单_${Date.now()}`,
-      submittedBy: 1,
-      formData: {
-        patientName: '测试患者',
-        patientAge: '30',
-        gender: 'male',
-        phone: '13800138000',
-        admissionDate: new Date().toISOString().split('T')[0]
-      }
-    };
+    // 模拟Mock API调用
+    const mockData = {
+      success: true,
+      data: [
+        { id: 1, name: '张三', email: 'zhangsan@example.com', role: 'admin' },
+        { id: 2, name: '李四', email: 'lisi@example.com', role: 'user' },
+        { id: 3, name: '王五', email: 'wangwu@example.com', role: 'user' }
+      ],
+      total: 3
+    }
     
-    const response = await formInstanceApi.submit(testData);
-    showResult('提交测试表单', 'success', response.data, 
-      `成功创建实例 ID: ${response.data.instance?.id}`);
-    ElMessage.success('提交测试表单成功');
+    // 模拟网络延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    mockUsersResult.value = mockData
+    ElMessage.success('Mock用户列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('提交测试表单', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('提交测试表单失败');
+    console.error('Mock用户列表获取失败:', error)
+    mockUsersResult.value = { success: false, message: error.message }
+    ElMessage.error('Mock用户列表获取失败: ' + error.message)
   } finally {
-    loading.value.submit = false;
+    mockUsersLoading.value = false
   }
-};
+}
 
-// 测试获取用户列表
-const testGetUsers = async () => {
-  loading.value.users = true;
+// 测试Mock商品列表
+const testMockProducts = async () => {
+  mockProductsLoading.value = true
   try {
-    const response = await userApi.getUsers();
-    showResult('获取用户列表', 'success', response.data, `成功获取 ${response.data.length} 个用户`);
-    ElMessage.success('获取用户列表成功');
+    const mockData = {
+      success: true,
+      data: [
+        { id: 1, name: 'iPhone 15', price: 7999, category: '手机', stock: 100 },
+        { id: 2, name: 'MacBook Pro', price: 15999, category: '电脑', stock: 50 },
+        { id: 3, name: 'AirPods Pro', price: 1999, category: '耳机', stock: 200 }
+      ],
+      total: 3
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    mockProductsResult.value = mockData
+    ElMessage.success('Mock商品列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取用户列表', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取用户列表失败');
+    console.error('Mock商品列表获取失败:', error)
+    mockProductsResult.value = { success: false, message: error.message }
+    ElMessage.error('Mock商品列表获取失败: ' + error.message)
   } finally {
-    loading.value.users = false;
+    mockProductsLoading.value = false
   }
-};
+}
 
-// 测试获取部门列表
-const testGetDepartments = async () => {
-  loading.value.departments = true;
+// 测试Mock订单列表
+const testMockOrders = async () => {
+  mockOrdersLoading.value = true
   try {
-    const response = await departmentApi.getDepartments();
-    showResult('获取部门列表', 'success', response.data, `成功获取 ${response.data.length} 个部门`);
-    ElMessage.success('获取部门列表成功');
+    const mockData = {
+      success: true,
+      data: [
+        { id: 1001, userId: 1, productId: 1, quantity: 1, status: '已支付', total: 7999 },
+        { id: 1002, userId: 2, productId: 2, quantity: 1, status: '待发货', total: 15999 },
+        { id: 1003, userId: 3, productId: 3, quantity: 2, status: '已完成', total: 3998 }
+      ],
+      total: 3
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    mockOrdersResult.value = mockData
+    ElMessage.success('Mock订单列表获取成功')
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取部门列表', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取部门列表失败');
+    console.error('Mock订单列表获取失败:', error)
+    mockOrdersResult.value = { success: false, message: error.message }
+    ElMessage.error('Mock订单列表获取失败: ' + error.message)
   } finally {
-    loading.value.departments = false;
+    mockOrdersLoading.value = false
   }
-};
+}
 
-// 测试获取分类列表
-const testGetCategories = async () => {
-  loading.value.categories = true;
+// 测试自定义API
+const testCustomApi = async () => {
+  if (!customApiForm.url) {
+    ElMessage.warning('请输入API地址')
+    return
+  }
+  
+  customApiLoading.value = true
   try {
-    const response = await categoryApi.getCategories();
-    showResult('获取分类列表', 'success', response.data, `成功获取 ${response.data.length} 个分类`);
-    ElMessage.success('获取分类列表成功');
+    const options: RequestInit = {
+      method: customApiForm.method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+    
+    if (customApiForm.method !== 'GET' && customApiForm.body) {
+      options.body = customApiForm.body
+    }
+    
+    const response = await fetch(customApiForm.url, options)
+    const result = await response.json()
+    
+    customApiResult.value = {
+      success: response.ok,
+      status: response.status,
+      data: result
+    }
+    
+    if (response.ok) {
+      ElMessage.success('自定义API请求成功')
+    } else {
+      ElMessage.error('自定义API请求失败')
+    }
   } catch (error) {
-    const errorInfo = handleApiError(error);
-    showResult('获取分类列表', 'error', errorInfo, errorInfo.message);
-    ElMessage.error('获取分类列表失败');
+    console.error('自定义API请求失败:', error)
+    customApiResult.value = {
+      success: false,
+      status: 0,
+      data: { message: error.message }
+    }
+    ElMessage.error('自定义API请求失败: ' + error.message)
   } finally {
-    loading.value.categories = false;
+    customApiLoading.value = false
   }
-};
+}
 
-// 组件挂载时检查服务器状态
-onMounted(() => {
-  checkServerStatus();
-});
+// 清空自定义结果
+const clearCustomResult = () => {
+  customApiResult.value = null
+}
+
+// 一键测试所有API
+const testAllApis = async () => {
+  allTestsLoading.value = true
+  try {
+    ElMessage.info('开始测试所有API...')
+    
+    // 并行测试所有API
+    await Promise.all([
+      testHealth(),
+      testMenus(),
+      testDataSources(),
+      testFormConfigs(),
+      testTableList(),
+      testMockUsers(),
+      testMockProducts(),
+      testMockOrders()
+    ])
+    
+    ElMessage.success('所有API测试完成！')
+  } catch (error) {
+    ElMessage.error('批量测试过程中出现错误')
+  } finally {
+    allTestsLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
 .api-test {
   padding: 20px;
+  background: #f5f7fa;
+  min-height: 100vh;
 }
 
-.test-card {
-  margin-bottom: 20px;
-}
-
-.result-card {
-  margin-top: 20px;
-}
-
-.card-header {
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.json-display {
-  background-color: #f5f5f5;
+.header-content h2 {
+  margin: 0;
+  color: #303133;
+}
+
+.result {
+  margin-top: 15px;
   padding: 15px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.4;
-  max-height: 400px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  max-height: 300px;
   overflow-y: auto;
+}
+
+.result-summary {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.result pre {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  color: #606266;
   white-space: pre-wrap;
   word-break: break-all;
+  line-height: 1.4;
 }
 
-.el-space {
-  width: 100%;
+.el-card {
+  margin-bottom: 20px;
 }
 
+.el-card .el-card__header {
+  background: #fafafa;
+  border-bottom: 1px solid #ebeef5;
+}
+
+/* 卡片悬停效果 */
+.el-card[shadow="hover"]:hover {
+  transform: translateY(-2px);
+  transition: all 0.3s;
+}
+
+/* 按钮样式优化 */
 .el-button {
-  width: 100%;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 标签样式 */
+.el-tag {
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 </style> 
