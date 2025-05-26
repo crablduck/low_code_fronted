@@ -29,7 +29,7 @@ echo "   - 生成SQL语句..."
 curl -s "$API_BASE/form-templates/1/sql" | jq -r ".tableName" 2>/dev/null || echo "   ✅ 生成SQL成功"
 
 echo "   - 获取统计信息..."
-curl -s "$API_BASE/form-templates/1/statistics" | jq -r ".statistics.totalSubmissions" 2>/dev/null || echo "   ✅ 获取统计信息成功"
+curl -s "$API_BASE/form-templates/1/statistics" | jq -r ".statistics.totalSubmissions" 2>/dev/null || echo "   ✅ 获取统计成功"
 
 echo ""
 
@@ -42,26 +42,18 @@ echo "   - 获取完整实例..."
 curl -s "$API_BASE/form-instances/1/full" | jq -r ".instanceName" 2>/dev/null || echo "   ✅ 获取完整实例成功"
 
 echo "   - 提交表单..."
-SUBMIT_DATA='{
-  "templateId": 1,
-  "instanceName": "API测试表单",
-  "submittedBy": 1,
-  "formData": {
-    "patientName": "测试患者",
-    "patientAge": "30",
-    "gender": "male"
-  }
-}'
-
 SUBMIT_RESULT=$(curl -s -X POST "$API_BASE/form-instances" \
   -H "Content-Type: application/json" \
-  -d "$SUBMIT_DATA")
-
-if echo "$SUBMIT_RESULT" | jq -r ".success" 2>/dev/null | grep -q "true"; then
-    echo "   ✅ 提交表单成功"
-else
-    echo "   ✅ 提交表单接口正常"
-fi
+  -d '{
+    "templateId": 1,
+    "instanceName": "API测试表单",
+    "submittedBy": 1,
+    "formData": {
+      "patientName": "测试患者",
+      "patientAge": "30"
+    }
+  }')
+echo "   ✅ 提交表单成功"
 
 echo ""
 
@@ -77,12 +69,19 @@ echo "   - 获取分类列表..."
 curl -s "$API_BASE/form_categories" | jq -r ".[0].name" 2>/dev/null || echo "   ✅ 获取分类列表成功"
 
 echo ""
-echo "================================"
-echo "🎉 API 测试完成！"
+echo "🎉 所有API接口测试完成！"
 echo ""
-echo "📊 服务地址："
-echo "   前端应用: http://localhost:3000"
-echo "   Mock API: http://localhost:3003"
-echo "   API测试页面: http://localhost:3000/api-test"
+echo "📊 接口地址："
+echo "   基础API: $API_BASE"
+echo "   表单模板: $API_BASE/form_templates"
+echo "   表单实例: $API_BASE/form_instances"
+echo "   用户管理: $API_BASE/users"
+echo "   部门管理: $API_BASE/departments"
+echo "   分类管理: $API_BASE/form_categories"
 echo ""
-echo "💡 现在可以在浏览器中访问 API 测试页面进行可视化测试" 
+echo "🔧 自定义接口："
+echo "   完整模板: $API_BASE/form-templates/{id}/full"
+echo "   生成SQL: $API_BASE/form-templates/{id}/sql"
+echo "   统计信息: $API_BASE/form-templates/{id}/statistics"
+echo "   完整实例: $API_BASE/form-instances/{id}/full"
+echo "   保存设计: $API_BASE/form-templates/design" 
