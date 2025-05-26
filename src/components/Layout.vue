@@ -31,6 +31,10 @@
             <el-icon><Connection /></el-icon>
             <span>流程设计</span>
           </el-menu-item>
+          <el-menu-item index="/api-test">
+            <el-icon><Monitor /></el-icon>
+            <span>API测试</span>
+          </el-menu-item>
           <el-sub-menu index="more">
             <template #title>
               <el-icon><More /></el-icon>
@@ -97,7 +101,8 @@ import {
   Setting,
   User,
   ArrowDown,
-  SwitchButton
+  SwitchButton,
+  Monitor
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

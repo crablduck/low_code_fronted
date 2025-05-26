@@ -30,6 +30,12 @@ const routes: RouteRecordRaw[] = [
         name: 'WorkflowDesign',
         component: () => import('../components/WorkflowDesigner.vue'),
         meta: { title: '流程设计器' }
+      },
+      {
+        path: '/api-test',
+        name: 'ApiTest',
+        component: () => import('../views/ApiTest.vue'),
+        meta: { title: 'API接口测试' }
       }
     ]
   }

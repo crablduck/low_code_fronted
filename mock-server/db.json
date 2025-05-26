@@ -1,0 +1,1159 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "email": "admin@hospital.com",
+      "name": "系统管理员",
+      "role": "admin",
+      "department": "信息科",
+      "createdAt": "2025-04-26T02:42:39.469Z",
+      "updatedAt": "2025-04-26T02:42:39.470Z"
+    },
+    {
+      "id": 2,
+      "username": "doctor1",
+      "email": "doctor1@hospital.com",
+      "name": "张医生",
+      "role": "doctor",
+      "department": "内科",
+      "createdAt": "2025-04-26T02:42:39.470Z",
+      "updatedAt": "2025-04-26T02:42:39.470Z"
+    },
+    {
+      "id": 3,
+      "username": "doctor2",
+      "email": "doctor2@hospital.com",
+      "name": "李医生",
+      "role": "doctor",
+      "department": "外科",
+      "createdAt": "2025-04-26T02:42:39.470Z",
+      "updatedAt": "2025-04-26T02:42:39.470Z"
+    },
+    {
+      "id": 4,
+      "username": "nurse1",
+      "email": "nurse1@hospital.com",
+      "name": "王护士",
+      "role": "nurse",
+      "department": "内科",
+      "createdAt": "2025-04-26T02:42:39.470Z",
+      "updatedAt": "2025-04-26T02:42:39.470Z"
+    },
+    {
+      "id": 5,
+      "username": "manager1",
+      "email": "manager1@hospital.com",
+      "name": "陈主任",
+      "role": "manager",
+      "department": "内科",
+      "createdAt": "2025-04-26T02:42:39.470Z",
+      "updatedAt": "2025-04-26T02:42:39.471Z"
+    }
+  ],
+  "form_templates": [
+    {
+      "id": 1,
+      "name": "患者入院登记表",
+      "description": "患者入院时需要填写的基本信息表单",
+      "category": "医疗表单",
+      "status": "published",
+      "createdBy": 1,
+      "version": "1.0.0",
+      "createdAt": "2025-05-20T02:42:39.471Z",
+      "updatedAt": "2025-05-23T02:42:39.471Z",
+      "publishedAt": "2025-05-18T02:42:39.471Z"
+    },
+    {
+      "id": 2,
+      "name": "医疗设备申请表",
+      "description": "科室申请医疗设备时使用的表单",
+      "category": "设备管理",
+      "status": "draft",
+      "createdBy": 1,
+      "version": "1.0.0",
+      "createdAt": "2025-05-25T02:42:39.471Z",
+      "updatedAt": "2025-04-29T02:42:39.471Z",
+      "publishedAt": null
+    },
+    {
+      "id": 3,
+      "name": "员工入职申请表",
+      "description": "新员工入职时填写的申请表单",
+      "category": "人事管理",
+      "status": "published",
+      "createdBy": 1,
+      "version": "1.0.0",
+      "createdAt": "2025-05-14T02:42:39.471Z",
+      "updatedAt": "2025-05-23T02:42:39.471Z",
+      "publishedAt": "2025-05-08T02:42:39.471Z"
+    },
+    {
+      "id": 4,
+      "name": "药品采购申请表",
+      "description": "药剂科药品采购申请表单",
+      "category": "药品管理",
+      "status": "published",
+      "createdBy": 1,
+      "version": "1.0.0",
+      "createdAt": "2025-05-08T02:42:39.471Z",
+      "updatedAt": "2025-05-04T02:42:39.471Z",
+      "publishedAt": "2025-05-12T02:42:39.471Z"
+    },
+    {
+      "id": 5,
+      "name": "医疗质量检查表",
+      "description": "医疗质量检查评估表单",
+      "category": "质量管理",
+      "status": "draft",
+      "createdBy": 1,
+      "version": "1.0.0",
+      "createdAt": "2025-05-04T02:42:39.471Z",
+      "updatedAt": "2025-05-24T02:42:39.471Z",
+      "publishedAt": null
+    }
+  ],
+  "form_fields": [
+    {
+      "id": 1,
+      "templateId": 1,
+      "fieldName": "patientName",
+      "fieldLabel": "患者姓名",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入患者姓名",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 1,
+      "validation": {
+        "required": true,
+        "message": "患者姓名不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-25T02:42:39.471Z",
+      "updatedAt": "2025-05-07T02:42:39.471Z"
+    },
+    {
+      "id": 2,
+      "templateId": 1,
+      "fieldName": "patientAge",
+      "fieldLabel": "患者年龄",
+      "fieldType": "number",
+      "dataType": "INT",
+      "required": true,
+      "placeholder": "请输入年龄",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 2,
+      "validation": {
+        "required": true,
+        "message": "患者年龄不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-07T02:42:39.471Z",
+      "updatedAt": "2025-05-07T02:42:39.471Z"
+    },
+    {
+      "id": 3,
+      "templateId": 1,
+      "fieldName": "gender",
+      "fieldLabel": "性别",
+      "fieldType": "radio",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 3,
+      "validation": {
+        "required": true,
+        "message": "性别不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-16T02:42:39.471Z",
+      "updatedAt": "2025-05-22T02:42:39.471Z"
+    },
+    {
+      "id": 4,
+      "templateId": 1,
+      "fieldName": "idCard",
+      "fieldLabel": "身份证号",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入身份证号",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 4,
+      "validation": {
+        "required": true,
+        "message": "身份证号不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-09T02:42:39.471Z",
+      "updatedAt": "2025-05-07T02:42:39.471Z"
+    },
+    {
+      "id": 5,
+      "templateId": 1,
+      "fieldName": "phone",
+      "fieldLabel": "联系电话",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入联系电话",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 5,
+      "validation": {
+        "required": true,
+        "message": "联系电话不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-23T02:42:39.471Z",
+      "updatedAt": "2025-05-09T02:42:39.471Z"
+    },
+    {
+      "id": 6,
+      "templateId": 1,
+      "fieldName": "address",
+      "fieldLabel": "家庭住址",
+      "fieldType": "textarea",
+      "dataType": "TEXT",
+      "required": false,
+      "placeholder": "请输入家庭住址",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 6,
+      "validation": {
+        "required": false,
+        "message": ""
+      },
+      "props": {},
+      "createdAt": "2025-05-16T02:42:39.471Z",
+      "updatedAt": "2025-05-08T02:42:39.471Z"
+    },
+    {
+      "id": 7,
+      "templateId": 1,
+      "fieldName": "admissionDate",
+      "fieldLabel": "入院日期",
+      "fieldType": "date",
+      "dataType": "DATE",
+      "required": true,
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 7,
+      "validation": {
+        "required": true,
+        "message": "入院日期不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-03T02:42:39.471Z",
+      "updatedAt": "2025-05-10T02:42:39.471Z"
+    },
+    {
+      "id": 8,
+      "templateId": 1,
+      "fieldName": "department",
+      "fieldLabel": "入院科室",
+      "fieldType": "select",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 8,
+      "validation": {
+        "required": true,
+        "message": "入院科室不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-12T02:42:39.471Z",
+      "updatedAt": "2025-05-15T02:42:39.471Z"
+    },
+    {
+      "id": 9,
+      "templateId": 1,
+      "fieldName": "emergencyContact",
+      "fieldLabel": "紧急联系人",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入紧急联系人姓名",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 9,
+      "validation": {
+        "required": true,
+        "message": "紧急联系人不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-25T02:42:39.471Z",
+      "updatedAt": "2025-05-22T02:42:39.471Z"
+    },
+    {
+      "id": 10,
+      "templateId": 1,
+      "fieldName": "emergencyPhone",
+      "fieldLabel": "紧急联系人电话",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入紧急联系人电话",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 10,
+      "validation": {
+        "required": true,
+        "message": "紧急联系人电话不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-07T02:42:39.471Z",
+      "updatedAt": "2025-05-02T02:42:39.471Z"
+    },
+    {
+      "id": 11,
+      "templateId": 2,
+      "fieldName": "equipmentName",
+      "fieldLabel": "设备名称",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入设备名称",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 1,
+      "validation": {
+        "required": true,
+        "message": "设备名称不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-23T02:42:39.471Z",
+      "updatedAt": "2025-05-17T02:42:39.471Z"
+    },
+    {
+      "id": 12,
+      "templateId": 2,
+      "fieldName": "equipmentType",
+      "fieldLabel": "设备类型",
+      "fieldType": "select",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 2,
+      "validation": {
+        "required": true,
+        "message": "设备类型不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-25T02:42:39.471Z",
+      "updatedAt": "2025-05-17T02:42:39.472Z"
+    },
+    {
+      "id": 13,
+      "templateId": 2,
+      "fieldName": "quantity",
+      "fieldLabel": "申请数量",
+      "fieldType": "number",
+      "dataType": "INT",
+      "required": true,
+      "placeholder": "请输入申请数量",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 3,
+      "validation": {
+        "required": true,
+        "message": "申请数量不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-21T02:42:39.472Z",
+      "updatedAt": "2025-05-04T02:42:39.472Z"
+    },
+    {
+      "id": 14,
+      "templateId": 2,
+      "fieldName": "budget",
+      "fieldLabel": "预算金额",
+      "fieldType": "number",
+      "dataType": "DECIMAL",
+      "required": true,
+      "placeholder": "请输入预算金额",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 4,
+      "validation": {
+        "required": true,
+        "message": "预算金额不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-13T02:42:39.472Z",
+      "updatedAt": "2025-05-14T02:42:39.472Z"
+    },
+    {
+      "id": 15,
+      "templateId": 2,
+      "fieldName": "reason",
+      "fieldLabel": "申请理由",
+      "fieldType": "textarea",
+      "dataType": "TEXT",
+      "required": true,
+      "placeholder": "请详细说明申请理由",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 5,
+      "validation": {
+        "required": true,
+        "message": "申请理由不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-16T02:42:39.472Z",
+      "updatedAt": "2025-05-07T02:42:39.472Z"
+    },
+    {
+      "id": 16,
+      "templateId": 2,
+      "fieldName": "urgency",
+      "fieldLabel": "紧急程度",
+      "fieldType": "radio",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 6,
+      "validation": {
+        "required": true,
+        "message": "紧急程度不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-22T02:42:39.472Z",
+      "updatedAt": "2025-05-17T02:42:39.472Z"
+    },
+    {
+      "id": 17,
+      "templateId": 2,
+      "fieldName": "expectedDate",
+      "fieldLabel": "期望到货日期",
+      "fieldType": "date",
+      "dataType": "DATE",
+      "required": false,
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 7,
+      "validation": {
+        "required": false,
+        "message": ""
+      },
+      "props": {},
+      "createdAt": "2025-05-09T02:42:39.472Z",
+      "updatedAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 18,
+      "templateId": 3,
+      "fieldName": "employeeName",
+      "fieldLabel": "姓名",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入姓名",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 1,
+      "validation": {
+        "required": true,
+        "message": "姓名不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-01T02:42:39.472Z",
+      "updatedAt": "2025-05-08T02:42:39.472Z"
+    },
+    {
+      "id": 19,
+      "templateId": 3,
+      "fieldName": "gender",
+      "fieldLabel": "性别",
+      "fieldType": "radio",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 2,
+      "validation": {
+        "required": true,
+        "message": "性别不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-24T02:42:39.472Z",
+      "updatedAt": "2025-05-19T02:42:39.472Z"
+    },
+    {
+      "id": 20,
+      "templateId": 3,
+      "fieldName": "birthDate",
+      "fieldLabel": "出生日期",
+      "fieldType": "date",
+      "dataType": "DATE",
+      "required": true,
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 3,
+      "validation": {
+        "required": true,
+        "message": "出生日期不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-16T02:42:39.472Z",
+      "updatedAt": "2025-05-14T02:42:39.472Z"
+    },
+    {
+      "id": 21,
+      "templateId": 3,
+      "fieldName": "idCard",
+      "fieldLabel": "身份证号",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入身份证号",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 4,
+      "validation": {
+        "required": true,
+        "message": "身份证号不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-05T02:42:39.472Z",
+      "updatedAt": "2025-05-11T02:42:39.472Z"
+    },
+    {
+      "id": 22,
+      "templateId": 3,
+      "fieldName": "phone",
+      "fieldLabel": "联系电话",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入联系电话",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 5,
+      "validation": {
+        "required": true,
+        "message": "联系电话不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-09T02:42:39.472Z",
+      "updatedAt": "2025-05-17T02:42:39.472Z"
+    },
+    {
+      "id": 23,
+      "templateId": 3,
+      "fieldName": "email",
+      "fieldLabel": "邮箱地址",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入邮箱地址",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 6,
+      "validation": {
+        "required": true,
+        "message": "邮箱地址不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-21T02:42:39.472Z",
+      "updatedAt": "2025-05-24T02:42:39.472Z"
+    },
+    {
+      "id": 24,
+      "templateId": 3,
+      "fieldName": "education",
+      "fieldLabel": "学历",
+      "fieldType": "select",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 7,
+      "validation": {
+        "required": true,
+        "message": "学历不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-06T02:42:39.472Z",
+      "updatedAt": "2025-05-08T02:42:39.472Z"
+    },
+    {
+      "id": 25,
+      "templateId": 3,
+      "fieldName": "major",
+      "fieldLabel": "专业",
+      "fieldType": "text",
+      "dataType": "VARCHAR",
+      "required": true,
+      "placeholder": "请输入专业",
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 8,
+      "validation": {
+        "required": true,
+        "message": "专业不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-03T02:42:39.472Z",
+      "updatedAt": "2025-05-07T02:42:39.472Z"
+    },
+    {
+      "id": 26,
+      "templateId": 3,
+      "fieldName": "position",
+      "fieldLabel": "应聘职位",
+      "fieldType": "select",
+      "dataType": "VARCHAR",
+      "required": true,
+      "maxLength": 255,
+      "defaultValue": "",
+      "sortOrder": 9,
+      "validation": {
+        "required": true,
+        "message": "应聘职位不能为空"
+      },
+      "props": {},
+      "createdAt": "2025-05-17T02:42:39.472Z",
+      "updatedAt": "2025-05-14T02:42:39.472Z"
+    },
+    {
+      "id": 27,
+      "templateId": 3,
+      "fieldName": "expectedSalary",
+      "fieldLabel": "期望薪资",
+      "fieldType": "number",
+      "dataType": "DECIMAL",
+      "required": false,
+      "placeholder": "请输入期望薪资",
+      "maxLength": null,
+      "defaultValue": "",
+      "sortOrder": 10,
+      "validation": {
+        "required": false,
+        "message": ""
+      },
+      "props": {},
+      "createdAt": "2025-05-11T02:42:39.472Z",
+      "updatedAt": "2025-05-05T02:42:39.472Z"
+    }
+  ],
+  "field_options": [
+    {
+      "id": 1,
+      "fieldId": 3,
+      "label": "男",
+      "value": "male",
+      "sortOrder": 1,
+      "createdAt": "2025-05-18T02:42:39.471Z"
+    },
+    {
+      "id": 2,
+      "fieldId": 3,
+      "label": "女",
+      "value": "female",
+      "sortOrder": 2,
+      "createdAt": "2025-05-21T02:42:39.471Z"
+    },
+    {
+      "id": 3,
+      "fieldId": 8,
+      "label": "内科",
+      "value": "internal",
+      "sortOrder": 1,
+      "createdAt": "2025-05-12T02:42:39.471Z"
+    },
+    {
+      "id": 4,
+      "fieldId": 8,
+      "label": "外科",
+      "value": "surgery",
+      "sortOrder": 2,
+      "createdAt": "2025-05-01T02:42:39.471Z"
+    },
+    {
+      "id": 5,
+      "fieldId": 8,
+      "label": "儿科",
+      "value": "pediatrics",
+      "sortOrder": 3,
+      "createdAt": "2025-05-07T02:42:39.471Z"
+    },
+    {
+      "id": 6,
+      "fieldId": 8,
+      "label": "妇产科",
+      "value": "obstetrics",
+      "sortOrder": 4,
+      "createdAt": "2025-05-13T02:42:39.471Z"
+    },
+    {
+      "id": 7,
+      "fieldId": 12,
+      "label": "诊断设备",
+      "value": "diagnostic",
+      "sortOrder": 1,
+      "createdAt": "2025-05-07T02:42:39.472Z"
+    },
+    {
+      "id": 8,
+      "fieldId": 12,
+      "label": "治疗设备",
+      "value": "treatment",
+      "sortOrder": 2,
+      "createdAt": "2025-05-11T02:42:39.472Z"
+    },
+    {
+      "id": 9,
+      "fieldId": 12,
+      "label": "监护设备",
+      "value": "monitoring",
+      "sortOrder": 3,
+      "createdAt": "2025-05-21T02:42:39.472Z"
+    },
+    {
+      "id": 10,
+      "fieldId": 12,
+      "label": "实验设备",
+      "value": "laboratory",
+      "sortOrder": 4,
+      "createdAt": "2025-05-24T02:42:39.472Z"
+    },
+    {
+      "id": 11,
+      "fieldId": 16,
+      "label": "紧急",
+      "value": "urgent",
+      "sortOrder": 1,
+      "createdAt": "2025-05-21T02:42:39.472Z"
+    },
+    {
+      "id": 12,
+      "fieldId": 16,
+      "label": "一般",
+      "value": "normal",
+      "sortOrder": 2,
+      "createdAt": "2025-05-19T02:42:39.472Z"
+    },
+    {
+      "id": 13,
+      "fieldId": 16,
+      "label": "不急",
+      "value": "low",
+      "sortOrder": 3,
+      "createdAt": "2025-05-15T02:42:39.472Z"
+    },
+    {
+      "id": 14,
+      "fieldId": 19,
+      "label": "男",
+      "value": "male",
+      "sortOrder": 1,
+      "createdAt": "2025-05-06T02:42:39.472Z"
+    },
+    {
+      "id": 15,
+      "fieldId": 19,
+      "label": "女",
+      "value": "female",
+      "sortOrder": 2,
+      "createdAt": "2025-05-07T02:42:39.472Z"
+    },
+    {
+      "id": 16,
+      "fieldId": 24,
+      "label": "本科",
+      "value": "bachelor",
+      "sortOrder": 1,
+      "createdAt": "2025-05-08T02:42:39.472Z"
+    },
+    {
+      "id": 17,
+      "fieldId": 24,
+      "label": "硕士",
+      "value": "master",
+      "sortOrder": 2,
+      "createdAt": "2025-05-03T02:42:39.472Z"
+    },
+    {
+      "id": 18,
+      "fieldId": 24,
+      "label": "博士",
+      "value": "doctor",
+      "sortOrder": 3,
+      "createdAt": "2025-05-16T02:42:39.472Z"
+    },
+    {
+      "id": 19,
+      "fieldId": 24,
+      "label": "专科",
+      "value": "college",
+      "sortOrder": 4,
+      "createdAt": "2025-05-25T02:42:39.472Z"
+    },
+    {
+      "id": 20,
+      "fieldId": 26,
+      "label": "医生",
+      "value": "doctor",
+      "sortOrder": 1,
+      "createdAt": "2025-05-05T02:42:39.472Z"
+    },
+    {
+      "id": 21,
+      "fieldId": 26,
+      "label": "护士",
+      "value": "nurse",
+      "sortOrder": 2,
+      "createdAt": "2025-05-17T02:42:39.472Z"
+    },
+    {
+      "id": 22,
+      "fieldId": 26,
+      "label": "技师",
+      "value": "technician",
+      "sortOrder": 3,
+      "createdAt": "2025-05-17T02:42:39.472Z"
+    },
+    {
+      "id": 23,
+      "fieldId": 26,
+      "label": "管理员",
+      "value": "admin",
+      "sortOrder": 4,
+      "createdAt": "2025-05-25T02:42:39.472Z"
+    }
+  ],
+  "form_instances": [
+    {
+      "id": 1,
+      "templateId": 1,
+      "instanceName": "张三入院登记",
+      "submittedBy": 2,
+      "status": "completed",
+      "submittedAt": "2025-05-22T02:42:39.472Z",
+      "createdAt": "2025-05-22T01:42:39.472Z",
+      "updatedAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 2,
+      "templateId": 1,
+      "instanceName": "李四入院登记",
+      "submittedBy": 2,
+      "status": "completed",
+      "submittedAt": "2025-05-14T02:42:39.473Z",
+      "createdAt": "2025-05-14T01:42:39.473Z",
+      "updatedAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 3,
+      "templateId": 3,
+      "instanceName": "王五入职申请",
+      "submittedBy": 3,
+      "status": "completed",
+      "submittedAt": "2025-05-18T02:42:39.473Z",
+      "createdAt": "2025-05-18T01:42:39.473Z",
+      "updatedAt": "2025-05-18T02:42:39.473Z"
+    },
+    {
+      "id": 4,
+      "templateId": 4,
+      "instanceName": "阿司匹林采购申请",
+      "submittedBy": 4,
+      "status": "completed",
+      "submittedAt": "2025-05-14T02:42:39.473Z",
+      "createdAt": "2025-05-14T01:42:39.473Z",
+      "updatedAt": "2025-05-14T02:42:39.473Z"
+    }
+  ],
+  "form_data": [
+    {
+      "id": 1,
+      "instanceId": 1,
+      "fieldId": 1,
+      "fieldName": "patientName",
+      "fieldValue": "张三",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 2,
+      "instanceId": 1,
+      "fieldId": 2,
+      "fieldName": "patientAge",
+      "fieldValue": "35",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 3,
+      "instanceId": 1,
+      "fieldId": 3,
+      "fieldName": "gender",
+      "fieldValue": "male",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 4,
+      "instanceId": 1,
+      "fieldId": 4,
+      "fieldName": "idCard",
+      "fieldValue": "110101198901011234",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 5,
+      "instanceId": 1,
+      "fieldId": 5,
+      "fieldName": "phone",
+      "fieldValue": "13800138001",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 6,
+      "instanceId": 1,
+      "fieldId": 6,
+      "fieldName": "address",
+      "fieldValue": "北京市朝阳区某某街道",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 7,
+      "instanceId": 1,
+      "fieldId": 7,
+      "fieldName": "admissionDate",
+      "fieldValue": "2024-01-03",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 8,
+      "instanceId": 1,
+      "fieldId": 8,
+      "fieldName": "department",
+      "fieldValue": "internal",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 9,
+      "instanceId": 1,
+      "fieldId": 9,
+      "fieldName": "emergencyContact",
+      "fieldValue": "张夫人",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 10,
+      "instanceId": 1,
+      "fieldId": 10,
+      "fieldName": "emergencyPhone",
+      "fieldValue": "13800138002",
+      "createdAt": "2025-05-22T02:42:39.472Z"
+    },
+    {
+      "id": 11,
+      "instanceId": 2,
+      "fieldId": 1,
+      "fieldName": "patientName",
+      "fieldValue": "李四",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 12,
+      "instanceId": 2,
+      "fieldId": 2,
+      "fieldName": "patientAge",
+      "fieldValue": "28",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 13,
+      "instanceId": 2,
+      "fieldId": 3,
+      "fieldName": "gender",
+      "fieldValue": "female",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 14,
+      "instanceId": 2,
+      "fieldId": 4,
+      "fieldName": "idCard",
+      "fieldValue": "110101199201011234",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 15,
+      "instanceId": 2,
+      "fieldId": 5,
+      "fieldName": "phone",
+      "fieldValue": "13800138003",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 16,
+      "instanceId": 2,
+      "fieldId": 6,
+      "fieldName": "address",
+      "fieldValue": "北京市海淀区某某小区",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 17,
+      "instanceId": 2,
+      "fieldId": 7,
+      "fieldName": "admissionDate",
+      "fieldValue": "2024-01-05",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 18,
+      "instanceId": 2,
+      "fieldId": 8,
+      "fieldName": "department",
+      "fieldValue": "obstetrics",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 19,
+      "instanceId": 2,
+      "fieldId": 9,
+      "fieldName": "emergencyContact",
+      "fieldValue": "李先生",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 20,
+      "instanceId": 2,
+      "fieldId": 10,
+      "fieldName": "emergencyPhone",
+      "fieldValue": "13800138004",
+      "createdAt": "2025-05-14T02:42:39.473Z"
+    }
+  ],
+  "workflows": [],
+  "workflow_nodes": [],
+  "workflow_edges": [],
+  "workflow_instances": [],
+  "workflow_tasks": [],
+  "form_categories": [
+    {
+      "id": 1,
+      "name": "医疗表单",
+      "description": "医疗相关的表单模板",
+      "parentId": null,
+      "sortOrder": 1,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 2,
+      "name": "设备管理",
+      "description": "设备管理相关表单",
+      "parentId": null,
+      "sortOrder": 2,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 3,
+      "name": "人事管理",
+      "description": "人事管理相关表单",
+      "parentId": null,
+      "sortOrder": 3,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 4,
+      "name": "财务管理",
+      "description": "财务管理相关表单",
+      "parentId": null,
+      "sortOrder": 4,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 5,
+      "name": "质量管理",
+      "description": "质量管理相关表单",
+      "parentId": null,
+      "sortOrder": 5,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 6,
+      "name": "药品管理",
+      "description": "药品管理相关表单",
+      "parentId": null,
+      "sortOrder": 6,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    }
+  ],
+  "departments": [
+    {
+      "id": 1,
+      "name": "内科",
+      "code": "NK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 2,
+      "name": "外科",
+      "code": "WK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 3,
+      "name": "儿科",
+      "code": "EK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 4,
+      "name": "妇产科",
+      "code": "FCK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 5,
+      "name": "急诊科",
+      "code": "JZK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 6,
+      "name": "信息科",
+      "code": "XXK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 7,
+      "name": "药剂科",
+      "code": "YJK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    },
+    {
+      "id": 8,
+      "name": "检验科",
+      "code": "JYK",
+      "level": 1,
+      "parentId": null,
+      "createdAt": "2025-04-26T02:42:39.471Z"
+    }
+  ]
+}

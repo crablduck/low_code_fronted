@@ -1,0 +1,30 @@
+{
+  "name": "workflow-mock-server",
+  "version": "1.0.0",
+  "description": "Mock server for workflow form design system",
+  "main": "server.js",
+  "scripts": {
+    "start": "json-server --watch db.json --port 3002 --middlewares middleware.js",
+    "dev": "nodemon --watch . --exec \"npm start\"",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cors": "^2.8.5",
+    "json-server": "^0.17.4",
+    "moment": "^2.29.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "json-server",
+    "mock",
+    "api",
+    "workflow",
+    "form-design"
+  ],
+  "author": "医疗架构师",
+  "license": "MIT"
+}
