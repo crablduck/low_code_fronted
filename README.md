@@ -6,7 +6,7 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 
 # 医疗工作流表单设计系统
 
-一个基于 Vue 3 + TypeScript + Element Plus 的医疗行业工作流表单设计系统，支持可视化表单设计、工作流编排和数据管理。
+一个基于 Vue 3 + TypeScript + Element Plus 的医疗行业工作流表单设计系统，包含完整的前后端API模拟服务。
 
 ## 🏥 项目特色
 
@@ -19,20 +19,10 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 ## 🚀 快速开始
 
 ### 环境要求
+- Node.js >= 16.0.0
+- npm >= 8.0.0
 
-- Node.js 16+
-- npm 或 yarn
-- 现代浏览器
-
-### 安装和启动
-
-1. **克隆项目**
-```bash
-git clone http://172.16.0.238:3000/xiejw/workflow-system.git
-cd workflow-system
-```
-
-2. **安装依赖**
+### 安装依赖
 ```bash
 # 安装前端依赖
 npm install
@@ -41,24 +31,24 @@ npm install
 cd mock-server && npm install && cd ..
 ```
 
-3. **启动开发环境**
+### 启动开发环境
 ```bash
-# 方式1: 使用启动脚本（推荐）
+# 方式1：使用启动脚本（推荐）
 chmod +x start-dev.sh
 ./start-dev.sh
 
-# 方式2: 手动启动
-# 终端1: 启动Mock服务器
-cd mock-server && npm start
+# 方式2：手动启动
+# 启动Mock API服务器
+cd mock-server && npm start &
 
-# 终端2: 启动前端服务器
+# 启动前端开发服务器
 npm run dev
 ```
 
-4. **访问应用**
-- 前端应用: http://localhost:3001
-- Mock API: http://localhost:3003
-- API测试页面: http://localhost:3001/api-test
+### 访问地址
+- **前端应用**: http://localhost:3000
+- **Mock API**: http://localhost:3003
+- **API测试页面**: http://localhost:3000/api-test
 
 ## 📊 系统架构
 
@@ -110,7 +100,7 @@ npm run dev
 ### Mock API服务地址
 - **基础URL**: http://localhost:3003/api
 - **文档地址**: http://localhost:3003
-- **测试页面**: http://localhost:3001/api-test
+- **测试页面**: http://localhost:3000/api-test
 
 ### 核心接口
 
@@ -178,7 +168,7 @@ GET    /api/field_options               # 字段选项管理
 ```
 
 ### 手动测试
-访问 http://localhost:3001/api-test 使用可视化API测试工具
+访问 http://localhost:3000/api-test 使用可视化API测试工具
 
 ### 测试用例
 ```bash
