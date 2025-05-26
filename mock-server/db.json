@@ -871,6 +871,26 @@
       "submittedAt": "2025-05-14T02:42:39.473Z",
       "createdAt": "2025-05-14T01:42:39.473Z",
       "updatedAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 5,
+      "templateId": 1,
+      "instanceName": "API测试表单",
+      "status": "completed",
+      "submittedBy": 1,
+      "submittedAt": "2025-05-26T02:52:59.703Z",
+      "createdAt": "2025-05-26T02:52:59.703Z",
+      "updatedAt": "2025-05-26T02:52:59.703Z"
+    },
+    {
+      "id": 6,
+      "templateId": 1,
+      "instanceName": "测试脚本提交",
+      "status": "completed",
+      "submittedBy": 1,
+      "submittedAt": "2025-05-26T02:53:37.279Z",
+      "createdAt": "2025-05-26T02:53:37.279Z",
+      "updatedAt": "2025-05-26T02:53:37.279Z"
     }
   ],
   "form_data": [
@@ -1033,6 +1053,62 @@
       "fieldName": "emergencyPhone",
       "fieldValue": "13800138004",
       "createdAt": "2025-05-14T02:42:39.473Z"
+    },
+    {
+      "id": 21,
+      "instanceId": 5,
+      "fieldId": 1,
+      "fieldName": "patientName",
+      "fieldValue": "测试患者",
+      "createdAt": "2025-05-26T02:52:59.705Z"
+    },
+    {
+      "id": 22,
+      "instanceId": 5,
+      "fieldId": 2,
+      "fieldName": "patientAge",
+      "fieldValue": "30",
+      "createdAt": "2025-05-26T02:52:59.705Z"
+    },
+    {
+      "id": 23,
+      "instanceId": 5,
+      "fieldId": 3,
+      "fieldName": "gender",
+      "fieldValue": "male",
+      "createdAt": "2025-05-26T02:52:59.705Z"
+    },
+    {
+      "id": 24,
+      "instanceId": 5,
+      "fieldId": 5,
+      "fieldName": "phone",
+      "fieldValue": "13800138000",
+      "createdAt": "2025-05-26T02:52:59.705Z"
+    },
+    {
+      "id": 25,
+      "instanceId": 6,
+      "fieldId": 1,
+      "fieldName": "patientName",
+      "fieldValue": "脚本测试患者",
+      "createdAt": "2025-05-26T02:53:37.279Z"
+    },
+    {
+      "id": 26,
+      "instanceId": 6,
+      "fieldId": 2,
+      "fieldName": "patientAge",
+      "fieldValue": "25",
+      "createdAt": "2025-05-26T02:53:37.279Z"
+    },
+    {
+      "id": 27,
+      "instanceId": 6,
+      "fieldId": 3,
+      "fieldName": "gender",
+      "fieldValue": "female",
+      "createdAt": "2025-05-26T02:53:37.279Z"
     }
   ],
   "workflows": [],

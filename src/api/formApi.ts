@@ -1,7 +1,7 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 // API基础配置
-const API_BASE_URL = 'http://localhost:3002/api';
+const API_BASE_URL = 'http://localhost:3003/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

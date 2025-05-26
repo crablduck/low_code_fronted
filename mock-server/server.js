@@ -285,7 +285,7 @@ server.get('/api/form-templates/:id/statistics', (req, res) => {
 server.use('/api', router);
 
 // 启动服务器
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 server.listen(PORT, () => {
   console.log(`🚀 Mock Server 运行在 http://localhost:${PORT}`);
   console.log(`📊 数据库接口: http://localhost:${PORT}/api`);
