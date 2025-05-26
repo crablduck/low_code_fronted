@@ -1,29 +1,15 @@
 <template>
   <div class="api-test">
-    <!-- 页面头部 -->
-    <el-card class="header-card">
-      <div class="header-content">
-        <div class="title-section">
-          <h2>🧪 API 接口测试中心</h2>
-          <p>医疗工作流表单系统 Mock API 测试工具</p>
-        </div>
-        <div class="status-section">
-          <el-tag :type="serverStatus === 'connected' ? 'success' : 'danger'" size="large">
-            {{ serverStatus === 'connected' ? '服务器已连接' : '服务器未连接' }}
-          </el-tag>
+    <el-card class="test-card">
+      <template #header>
+        <div class="card-header">
+          <span>🧪 API 接口测试</span>
           <el-button @click="checkServerStatus" :loading="checking" type="primary" size="small">
             重新检测
           </el-button>
         </div>
-      </div>
-    </el-card>
-
-    <!-- 快速测试区域 -->
-    <el-card class="test-card">
-      <template #header>
-        <span>🚀 快速测试</span>
       </template>
-      
+
       <el-row :gutter="20">
         <!-- 表单模板测试 -->
         <el-col :span="12">
@@ -152,9 +138,7 @@ import {
 } from '@/api/formApi';
 
 // 响应式数据
-const serverStatus = ref('disconnected');
 const checking = ref(false);
-
 const loading = ref({
   templates: false,
   fullTemplate: false,
@@ -168,17 +152,22 @@ const loading = ref({
   categories: false
 });
 
-const testResult = ref(null);
+interface TestResult {
+  title: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  description: string;
+  data?: any;
+}
+
+const testResult = ref<TestResult | null>(null);
 
 // 检查服务器连接状态
 const checkServerStatus = async () => {
   checking.value = true;
   try {
     await formTemplateApi.getTemplates({ _limit: 1 });
-    serverStatus.value = 'connected';
     ElMessage.success('Mock服务器连接成功！');
   } catch (error) {
-    serverStatus.value = 'disconnected';
     ElMessage.error('Mock服务器连接失败，请确保服务器已启动');
   } finally {
     checking.value = false;
@@ -186,7 +175,7 @@ const checkServerStatus = async () => {
 };
 
 // 显示测试结果
-const showResult = (title: string, type: string, data?: any, description?: string) => {
+const showResult = (title: string, type: 'success' | 'error', data?: any, description?: string) => {
   testResult.value = {
     title,
     type,
@@ -386,33 +375,6 @@ onMounted(() => {
 <style scoped>
 .api-test {
   padding: 20px;
-}
-
-.header-card {
-  margin-bottom: 20px;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.title-section h2 {
-  margin: 0 0 8px 0;
-  color: #303133;
-}
-
-.title-section p {
-  margin: 0;
-  color: #909399;
-  font-size: 14px;
-}
-
-.status-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .test-card {

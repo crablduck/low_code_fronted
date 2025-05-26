@@ -25,7 +25,7 @@ cd ..
 sleep 3
 
 # 启动前端开发服务器
-echo "🎨 启动前端开发服务器 (端口: 3001)..."
+echo "�� 启动前端开发服务器 (端口: 3000)..."
 npm run dev &
 FRONTEND_PID=$!
 
@@ -33,15 +33,15 @@ echo ""
 echo "✅ 开发环境启动完成！"
 echo ""
 echo "📊 服务地址："
-echo "   前端应用: http://localhost:3001"
+echo "   前端应用: http://localhost:3000"
 echo "   Mock API: http://localhost:3003"
 echo "   API文档: http://localhost:3003/api"
 echo ""
 echo "🧪 测试页面："
-echo "   API测试: http://localhost:3001/api-test"
+echo "   API测试: http://localhost:3000/api-test"
 echo ""
 echo "💡 使用说明："
-echo "   - 前端项目运行在 3001 端口"
+echo "   - 前端项目运行在 3000 端口"
 echo "   - Mock API 服务运行在 3003 端口"
 echo "   - 可以通过 API 测试页面验证接口连通性"
 echo "   - 按 Ctrl+C 停止所有服务"
