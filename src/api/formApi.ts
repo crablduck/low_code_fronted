@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 
 // API基础配置
 const API_BASE_URL = 'http://localhost:3003/api';
@@ -313,6 +313,7 @@ export interface ApiResponse<T = any> {
   data: T;
   status: number;
   statusText: string;
+  headers?: any;
 }
 
 export interface PaginatedResponse<T = any> {
