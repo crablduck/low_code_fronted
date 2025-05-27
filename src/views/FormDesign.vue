@@ -53,7 +53,7 @@
                 >
                   <span style="float: left">{{ table.name }}</span>
                   <span style="float: right; color: #8492a6; font-size: 13px">
-                    {{ table.comment }}
+                    {{ table.description }}
                   </span>
                 </el-option>
               </el-select>
@@ -742,13 +742,9 @@ import {
   Document
 } from '@element-plus/icons-vue'
 import { 
-  getDataSources, 
-  getTableList, 
-  getTableFields,
-  type DataSource,
-  type DatabaseTable,
-  type FormFieldFromTable
+  dataSourceApi
 } from '@/api/dataSource'
+import type { DataSource, TableInfo, FieldInfo } from '@/types/dataManagement'
 
 // 字段类型定义
 interface FormField {
@@ -831,7 +827,7 @@ const selectedDataSource = computed(() =>
   dataSources.value.find(ds => ds.id === selectedDataSourceId.value)
 )
 
-const tables = ref<DatabaseTable[]>([])
+const tables = ref<TableInfo[]>([])
 const selectedTableName = ref<string>('')
 const loadingTableFields = ref(false)
 
@@ -1019,19 +1015,14 @@ const handleFormNameChange = () => {
 }
 
 // 处理数据源变化
-const handleDataSourceChange = async (dataSourceId: number) => {
-  formSchema.dataSourceId = dataSourceId
-  selectedTableName.value = ''
-  formSchema.tableName = ''
-  tables.value = []
+const handleDataSourceChange = async () => {
+  if (!selectedDataSourceId.value) return
   
-  if (dataSourceId) {
-    try {
-      tables.value = await getTableList(dataSourceId)
-    } catch (error) {
-      ElMessage.error('获取数据表列表失败')
-      console.error(error)
-    }
+  try {
+    tables.value = await dataSourceApi.getTablesBySourceId(selectedDataSourceId.value)
+  } catch (error) {
+    console.error('获取数据表失败:', error)
+    ElMessage.error('获取数据表失败')
   }
 }
 
@@ -1044,31 +1035,29 @@ const handleTableChange = (tableName: string) => {
   }
 }
 
-// 加载表结构生成字段
+// 加载表字段
 const loadTableFields = async () => {
-  if (!selectedTableName.value || !selectedDataSourceId.value) {
-    return
-  }
+  if (!selectedDataSourceId.value || !selectedTableName.value) return
   
   loadingTableFields.value = true
   try {
-    const tableFields = await getTableFields(selectedTableName.value, selectedDataSourceId.value)
+    const tableFields = await dataSourceApi.getFieldsByTable(selectedDataSourceId.value, selectedTableName.value)
     
     // 清空现有字段
     formSchema.fields = []
     formSchema.fieldMapping = {}
     
-    // 根据表结构生成字段
-    tableFields.forEach((tableField, index) => {
-      const fieldId = `field_${Date.now()}_${index}`
+    // 根据表字段生成表单字段
+    tableFields.forEach((field: FieldInfo, index: number) => {
+      const fieldType = getFieldTypeFromDbType(field.dataType)
       const newField: FormField = {
-        id: fieldId,
-        type: tableField.type,
-        field: tableField.field,
-        label: tableField.label,
-        placeholder: tableField.placeholder,
-        required: tableField.required,
-        options: tableField.options,
+        id: `field_${Date.now()}_${index}`,
+        type: fieldType,
+        field: field.name,
+        label: field.description || field.name,
+        placeholder: `请输入${field.description || field.name}`,
+        required: !field.isNullable,
+        options: fieldType === 'select' ? ['选项1', '选项2'] : undefined,
         style: {
           width: 'auto',
           height: 'auto',
@@ -1094,15 +1083,29 @@ const loadTableFields = async () => {
       }
       
       formSchema.fields.push(newField)
-      formSchema.fieldMapping[newField.field] = newField.field
+      formSchema.fieldMapping[newField.field] = field.name
     })
     
-    ElMessage.success(`成功从表 ${selectedTableName.value} 生成 ${tableFields.length} 个字段`)
+    ElMessage.success(`成功生成 ${tableFields.length} 个字段`)
   } catch (error) {
+    console.error('获取表字段失败:', error)
     ElMessage.error('获取表字段失败')
-    console.error(error)
   } finally {
     loadingTableFields.value = false
+  }
+}
+
+// 根据数据库字段类型推断表单字段类型
+const getFieldTypeFromDbType = (dbType: string): string => {
+  const type = dbType.toLowerCase()
+  if (type.includes('int') || type.includes('decimal') || type.includes('float') || type.includes('double')) {
+    return 'number'
+  } else if (type.includes('date') || type.includes('time')) {
+    return 'date'
+  } else if (type.includes('text') || type.includes('longtext')) {
+    return 'textarea'
+  } else {
+    return 'text'
   }
 }
 
@@ -1283,11 +1286,11 @@ const getFieldStyle = (field: FormField) => {
 // 初始化数据
 onMounted(async () => {
   try {
-    dataSources.value = await getDataSources()
+    dataSources.value = await dataSourceApi.getAllDataSources()
     document.addEventListener('click', handleDocumentClick)
   } catch (error) {
-    ElMessage.error('获取数据源列表失败')
-    console.error(error)
+    console.error('获取数据源失败:', error)
+    ElMessage.error('获取数据源失败')
   }
 })
 
@@ -1503,6 +1506,8 @@ const removeCurrentField = () => {
 </script>
 
 <style scoped>
+@import '@/styles/designer-common-layout.scss';
+
 .form-designer {
   height: 100vh;
   display: flex;
@@ -1555,36 +1560,7 @@ const removeCurrentField = () => {
   gap: 12px;
 }
 
-/* 主要内容区域样式 */
-.designer-content {
-  flex: 1;
-  display: flex;
-  gap: 16px;
-  padding: 0 16px 16px;
-  overflow: hidden;
-}
-
-/* 左侧面板样式 */
-.left-panel {
-  width: 280px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-}
-
-.panel-header {
-  padding: 16px;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.panel-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
+/* 组件列表样式 */
 .component-list {
   padding: 16px;
 }
@@ -1624,15 +1600,7 @@ const removeCurrentField = () => {
   color: #303133;
 }
 
-/* 中间设计区域样式 */
-.center-panel {
-  flex: 1;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-}
-
+/* 设计画布样式 */
 .design-canvas {
   min-height: 100%;
   padding: 24px;
@@ -1800,14 +1768,7 @@ const removeCurrentField = () => {
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
-/* 右侧属性面板样式 */
-.right-panel {
-  width: 320px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
+/* 属性面板样式 */
 .property-form,
 .style-form,
 .data-config {
@@ -1893,33 +1854,6 @@ const removeCurrentField = () => {
 .field-preview:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .left-panel {
-    width: 240px;
-  }
-  
-  .right-panel {
-    width: 280px;
-  }
-}
-
-@media (max-width: 768px) {
-  .designer-content {
-    flex-direction: column;
-  }
-  
-  .left-panel,
-  .right-panel {
-    width: 100%;
-    height: auto;
-  }
-  
-  .center-panel {
-    order: -1;
-  }
 }
 
 /* 右键菜单样式 */

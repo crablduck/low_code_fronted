@@ -1,0 +1,182 @@
+// 设计器布局的全局样式
+.designer-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f2f5;
+
+  // 左侧组件面板 - 减小宽度确保更多空间给画布
+  .component-panel {
+    width: 220px;
+    min-width: 180px;
+    max-width: 280px;
+    height: 100%;
+    flex-shrink: 0;
+    transition: width 0.3s;
+    
+    @media (max-width: 1366px) {
+      width: 200px;
+      min-width: 160px;
+    }
+    
+    @media (max-width: 1024px) {
+      width: 180px;
+      min-width: 150px;
+    }
+    
+    @media (max-width: 768px) {
+      width: 160px;
+      min-width: 140px;
+    }
+  }
+
+  // 中间画布区域 - 确保有足够空间但不会挤压侧边栏
+  .canvas-container {
+    flex: 1;
+    height: 100%;
+    min-width: 400px; // 减小最小宽度
+    max-width: calc(100% - 400px); // 确保不会挤压侧边栏
+    overflow: auto;
+    position: relative;
+    background: #fff;
+    
+    .canvas-content {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    
+    @media (max-width: 1366px) {
+      min-width: 350px;
+    }
+    
+    @media (max-width: 1024px) {
+      min-width: 300px;
+    }
+    
+    @media (max-width: 768px) {
+      min-width: 250px;
+    }
+  }
+
+  // 右侧属性面板 - 减小宽度确保能完全显示
+  .property-panel {
+    width: 260px;
+    min-width: 200px;
+    max-width: 320px;
+    height: 100%;
+    flex-shrink: 0;
+    transition: width 0.3s;
+    
+    @media (max-width: 1366px) {
+      width: 240px;
+      min-width: 180px;
+    }
+    
+    @media (max-width: 1024px) {
+      width: 220px;
+      min-width: 160px;
+    }
+    
+    @media (max-width: 768px) {
+      width: 200px;
+      min-width: 150px;
+    }
+  }
+}
+
+// 针对不同屏幕尺寸的优化
+@media (max-width: 1440px) {
+  .designer-container {
+    .component-panel {
+      width: 200px;
+    }
+    .property-panel {
+      width: 240px;
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .designer-container {
+    .component-panel {
+      width: 180px;
+      min-width: 150px;
+    }
+    .property-panel {
+      width: 220px;
+      min-width: 160px;
+    }
+    .canvas-container {
+      min-width: 300px;
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .designer-container {
+    .component-panel {
+      width: 160px;
+      min-width: 140px;
+    }
+    .property-panel {
+      width: 200px;
+      min-width: 150px;
+    }
+    .canvas-container {
+      min-width: 280px;
+    }
+  }
+}
+
+// 小屏幕适配 - 可能需要隐藏某些面板或使用折叠模式
+@media (max-width: 768px) {
+  .designer-container {
+    .component-panel {
+      width: 150px;
+      min-width: 120px;
+    }
+    .property-panel {
+      width: 180px;
+      min-width: 140px;
+    }
+    .canvas-container {
+      min-width: 200px;
+    }
+  }
+}
+
+// 确保内容可见性和滚动行为
+.designer-container {
+  * {
+    box-sizing: border-box;
+  }
+  
+  .panel-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100% - 60px); // 减去头部高度
+  }
+  
+  // 确保容器不会超出视口
+  max-width: 100vw;
+  
+  // 防止内容溢出
+  .component-panel,
+  .property-panel {
+    overflow: hidden;
+    
+    .panel-header {
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+  }
+} 

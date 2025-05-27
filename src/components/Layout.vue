@@ -4,7 +4,7 @@
     <el-header class="header">
       <div class="header-content">
         <!-- Logo 和标题 -->
-        <div class="logo-section" @click="$router.push('/')">
+        <div class="logo-section" @click="goHome">
           <el-icon class="logo-icon"><DataBoard /></el-icon>
           <span class="logo-text">低代码工作流</span>
         </div>
@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   DataBoard,
   User,
@@ -63,6 +64,12 @@ import NavigationMenu from './NavigationMenu.vue'
 
 // 响应式数据
 const userAvatar = ref('')
+const router = useRouter()
+
+// 方法
+const goHome = () => {
+  router.push('/')
+}
 </script>
 
 <style scoped>
@@ -85,21 +92,21 @@ const userAvatar = ref('')
   align-items: center;
   justify-content: space-between;
   height: 100%;
-  padding: 0 24px;
+  padding: 0 16px;
   max-width: none;
   margin: 0 auto;
-  min-width: 2800px;
   width: 100%;
   overflow: visible;
+  min-width: 320px;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
   cursor: pointer;
   transition: opacity 0.3s;
-  min-width: 220px;
+  min-width: 140px;
   flex-shrink: 0;
 }
 
@@ -108,24 +115,23 @@ const userAvatar = ref('')
 }
 
 .logo-icon {
-  font-size: 36px;
+  font-size: 24px;
   color: #ffd04b;
 }
 
 .logo-text {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
   color: white;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
 }
 
 .nav-menu {
   flex: 1;
-  margin: 0 40px;
+  margin: 0 12px;
   border-bottom: none;
   background-color: transparent !important;
   overflow: visible;
-  min-width: 2500px;
   max-width: none;
 }
 
@@ -181,19 +187,19 @@ const userAvatar = ref('')
 
 .user-section {
   flex-shrink: 0;
-  min-width: 180px;
+  min-width: 140px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   color: white;
   cursor: pointer;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-radius: 8px;
   transition: all 0.3s;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .user-info:hover {
@@ -218,61 +224,153 @@ const userAvatar = ref('')
   background: #f5f7fa;
 }
 
-/* 响应式设计 - 调整断点 */
-@media (max-width: 1800px) {
+/* 响应式设计 - 弹性布局 */
+@media (max-width: 1920px) {
   .header-content {
-    padding: 0 20px;
+    padding: 0 16px;
   }
   
   .nav-menu {
-    margin: 0 30px;
-    min-width: 1000px;
+    margin: 0 16px;
   }
 }
 
 @media (max-width: 1600px) {
   .header-content {
-    padding: 0 16px;
+    padding: 0 12px;
   }
   
   .nav-menu {
-    margin: 0 25px;
-    min-width: 900px;
+    margin: 0 12px;
+  }
+  
+  .logo-icon {
+    font-size: 28px;
+  }
+  
+  .logo-text {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .header-content {
+    padding: 0 10px;
+  }
+  
+  .nav-menu {
+    margin: 0 10px;
+  }
+  
+  .logo-section {
+    min-width: 160px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .header-content {
+    padding: 0 8px;
+  }
+  
+  .nav-menu {
+    margin: 0 8px;
+  }
+  
+  .logo-section {
+    min-width: 140px;
+    gap: 8px;
+  }
+  
+  .logo-icon {
+    font-size: 24px;
+  }
+  
+  .logo-text {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .header-content {
+    padding: 0 6px;
+  }
+  
+  .nav-menu {
+    margin: 0 6px;
+  }
+  
+  .user-section {
+    min-width: 120px;
   }
 }
 
 @media (max-width: 768px) {
   .header-content {
-    padding: 0 16px;
+    padding: 0 8px;
   }
 
   .logo-text {
     display: none;
   }
-
-  .nav-menu {
-    margin: 0 20px;
-    min-width: 600px;
+  
+  .logo-section {
+    min-width: 40px;
   }
 
-  .nav-menu .el-menu-item span,
-  .nav-menu .el-sub-menu__title span {
-    display: none;
+  .nav-menu {
+    margin: 0 8px;
   }
 
   .username {
     display: none;
   }
+  
+  .user-section {
+    min-width: 60px;
+  }
 }
 
 @media (max-width: 480px) {
+  .header-content {
+    padding: 0 4px;
+  }
+  
   .nav-menu {
-    margin: 0 10px;
+    margin: 0 4px;
+  }
+  
+  .logo-icon {
+    font-size: 20px;
+  }
+  
+  .user-section {
+    min-width: 50px;
+  }
+}
+
+/* 响应式设计 - 针对2K显示器优化 */
+@media (min-width: 1920px) {
+  .header-content {
+    padding: 0 20px;
+    max-width: 1920px;
+    margin: 0 auto;
+  }
+  
+  .nav-menu {
+    margin: 0 16px;
+  }
+  
+  .logo-section {
+    min-width: 180px;
   }
 
-  .nav-menu .el-menu-item,
-  .nav-menu .el-sub-menu__title {
-    padding: 0 10px;
+  .logo-icon {
+    font-size: 32px;
+  }
+  
+  .logo-text {
+    font-size: 20px;
   }
 }
 </style> 

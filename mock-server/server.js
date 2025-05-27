@@ -1,10 +1,19 @@
 const jsonServer = require('json-server');
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
+const cors = require('cors');
 
 const server = jsonServer.create();
 const router = jsonServer.router('db.json');
 const middlewares = jsonServer.defaults();
+
+// 配置 CORS - 允许所有来源访问
+server.use(cors({
+  origin: 'http://localhost:3000', // 允许前端域名
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // 使用默认中间件
 server.use(middlewares);
@@ -14,6 +23,11 @@ server.use(require('./middleware'));
 
 // 解析JSON请求体
 server.use(jsonServer.bodyParser);
+
+// 健康检查端点
+server.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // 自定义路由
 
@@ -27,8 +41,8 @@ server.get('/api/data-sources', (req, res) => {
       type: 'mysql',
       host: 'localhost',
       port: 3306,
-      database: 'medical_system',
-      status: 'connected'
+      databaseName: 'medical_system',
+      status: 'online'
     },
     {
       id: 2,
@@ -36,18 +50,22 @@ server.get('/api/data-sources', (req, res) => {
       type: 'postgresql',
       host: 'localhost',
       port: 5432,
-      database: 'data_warehouse',
-      status: 'connected'
+      databaseName: 'data_warehouse',
+      status: 'online'
     },
     {
       id: 3,
       name: 'SQLite本地库',
       type: 'sqlite',
-      database: 'local.db',
-      status: 'connected'
+      databaseName: 'local.db',
+      status: 'online'
     }
   ];
-  res.json(dataSources);
+  res.json({
+    code: 200,
+    message: 'success',
+    data: dataSources
+  });
 });
 
 // 2. 获取指定数据源的表列表
@@ -514,13 +532,90 @@ server.get('/api/form-templates/:id/statistics', (req, res) => {
   });
 });
 
+// 数据集预览接口
+server.get('/api/datasets/:id/preview', (req, res) => {
+  res.json({
+    code: 200,
+    message: 'success',
+    data: {
+      columns: [
+        'patient_name', 'age', 'gender', 'department', 'visit_count', 
+        'total_cost', 'visit_date', 'insurance_type', 'phone_number', 'diagnosis'
+      ],
+      data: [
+        {
+          patient_name: '张三',
+          age: 45,
+          gender: '男',
+          department: '心内科',
+          visit_count: 3,
+          total_cost: 2850.50,
+          visit_date: '2024-01-15',
+          insurance_type: '职工医保',
+          phone_number: '138****1234',
+          diagnosis: '高血压病'
+        },
+        {
+          patient_name: '李四',
+          age: 32,
+          gender: '女',
+          department: '妇科',
+          visit_count: 1,
+          total_cost: 1200.00,
+          visit_date: '2024-01-16',
+          insurance_type: '居民医保',
+          phone_number: '139****5678',
+          diagnosis: '妇科炎症'
+        },
+        {
+          patient_name: '王五',
+          age: 28,
+          gender: '男',
+          department: '骨科',
+          visit_count: 2,
+          total_cost: 4680.30,
+          visit_date: '2024-01-17',
+          insurance_type: '新农合',
+          phone_number: '136****9012',
+          diagnosis: '腰椎间盘突出'
+        },
+        {
+          patient_name: '赵六',
+          age: 55,
+          gender: '女',
+          department: '内分泌科',
+          visit_count: 4,
+          total_cost: 3200.75,
+          visit_date: '2024-01-18',
+          insurance_type: '职工医保',
+          phone_number: '137****3456',
+          diagnosis: '糖尿病'
+        },
+        {
+          patient_name: '钱七',
+          age: 38,
+          gender: '男',
+          department: '消化科',
+          visit_count: 2,
+          total_cost: 1890.20,
+          visit_date: '2024-01-19',
+          insurance_type: '居民医保',
+          phone_number: '135****7890',
+          diagnosis: '胃炎'
+        }
+      ],
+      totalCount: 5
+    }
+  });
+});
+
 // 使用默认路由
 server.use('/api', router);
 
 // 启动服务器
-const PORT = process.env.PORT || 5000;
+const PORT = 4500;
 server.listen(PORT, () => {
-  console.log(`🚀 Mock Server 运行在 http://localhost:${PORT}`);
+  console.log(`Mock Server is running at http://localhost:${PORT}`);
   console.log(`📊 数据库接口: http://localhost:${PORT}/api`);
   console.log(`📝 表单模板: http://localhost:${PORT}/api/form_templates`);
   console.log(`🔧 自定义接口文档:`);
@@ -530,4 +625,5 @@ server.listen(PORT, () => {
   console.log(`   GET  /api/form-instances/:id/full - 获取表单实例详情`);
   console.log(`   GET  /api/form-templates/:id/sql - 生成SQL建表语句`);
   console.log(`   GET  /api/form-templates/:id/statistics - 获取表单统计`);
+  console.log(`   GET  /api/datasets/:id/preview - 获取数据集预览`);
 }); 

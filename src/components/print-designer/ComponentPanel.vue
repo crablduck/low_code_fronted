@@ -81,7 +81,7 @@
         <div class="template-selector" v-if="templates.length > 0">
           <el-select
             :model-value="selectedTemplateId"
-            @update:model-value="handleTemplateChange"
+            @update:model-value="handleTemplateChangeInternal"
             placeholder="选择表单模板"
             size="small"
             style="width: 100%; margin-bottom: 12px;"
@@ -150,26 +150,27 @@ import {
   Search,
   Loading
 } from '@element-plus/icons-vue';
-import { COMPONENT_PANEL_ITEMS, ComponentPanelItem, DataField } from '@/types/printDesigner';
+import { COMPONENT_PANEL_ITEMS } from '@/types/printDesigner';
+import type { ComponentPanelItem, DataField } from '@/types/printDesigner';
 import { formTemplateApi } from '@/api/formApi';
 import { ElMessage } from 'element-plus';
 
 // Props
 interface Props {
   dataFields?: DataField[];
-  selectedTemplateId?: number;
+  selectedTemplateId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dataFields: () => [],
-  selectedTemplateId: 1 // 默认选择第一个模板
+  selectedTemplateId: ''
 });
 
 // Emits
 const emit = defineEmits<{
   dragStart: [data: { type: 'component' | 'field'; item: ComponentPanelItem | DataField }];
   dragEnd: [];
-  templateChange: [templateId: number];
+  templateChange: [templateId: string];
 }>();
 
 // 响应式数据
@@ -228,12 +229,19 @@ const filteredDataFields = computed(() => {
 const fetchTemplates = async () => {
   try {
     loading.value = true;
-    const response = await formTemplateApi.getList();
+    const response = await formTemplateApi.getTemplates();
     templates.value = response.data || [];
     
-    // 如果有模板，加载第一个模板的字段
     if (templates.value.length > 0) {
-      await loadTemplateFields(props.selectedTemplateId || templates.value[0].id);
+      let idToLoadInitial = props.selectedTemplateId;
+      if (typeof idToLoadInitial !== 'string' || !idToLoadInitial) {
+         if (templates.value[0] && templates.value[0].id !== undefined && templates.value[0].id !== null) {
+            idToLoadInitial = String(templates.value[0].id);
+         } else {
+            idToLoadInitial = '';
+         }
+      }
+      await loadTemplateFields(idToLoadInitial);
     }
   } catch (error) {
     console.error('获取表单模板失败:', error);
@@ -244,9 +252,18 @@ const fetchTemplates = async () => {
 };
 
 // 加载模板字段
-const loadTemplateFields = async (templateId: number) => {
+const loadTemplateFields = async (templateId: string) => {
   try {
-    const response = await formTemplateApi.getFullTemplate(templateId);
+    if (!templateId) {
+      templateFields.value = [];
+      return;
+    }
+    const numericTemplateId = parseInt(templateId, 10);
+    if (isNaN(numericTemplateId)) {
+        templateFields.value = [];
+        return;
+    }
+    const response = await formTemplateApi.getFullTemplate(numericTemplateId);
     const template = response.data;
     
     if (template && template.fields) {
@@ -280,9 +297,11 @@ const mapFieldType = (dataType: string): DataField['type'] => {
 };
 
 // 处理模板切换
-const handleTemplateChange = (templateId: number) => {
-  loadTemplateFields(templateId);
-  emit('templateChange', templateId);
+const handleTemplateChangeInternal = (newTemplateId: string) => {
+  emit('templateChange', newTemplateId);
+  if (newTemplateId) {
+    loadTemplateFields(newTemplateId);
+  }
 };
 
 // 获取字段绑定文本
@@ -397,17 +416,18 @@ onMounted(() => {
 
 <style scoped>
 .component-panel {
-  width: 280px;
   height: 100%;
   background: #ffffff;
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-header {
   padding: 16px;
   border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
 }
 
 .panel-header h3 {
@@ -424,7 +444,8 @@ onMounted(() => {
 .panel-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  overflow-x: hidden;
+  padding: 8px;
 }
 
 .component-group {

@@ -32,6 +32,23 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     console.log('✅ API响应:', response.status, response.config.url);
+    
+    // 如果后端返回的数据格式是 { code, message, data }，则提取 data 部分
+    if (response.data && typeof response.data === 'object' && 'code' in response.data) {
+      if (response.data.code === 200) {
+        // 成功响应，返回 data 部分
+        return {
+          ...response,
+          data: response.data.data
+        };
+      } else {
+        // 业务错误，抛出异常
+        const error = new Error(response.data.message || '请求失败');
+        error.response = response;
+        throw error;
+      }
+    }
+    
     return response;
   },
   (error) => {

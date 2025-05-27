@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>响应式导航栏测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        
+        .breakpoint-test {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .breakpoint-item {
+            padding: 15px;
+            border: 1px solid #e4e7ed;
+            border-radius: 6px;
+            background: #f9fafb;
+        }
+        
+        .breakpoint-item h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .breakpoint-item p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .feature-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-list li:before {
+            content: "✅";
+            margin-right: 10px;
+        }
+        
+        .test-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .test-nav::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 4px;
+            min-width: max-content;
+            padding: 10px 0;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            height: 40px;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .nav-icon {
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+        
+        /* 响应式测试 */
+        @media (max-width: 1600px) {
+            .nav-item {
+                padding: 0 8px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .nav-item {
+                padding: 0 6px;
+                font-size: 11px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-item span {
+                display: none;
+            }
+            
+            .nav-item {
+                padding: 0 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .nav-item {
+                padding: 0 4px;
+            }
+            
+            .nav-icon {
+                width: 14px;
+                height: 14px;
+            }
+        }
+        
+        .current-breakpoint {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="current-breakpoint" id="breakpoint-indicator">
+        当前断点: <span id="current-size"></span>
+    </div>
+    
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎯 导航栏弹性设计测试</h1>
+            <p>调整浏览器窗口大小来测试响应式效果</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>📱 模拟导航栏</h3>
+            <div class="test-nav">
+                <div class="nav-menu">
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>首页</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>表单设计器</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>打印设计器</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>报表设计器</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>数据源管理</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>数据集管理</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>仪表盘设计器</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>系统管理</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>业务管理</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>数据管理</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <div class="nav-icon"></div>
+                        <span>API测试</span>
+                    </a>
+                </div>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                💡 在小屏幕下，菜单文字会隐藏，只显示图标。支持水平滚动浏览所有菜单项。
+            </p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 响应式断点说明</h3>
+            <div class="breakpoint-test">
+                <div class="breakpoint-item">
+                    <h4>PC端 (1920px+)</h4>
+                    <p>完整显示所有菜单项和文字，充足的内边距和间距，清晰的视觉层次。</p>
+                </div>
+                <div class="breakpoint-item">
+                    <h4>大屏 (1600px-1920px)</h4>
+                    <p>减小内边距到8px，字体12px，保持良好的可读性。</p>
+                </div>
+                <div class="breakpoint-item">
+                    <h4>中屏 (1200px-1600px)</h4>
+                    <p>进一步压缩间距，字体11px，隐藏装饰元素。</p>
+                </div>
+                <div class="breakpoint-item">
+                    <h4>小屏 (768px-1200px)</h4>
+                    <p>最小化内边距，字体10px，保持核心功能。</p>
+                </div>
+                <div class="breakpoint-item">
+                    <h4>移动端 (768px以下)</h4>
+                    <p>隐藏菜单文字，只显示图标，支持水平滚动。</p>
+                </div>
+                <div class="breakpoint-item">
+                    <h4>小移动端 (480px以下)</h4>
+                    <p>最小化所有元素，优化触摸操作体验。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>✨ 主要特性</h3>
+            <ul class="feature-list">
+                <li>打印设计器和报表设计器已移至外层显示</li>
+                <li>完全弹性的布局，支持PC端到移动端无缝适配</li>
+                <li>智能的响应式断点，确保在各种屏幕尺寸下的可用性</li>
+                <li>隐藏滚动条的水平滚动支持</li>
+                <li>渐进式隐藏策略：图标 > 文字 > 装饰</li>
+                <li>流畅的过渡动画和悬停效果</li>
+                <li>触摸友好的交互设计</li>
+                <li>完整的响应式工具类系统</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎨 视觉优化</h3>
+            <p style="color: #666; line-height: 1.6;">
+                每个菜单项都有独特的悬停效果，打印设计器使用橙色渐变，报表设计器使用绿色渐变，
+                表单设计器使用蓝色渐变，确保用户能够快速识别不同的功能模块。
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        function updateBreakpoint() {
+            const width = window.innerWidth;
+            const indicator = document.getElementById('current-size');
+            
+            let breakpoint = '';
+            if (width >= 1920) {
+                breakpoint = 'PC端 (1920px+)';
+            } else if (width >= 1600) {
+                breakpoint = '大屏 (1600px-1920px)';
+            } else if (width >= 1400) {
+                breakpoint = '中大屏 (1400px-1600px)';
+            } else if (width >= 1200) {
+                breakpoint = '中屏 (1200px-1400px)';
+            } else if (width >= 992) {
+                breakpoint = '小屏 (992px-1200px)';
+            } else if (width >= 768) {
+                breakpoint = '平板 (768px-992px)';
+            } else if (width >= 480) {
+                breakpoint = '移动端 (480px-768px)';
+            } else {
+                breakpoint = '小移动端 (480px以下)';
+            }
+            
+            indicator.textContent = `${breakpoint} (${width}px)`;
+        }
+        
+        // 初始化
+        updateBreakpoint();
+        
+        // 监听窗口大小变化
+        window.addEventListener('resize', updateBreakpoint);
+        
+        // 添加一些交互效果
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                item.style.background = 'rgba(255, 208, 75, 0.3)';
+                setTimeout(() => {
+                    item.style.background = 'rgba(255, 255, 255, 0.1)';
+                }, 200);
+            });
+        });
+    </script>
+</body>
+</html> 

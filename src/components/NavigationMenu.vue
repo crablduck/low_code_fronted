@@ -21,6 +21,36 @@
       <span>表单设计器</span>
     </el-menu-item>
     
+    <!-- 固定的打印设计器菜单 -->
+    <el-menu-item index="/print-designer" class="menu-item-print">
+      <el-icon><Printer /></el-icon>
+      <span>打印设计器</span>
+    </el-menu-item>
+    
+    <!-- 固定的报表设计器菜单 -->
+    <el-menu-item index="/report-designer" class="menu-item-report">
+      <el-icon><TrendCharts /></el-icon>
+      <span>报表设计器</span>
+    </el-menu-item>
+    
+    <!-- 仪表盘设计器菜单 -->
+    <el-menu-item index="/dashboard-designer" class="menu-item-dashboard">
+      <el-icon><Monitor /></el-icon>
+      <span>仪表盘设计器</span>
+    </el-menu-item>
+    
+    <!-- 数据源管理菜单 -->
+    <el-menu-item index="/datasource-manage" class="menu-item-datasource">
+      <el-icon><DataAnalysis /></el-icon>
+      <span>数据源管理</span>
+    </el-menu-item>
+    
+    <!-- 数据集管理菜单 -->
+    <el-menu-item index="/dataset-manage" class="menu-item-dataset">
+      <el-icon><Grid /></el-icon>
+      <span>数据集管理</span>
+    </el-menu-item>
+    
     <!-- 动态菜单项 - 支持层级菜单和悬停显示子菜单 -->
     <template v-for="menu in topLevelMenus" :key="menu.id">
       <!-- 有子菜单的父菜单 -->
@@ -104,7 +134,9 @@ import {
   Printer,
   User,
   CircleCheck,
-  Loading
+  Loading,
+  TrendCharts,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 
 // 接口定义
@@ -138,7 +170,9 @@ const iconMap = {
   'Database': DataBoard,
   'Grid': Grid,
   'Monitor': Monitor,
-  'Printer': Printer
+  'Printer': Printer,
+  'TrendCharts': TrendCharts,
+  'DataAnalysis': DataAnalysis
 }
 
 // 计算属性
@@ -168,8 +202,16 @@ const getMenuIcon = (iconName: string) => {
 }
 
 const handleMenuSelect = (index: string) => {
-  if (index && !index.startsWith('more') && !index.startsWith('/debug') && !index.startsWith('/refresh')) {
+  console.log('菜单选择:', index) // 添加调试日志
+  
+  if (index && index !== route.path) {
+    try {
     router.push(index)
+      console.log('路由跳转成功:', index)
+    } catch (error) {
+      console.error('路由跳转失败:', error)
+      ElMessage.error(`页面跳转失败: ${index}`)
+    }
   }
 }
 
@@ -219,65 +261,47 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   display: flex !important;
-  overflow: hidden !important; /* 隐藏滚动条 */
+  overflow: visible !important; /* 改为可见，不滚动 */
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
 }
 
 /* 菜单项基础样式 */
 .nav-menu :deep(.el-menu--horizontal) {
   display: flex !important;
-  width: 100% !important;
-  flex-wrap: wrap !important; /* 允许换行 */
+  width: 100% !important; /* 占满整个宽度 */
+  flex-wrap: nowrap !important; /* 不换行 */
   justify-content: flex-start !important;
-  gap: 5px; /* 添加间距 */
+  gap: 2px; /* 减小间距 */
+  min-width: 100% !important;
+  overflow: visible !important;
 }
 
 /* 菜单项容器样式 */
 .nav-menu :deep(.el-menu--horizontal > .el-menu-item),
 .nav-menu :deep(.el-menu--horizontal > .el-sub-menu) {
   flex: 0 0 auto !important;
-  margin: 0 !important; /* 移除右边距，使用gap控制间距 */
+  margin: 0 !important;
+  white-space: nowrap !important;
+  min-width: fit-content !important;
 }
 
-/* 移除滚动条相关样式 */
-.nav-menu::-webkit-scrollbar,
-.nav-menu::-webkit-scrollbar-track,
-.nav-menu::-webkit-scrollbar-thumb {
-  display: none;
-}
-
-/* 菜单项基本样式 */
+/* 菜单项基本样式 - 进一步优化宽度 */
 .nav-menu :deep(.el-menu-item),
 .nav-menu :deep(.el-sub-menu__title) {
   color: #fff !important;
   border-bottom: none !important;
   background-color: transparent !important;
   transition: all 0.3s ease;
-  padding: 0 16px !important;  /* 减小内边距 */
-  height: 56px !important;  /* 减小高度 */
+  padding: 0 6px !important;  /* 进一步减小内边距 */
+  height: 56px !important;
   line-height: 56px !important;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 12px !important; /* 进一步减小字体 */
   font-weight: 500;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   min-width: fit-content !important;
-}
-
-/* 菜单项悬停效果 */
-.nav-menu .el-menu-item:hover,
-.nav-menu .el-sub-menu__title:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-}
-
-/* 激活状态 */
-.nav-menu .el-menu-item.is-active {
-  background: linear-gradient(135deg, rgba(255, 208, 75, 0.3), rgba(255, 208, 75, 0.2)) !important;
-  border-bottom: 3px solid #ffd04b;
-  box-shadow: 0 4px 16px rgba(255, 208, 75, 0.4);
-  transform: translateY(-1px);
 }
 
 /* 特殊菜单项样式 */
@@ -287,6 +311,26 @@ onUnmounted(() => {
 
 .menu-item-designer:hover {
   background: linear-gradient(135deg, rgba(64, 158, 255, 0.3), rgba(64, 158, 255, 0.2)) !important;
+}
+
+.menu-item-print:hover {
+  background: linear-gradient(135deg, rgba(230, 162, 60, 0.3), rgba(230, 162, 60, 0.2)) !important;
+}
+
+.menu-item-report:hover {
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.3), rgba(103, 194, 58, 0.2)) !important;
+}
+
+.menu-item-dashboard:hover {
+  background: linear-gradient(135deg, rgba(144, 147, 153, 0.3), rgba(144, 147, 153, 0.2)) !important;
+}
+
+.menu-item-datasource:hover {
+  background: linear-gradient(135deg, rgba(19, 206, 102, 0.3), rgba(19, 206, 102, 0.2)) !important;
+}
+
+.menu-item-dataset:hover {
+  background: linear-gradient(135deg, rgba(255, 170, 0, 0.3), rgba(255, 170, 0, 0.2)) !important;
 }
 
 .menu-item-tools:hover {
@@ -323,10 +367,10 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 图标样式优化 */
+/* 图标样式优化 - 减小图标大小 */
 .nav-menu .el-icon {
-  margin-right: 8px;
-  font-size: 16px;
+  margin-right: 6px; /* 减小图标与文字间距 */
+  font-size: 14px; /* 减小图标大小 */
   transition: all 0.3s;
   flex-shrink: 0;
 }
@@ -411,40 +455,28 @@ onUnmounted(() => {
   }
 }
 
-/* 响应式优化 */
-@media (max-width: 1800px) {
-  .nav-menu {
-    min-width: 600px;
+/* 响应式优化 - 弹性设计 */
+@media (max-width: 1920px) {
+  .nav-menu .el-menu-item,
+  .nav-menu .el-sub-menu__title {
+    padding: 0 5px !important;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1600px) {
+  .nav-menu .el-menu-item,
+  .nav-menu .el-sub-menu__title {
+    padding: 0 4px !important;
+    font-size: 10px;
   }
 }
 
 @media (max-width: 1400px) {
-  .nav-menu {
-    min-width: 500px;
-  }
-  
   .nav-menu .el-menu-item,
   .nav-menu .el-sub-menu__title {
-    padding: 0 12px !important;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .nav-menu {
-    min-width: 400px;
-  }
-  
-  .nav-menu .el-menu-item,
-  .nav-menu .el-sub-menu__title {
-    padding: 0 10px !important;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 992px) {
-  .nav-menu {
-    min-width: 300px;
+    padding: 0 3px !important;
+    font-size: 10px;
   }
   
   .menu-badge,
@@ -453,16 +485,50 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 768px) {
-  .nav-menu {
-    margin: 0 15px;
-    min-width: 400px;
-  }
-  
+@media (max-width: 1200px) {
   .nav-menu .el-menu-item,
   .nav-menu .el-sub-menu__title {
-    padding: 0 10px;
-    margin: 0 1px;
+    padding: 0 3px !important;
+    font-size: 9px;
+  }
+  
+  .nav-menu .el-menu-item span,
+  .nav-menu .el-sub-menu__title span {
+    display: none; /* 隐藏文字，只显示图标 */
+  }
+  
+  .nav-menu .el-icon {
+    margin-right: 0 !important;
+    font-size: 16px;
+  }
+}
+
+/* 为重要的设计器菜单保留文字显示 */
+@media (max-width: 1200px) {
+  .menu-item-print span,
+  .menu-item-report span {
+    display: inline !important;
+    font-size: 9px;
+  }
+  
+  .menu-item-print .el-icon,
+  .menu-item-report .el-icon {
+    margin-right: 4px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .nav-menu .el-menu-item,
+  .nav-menu .el-sub-menu__title {
+    padding: 0 4px !important;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-menu .el-menu-item,
+  .nav-menu .el-sub-menu__title {
+    padding: 0 6px !important;
     font-size: 12px;
   }
   
@@ -473,6 +539,18 @@ onUnmounted(() => {
   
   .menu-status {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-menu .el-menu-item,
+  .nav-menu .el-sub-menu__title {
+    padding: 0 4px !important;
+    font-size: 11px;
+  }
+  
+  .nav-menu .el-icon {
+    font-size: 14px;
   }
 }
 
@@ -508,5 +586,32 @@ onUnmounted(() => {
 
 .nav-menu :deep(.el-menu--horizontal > .el-sub-menu) {
   flex-shrink: 0 !important;
+}
+
+/* 菜单项悬停效果 */
+.nav-menu .el-menu-item:hover,
+.nav-menu .el-sub-menu__title:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+/* 激活状态 */
+.nav-menu .el-menu-item.is-active {
+  background: linear-gradient(135deg, rgba(255, 208, 75, 0.3), rgba(255, 208, 75, 0.2)) !important;
+  border-bottom: 3px solid #ffd04b;
+  box-shadow: 0 4px 16px rgba(255, 208, 75, 0.4);
+  transform: translateY(-1px);
+}
+
+/* 设计器菜单特殊样式 - 突出显示但保持紧凑 */
+.menu-item-print,
+.menu-item-report {
+  background: linear-gradient(135deg, rgba(255, 208, 75, 0.2), rgba(255, 208, 75, 0.1)) !important;
+  border: 1px solid rgba(255, 208, 75, 0.3) !important;
+  font-weight: 600 !important;
+  color: #ffd04b !important;
+  padding: 0 8px !important; /* 设计器菜单稍微大一点 */
 }
 </style> 

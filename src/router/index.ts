@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-05-26 18:07:47
+ * @LastEditTime: 2025-05-27 13:37:57
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -64,31 +64,52 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '报表设计器' }
       },
       {
-        path: '/report-designer/edit',
-        name: 'ReportDesignerEdit',
-        component: () => import('../components/ReportDesigner.vue'),
-        meta: { title: '报表设计' }
-      },
-      {
         path: '/form-design',
         name: 'FormDesign',
         component: () => import('../views/FormDesign.vue'),
         meta: { title: '表单设计' }
       },
+      // 数据源管理路由
+      {
+        path: '/datasource-manage',
+        name: 'DatasourceManage',
+        component: () => import('../views/DatasourceManage.vue'),
+        meta: { title: '数据源管理' }
+      },
+      {
+        path: '/dataset-manage',
+        name: 'DatasetManage',
+        component: () => import('../views/DatasetManage.vue'),
+        meta: { title: '数据集管理' }
+      },
+      {
+        path: '/dataset-designer/:id?',
+        name: 'DatasetDesigner',
+        component: () => import('../views/DatasetDesigner.vue'),
+        meta: { title: '数据集设计器' }
+      },
+      // 仪表盘设计器路由
+      {
+        path: '/dashboard-designer',
+        name: 'DashboardDesigner',
+        component: () => import('../views/DashboardDesigner.vue'),
+        meta: { title: '仪表盘设计器' }
+      },
+      // 示例页面
       {
         path: '/examples/basic-usage',
         name: 'ExampleBasicUsage',
         component: () => import('../views/basic-usage.vue'),
         meta: { title: '快速表单向导示例' }
-      },
-      // 动态CRUD页面路由 - 匹配所有动态生成的路径
-      {
-        path: '/:pathMatch(.*)*',
-        name: 'DynamicCrud',
-        component: () => import('../views/DynamicCrud.vue'),
-        meta: { title: '数据管理', isDynamic: true }
       }
     ]
+  },
+  // 动态CRUD页面路由 - 放在最后作为兜底路由
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'DynamicCrud',
+    component: () => import('../views/DynamicCrud.vue'),
+    meta: { title: '数据管理', isDynamic: true }
   }
 ]
 

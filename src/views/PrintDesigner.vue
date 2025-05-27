@@ -171,6 +171,7 @@
     <!-- 主要内容区域 -->
     <div class="designer-content">
       <!-- 左侧组件面板 -->
+      <div class="component-panel-container">
       <ComponentPanel
         :data-fields="dataFields"
         :selected-template-id="selectedTemplateId"
@@ -178,8 +179,10 @@
         @drag-end="handleDragEnd"
         @template-change="handleTemplateChange"
       />
+      </div>
 
       <!-- 中间设计画布 -->
+      <div class="canvas-container">
       <DesignCanvas
         v-model:components="components"
         v-model:selected-ids="selectedIds"
@@ -198,14 +201,17 @@
         @redo="handleRedo"
         @save-history="handleSaveHistory"
       />
+      </div>
 
       <!-- 右侧属性面板 -->
+      <div class="property-panel-container">
       <PropertyPanel
         :selected-components="selectedComponents"
         :available-fields="dataFields"
         @update-component="handleComponentUpdate"
         @update-components="handleComponentsUpdate"
       />
+      </div>
     </div>
 
     <!-- 模板选择对话框 -->
@@ -399,7 +405,7 @@ const paperSizes = Object.values(PAPER_SIZES);
 // 模板相关
 const templateDialogVisible = ref(false);
 const saveDialogVisible = ref(false);
-const selectedTemplateId = ref<string>('1');
+const selectedTemplateId = ref<string>('');
 const savedTemplates = ref<PrintTemplate[]>([]);
 
 // 保存表单
@@ -643,9 +649,10 @@ const confirmSaveTemplate = async () => {
 
 const loadSavedTemplates = () => {
   try {
-    const templates = JSON.parse(localStorage.getItem('printTemplates') || '[]');
-    savedTemplates.value = templates.map((t: any) => ({
+    const templatesFromStorage: any[] = JSON.parse(localStorage.getItem('printTemplates') || '[]');
+    savedTemplates.value = templatesFromStorage.map((t: any) => ({
       ...t,
+      id: String(t.id),
       createdAt: new Date(t.createdAt),
       updatedAt: new Date(t.updatedAt)
     }));
@@ -660,7 +667,7 @@ const selectTemplate = (templateId: string) => {
 };
 
 const loadSelectedTemplate = () => {
-  const template = savedTemplates.value.find(t => t.id === selectedTemplateId.value);
+  const template = savedTemplates.value.find(t => String(t.id) === selectedTemplateId.value);
   if (template) {
     templateName.value = template.name;
     components.value = JSON.parse(JSON.stringify(template.components));
@@ -668,11 +675,9 @@ const loadSelectedTemplate = () => {
     if (template.dataFields) {
       dataFields.value = template.dataFields;
     }
-    
     selectedIds.value = [];
     clipboard.value = [];
     historyManager.clear();
-    
     templateDialogVisible.value = false;
     ElMessage.success(`已加载模板：${template.name}`);
   }
@@ -738,7 +743,11 @@ const handleExport = async (command: string) => {
 };
 
 // 工具函数
-const formatDate = (date: Date): string => {
+const formatDate = (dateInput: Date | string): string => {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return '无效日期';
+  }
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -775,21 +784,94 @@ onMounted(() => {
   
   // 初始化历史记录
   handleSaveHistory('初始化模板');
+  
+  // 添加布局调整逻辑
+  adjustDesignerLayout();
+  window.addEventListener('resize', handleWindowResize);
 });
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener('resize', handleWindowResize);
 });
+
+// 智能布局调整
+const adjustDesignerLayout = () => {
+  const designerContent = document.querySelector('.designer-content');
+  if (!designerContent) return;
+  
+  const containerWidth = designerContent.clientWidth;
+  const componentPanel = document.querySelector('.component-panel-container');
+  const propertyPanel = document.querySelector('.property-panel-container');
+  const canvasContainer = document.querySelector('.canvas-container');
+  
+  if (!componentPanel || !propertyPanel || !canvasContainer) return;
+  
+  let componentWidth: number;
+  let propertyWidth: number;
+  let minCanvasWidth: number;
+  
+  // 根据屏幕宽度动态计算面板宽度
+  if (containerWidth >= 1440) {
+    componentWidth = 220;
+    propertyWidth = 260;
+    minCanvasWidth = 500;
+  } else if (containerWidth >= 1200) {
+    componentWidth = 200;
+    propertyWidth = 240;
+    minCanvasWidth = 400;
+  } else if (containerWidth >= 1024) {
+    componentWidth = 180;
+    propertyWidth = 220;
+    minCanvasWidth = 350;
+  } else if (containerWidth >= 768) {
+    componentWidth = 160;
+    propertyWidth = 200;
+    minCanvasWidth = 300;
+  } else {
+    componentWidth = 140;
+    propertyWidth = 180;
+    minCanvasWidth = 250;
+  }
+  
+  const totalSidebarWidth = componentWidth + propertyWidth;
+  
+  // 检查是否有足够空间
+  if (containerWidth < totalSidebarWidth + minCanvasWidth) {
+    const availableWidth = containerWidth - minCanvasWidth;
+    const ratio = availableWidth / totalSidebarWidth;
+    
+    if (ratio > 0.6) {
+      componentWidth = Math.floor(componentWidth * ratio);
+      propertyWidth = Math.floor(propertyWidth * ratio);
+    } else {
+      componentWidth = Math.max(120, Math.floor(availableWidth * 0.4));
+      propertyWidth = Math.max(140, availableWidth - componentWidth);
+    }
+  }
+  
+  // 应用计算出的宽度
+  (componentPanel as HTMLElement).style.width = `${componentWidth}px`;
+  (propertyPanel as HTMLElement).style.width = `${propertyWidth}px`;
+};
+
+// 防抖处理窗口大小变化
+let resizeTimeout: number;
+const handleWindowResize = () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = window.setTimeout(adjustDesignerLayout, 100);
+};
 
 // 模板切换处理
 const handleTemplateChange = (templateId: string) => {
   selectedTemplateId.value = templateId;
-  // 这里可以根据模板ID加载对应的组件配置
-  ElMessage.success(`已切换到模板 ${templateId}`);
+  ElMessage.success(`已切换到模板 ID: ${templateId}`);
 };
 </script>
 
 <style scoped>
+@import '@/styles/designer-common-layout.scss';
+
 .print-designer {
   height: 100vh;
   display: flex;
@@ -804,165 +886,421 @@ const handleTemplateChange = (templateId: string) => {
   padding: 12px 16px;
   background: #ffffff;
   border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
-.header-left h2 {
-  margin: 0 0 4px 0;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title {
   font-size: 18px;
   font-weight: 600;
   color: #303133;
 }
 
-.header-center,
-.header-right {
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 工具栏样式 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-item {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.designer-content {
+.toolbar-item label {
+  font-size: 12px;
+  color: #606266;
+  white-space: nowrap;
+}
+
+/* 画布样式 */
+.design-canvas {
   flex: 1;
+  overflow: auto;
+  background: #e5e5e5;
+  padding: 20px;
+  position: relative;
+}
+
+.canvas-wrapper {
   display: flex;
-  overflow: hidden;
-}
-
-.margin-settings h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #303133;
-}
-
-.preview-data-editor h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #303133;
-}
-
-.data-actions {
-  margin-top: 12px;
-  text-align: right;
-}
-
-.template-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.template-card {
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 16px;
-}
-
-.template-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
-}
-
-.template-card.active {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-}
-
-.template-preview {
-  height: 120px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  background: #f8f9fa;
-  border-radius: 4px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  min-height: 100%;
+}
+
+.page-container {
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transform-origin: top center;
+  transition: transform 0.3s;
+}
+
+.page-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 标尺样式 */
+.ruler-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.ruler-h {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+}
+
+.ruler-v {
+  position: absolute;
+  top: 0;
+  left: -20px;
+  bottom: 0;
+  width: 20px;
+  background: #f0f0f0;
+  border-right: 1px solid #ddd;
+}
+
+/* 组件样式 */
+.print-component {
+  position: absolute;
+  border: 1px solid transparent;
+  cursor: move;
+  transition: border-color 0.2s;
+  user-select: none;
+}
+
+.print-component:hover {
+  border-color: #409eff;
+}
+
+.print-component.selected {
+  border-color: #409eff;
+  box-shadow: 0 0 0 1px #409eff;
+}
+
+.print-component.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+/* 调整手柄 */
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #409eff;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.print-component.selected .resize-handle {
+  opacity: 1;
+}
+
+.resize-handle-tl { top: -4px; left: -4px; cursor: nw-resize; }
+.resize-handle-tr { top: -4px; right: -4px; cursor: ne-resize; }
+.resize-handle-bl { bottom: -4px; left: -4px; cursor: sw-resize; }
+.resize-handle-br { bottom: -4px; right: -4px; cursor: se-resize; }
+.resize-handle-t { top: -4px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+.resize-handle-b { bottom: -4px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+.resize-handle-l { left: -4px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+.resize-handle-r { right: -4px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+
+/* 组件内容样式 */
+.component-text {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+  word-wrap: break-word;
   overflow: hidden;
 }
 
-.template-preview img {
-  max-width: 100%;
-  max-height: 100%;
+.component-image {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
-.no-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #c0c4cc;
+.component-table {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
 }
 
-.no-preview .el-icon {
-  font-size: 32px;
+.component-table th,
+.component-table td {
+  border: 1px solid #e4e7ed;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.component-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+
+.component-barcode,
+.component-qrcode {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 网格线 */
+.grid-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* 预览模式 */
+.preview-mode .print-component {
+  cursor: default;
+  border-color: transparent !important;
+}
+
+.preview-mode .resize-handle {
+  display: none;
+}
+
+/* 空状态 */
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #909399;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 14px;
   margin-bottom: 8px;
 }
 
-.template-info h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.template-info p {
-  margin: 0 0 8px 0;
+.empty-hint {
   font-size: 12px;
-  color: #909399;
-  line-height: 1.4;
-}
-
-.template-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
   color: #c0c4cc;
 }
 
-/* 滚动条样式 */
-.template-list::-webkit-scrollbar {
-  width: 6px;
+/* 加载状态 */
+.loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.template-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
+/* 对话框样式 */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 
-.template-list::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.template-card {
+  border: 2px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
 }
 
-.template-list::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.template-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
+.template-card.selected {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.template-icon {
+  font-size: 48px;
+  color: #409eff;
+  margin-bottom: 8px;
+}
+
+.template-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.template-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 数据绑定样式 */
+.data-binding-hint {
+  background: #f0f9ff;
+  border: 1px solid #b3d8ff;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #409eff;
+}
+
+.field-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #ecf5ff;
+  border: 1px solid #b3d8ff;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #409eff;
+  margin: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.field-tag:hover {
+  background: #409eff;
+  color: white;
+}
+
+/* 历史记录样式 */
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.history-item:hover {
+  background: #f5f7fa;
+}
+
+.history-item.active {
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.history-info {
+  flex: 1;
+}
+
+.history-action {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.history-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.history-index {
+  font-size: 12px;
+  color: #c0c4cc;
+}
+
+/* 快捷键提示 */
+.shortcut-hint {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  }
+  
+.shortcut-hint.show {
+  opacity: 1;
+  transform: translateY(0);
+  }
+
+/* 响应式调整 */
+@media (max-width: 768px) {
   .designer-header {
     flex-wrap: wrap;
     gap: 8px;
   }
   
-  .header-center {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 768px) {
-  .designer-header {
-    padding: 8px 12px;
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   
-  .header-left h2 {
-    font-size: 16px;
-  }
-  
-  .template-card {
-    margin-bottom: 12px;
-  }
-  
-  .template-preview {
-    height: 80px;
+  .toolbar-group {
+    flex-wrap: wrap;
   }
 }
 </style> 

@@ -852,17 +852,18 @@ const getFieldBinding = (fieldName: string): string => {
 
 <style scoped>
 .property-panel {
-  width: 320px;
   height: 100%;
   background: #ffffff;
   border-left: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-header {
   padding: 16px;
   border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
 }
 
 .panel-header h3 {
@@ -880,6 +881,7 @@ const getFieldBinding = (fieldName: string): string => {
 .panel-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
 }
 
@@ -1022,17 +1024,19 @@ const getFieldBinding = (fieldName: string): string => {
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
-  .property-panel {
-    width: 280px;
-  }
-  
+@media (max-width: 1366px) {
   .panel-content {
     padding: 12px;
   }
   
   .property-group {
     margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-content {
+    padding: 8px;
   }
 }
 </style> 

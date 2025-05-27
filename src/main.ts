@@ -2,13 +2,14 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-13 13:59:53
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-05-23 17:20:06
+ * @LastEditTime: 2025-05-27 13:03:37
  * @FilePath: /workflow-system/src/main.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 // @ts-nocheck
 import { createApp } from 'vue'
 import './style.css'
+import './styles/responsive.css' // 引入响应式工具类
 import App from './App.vue'
 import router from './router/index'
 
@@ -17,7 +18,15 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
+// Vue Flow 样式
+import '@vue-flow/core/dist/style.css'
+import '@vue-flow/core/dist/theme-default.css'
+
+// Pinia 状态管理
+import { createPinia } from 'pinia'
+
 const app = createApp(App)
+const pinia = createPinia()
 
 // 注册所有图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
@@ -25,7 +34,34 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 app.use(ElementPlus)
+app.use(pinia)
 app.use(router)
+
+// 修复 passive 事件监听器警告
+// 为 wheel、touchstart、touchmove 事件添加 passive 选项
+const addPassiveEventListeners = () => {
+  const originalAddEventListener = EventTarget.prototype.addEventListener
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    if (typeof options === 'boolean') {
+      options = { capture: options }
+    }
+    if (!options) {
+      options = {}
+    }
+    
+    // 为滚动相关事件添加 passive 选项
+    if (['wheel', 'mousewheel', 'touchstart', 'touchmove'].includes(type)) {
+      options.passive = options.passive !== false
+    }
+    
+    return originalAddEventListener.call(this, type, listener, options)
+  }
+}
+
+// 在开发环境中应用修复
+if (import.meta.env.DEV) {
+  addPassiveEventListeners()
+}
 
 // 🚀 仅在开发环境中启用 stagewise 工具栏
 // 开发模式: npm run dev -> import.meta.env.DEV = true

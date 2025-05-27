@@ -1074,6 +1074,330 @@ app.post('/api/reports/:id/unpublish', (req, res) => {
   }
 });
 
+// 表单模板相关接口
+// 获取表单模板列表
+app.get('/api/form_templates', (req, res) => {
+  try {
+    // 模拟表单模板数据
+    const templates = [
+      {
+        id: 1,
+        name: "患者入院登记表",
+        description: "患者入院时需要填写的基本信息表单",
+        category: "医疗表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z"
+      },
+      {
+        id: 2,
+        name: "员工信息登记表",
+        description: "新员工入职信息登记表单",
+        category: "人事表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-02T00:00:00.000Z",
+        updatedAt: "2024-01-02T00:00:00.000Z"
+      },
+      {
+        id: 3,
+        name: "设备维护记录表",
+        description: "设备维护保养记录表单",
+        category: "设备管理",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-03T00:00:00.000Z",
+        updatedAt: "2024-01-03T00:00:00.000Z"
+      }
+    ];
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: templates
+    });
+  } catch (error) {
+    console.error('获取表单模板列表失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: '获取表单模板列表失败',
+      error: error.message
+    });
+  }
+});
+
+// 获取完整表单模板（包含字段）
+app.get('/api/form-templates/:id/full', (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 模拟完整模板数据
+    const templates = {
+      1: {
+        id: 1,
+        name: "患者入院登记表",
+        description: "患者入院时需要填写的基本信息表单",
+        category: "医疗表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+        fields: [
+          {
+            id: 1,
+            fieldName: "patientName",
+            fieldLabel: "患者姓名",
+            fieldType: "text",
+            dataType: "VARCHAR",
+            required: true,
+            placeholder: "请输入患者姓名",
+            maxLength: 50,
+            sortOrder: 1,
+            validation: { required: true, message: "患者姓名不能为空" },
+            options: []
+          },
+          {
+            id: 2,
+            fieldName: "patientAge",
+            fieldLabel: "患者年龄",
+            fieldType: "number",
+            dataType: "INT",
+            required: true,
+            placeholder: "请输入年龄",
+            sortOrder: 2,
+            validation: { required: true, min: 0, max: 150, message: "请输入有效年龄" },
+            options: []
+          },
+          {
+            id: 3,
+            fieldName: "gender",
+            fieldLabel: "性别",
+            fieldType: "radio",
+            dataType: "VARCHAR",
+            required: true,
+            sortOrder: 3,
+            validation: { required: true, message: "请选择性别" },
+            options: [
+              { label: "男", value: "male" },
+              { label: "女", value: "female" }
+            ]
+          },
+          {
+            id: 4,
+            fieldName: "admissionDate",
+            fieldLabel: "入院日期",
+            fieldType: "date",
+            dataType: "DATE",
+            required: true,
+            sortOrder: 4,
+            validation: { required: true, message: "请选择入院日期" },
+            options: []
+          }
+        ]
+      },
+      2: {
+        id: 2,
+        name: "员工信息登记表",
+        description: "新员工入职信息登记表单",
+        category: "人事表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-02T00:00:00.000Z",
+        updatedAt: "2024-01-02T00:00:00.000Z",
+        fields: [
+          {
+            id: 5,
+            fieldName: "employeeName",
+            fieldLabel: "员工姓名",
+            fieldType: "text",
+            dataType: "VARCHAR",
+            required: true,
+            placeholder: "请输入员工姓名",
+            maxLength: 50,
+            sortOrder: 1,
+            validation: { required: true, message: "员工姓名不能为空" },
+            options: []
+          },
+          {
+            id: 6,
+            fieldName: "department",
+            fieldLabel: "部门",
+            fieldType: "select",
+            dataType: "VARCHAR",
+            required: true,
+            sortOrder: 2,
+            validation: { required: true, message: "请选择部门" },
+            options: [
+              { label: "技术部", value: "tech" },
+              { label: "人事部", value: "hr" },
+              { label: "财务部", value: "finance" },
+              { label: "市场部", value: "marketing" }
+            ]
+          },
+          {
+            id: 7,
+            fieldName: "position",
+            fieldLabel: "职位",
+            fieldType: "text",
+            dataType: "VARCHAR",
+            required: true,
+            placeholder: "请输入职位",
+            sortOrder: 3,
+            validation: { required: true, message: "职位不能为空" },
+            options: []
+          }
+        ]
+      },
+      3: {
+        id: 3,
+        name: "设备维护记录表",
+        description: "设备维护保养记录表单",
+        category: "设备管理",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-03T00:00:00.000Z",
+        updatedAt: "2024-01-03T00:00:00.000Z",
+        fields: [
+          {
+            id: 8,
+            fieldName: "equipmentName",
+            fieldLabel: "设备名称",
+            fieldType: "text",
+            dataType: "VARCHAR",
+            required: true,
+            placeholder: "请输入设备名称",
+            sortOrder: 1,
+            validation: { required: true, message: "设备名称不能为空" },
+            options: []
+          },
+          {
+            id: 9,
+            fieldName: "maintenanceType",
+            fieldLabel: "维护类型",
+            fieldType: "select",
+            dataType: "VARCHAR",
+            required: true,
+            sortOrder: 2,
+            validation: { required: true, message: "请选择维护类型" },
+            options: [
+              { label: "日常保养", value: "daily" },
+              { label: "定期维护", value: "regular" },
+              { label: "故障维修", value: "repair" },
+              { label: "升级改造", value: "upgrade" }
+            ]
+          },
+          {
+            id: 10,
+            fieldName: "maintenanceDate",
+            fieldLabel: "维护日期",
+            fieldType: "date",
+            dataType: "DATE",
+            required: true,
+            sortOrder: 3,
+            validation: { required: true, message: "请选择维护日期" },
+            options: []
+          },
+          {
+            id: 11,
+            fieldName: "description",
+            fieldLabel: "维护描述",
+            fieldType: "textarea",
+            dataType: "TEXT",
+            required: false,
+            placeholder: "请输入维护详细描述",
+            sortOrder: 4,
+            validation: {},
+            options: []
+          }
+        ]
+      }
+    };
+
+    const template = templates[id];
+    if (!template) {
+      return res.status(404).json({
+        code: 404,
+        message: '表单模板不存在'
+      });
+    }
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: template
+    });
+  } catch (error) {
+    console.error('获取表单模板详情失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: '获取表单模板详情失败',
+      error: error.message
+    });
+  }
+});
+
+// 获取单个表单模板
+app.get('/api/form_templates/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const templates = {
+      1: {
+        id: 1,
+        name: "患者入院登记表",
+        description: "患者入院时需要填写的基本信息表单",
+        category: "医疗表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z"
+      },
+      2: {
+        id: 2,
+        name: "员工信息登记表",
+        description: "新员工入职信息登记表单",
+        category: "人事表单",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-02T00:00:00.000Z",
+        updatedAt: "2024-01-02T00:00:00.000Z"
+      },
+      3: {
+        id: 3,
+        name: "设备维护记录表",
+        description: "设备维护保养记录表单",
+        category: "设备管理",
+        status: "published",
+        createdBy: 1,
+        createdAt: "2024-01-03T00:00:00.000Z",
+        updatedAt: "2024-01-03T00:00:00.000Z"
+      }
+    };
+
+    const template = templates[id];
+    if (!template) {
+      return res.status(404).json({
+        code: 404,
+        message: '表单模板不存在'
+      });
+    }
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: template
+    });
+  } catch (error) {
+    console.error('获取表单模板失败:', error);
+    res.status(500).json({
+      code: 500,
+      message: '获取表单模板失败',
+      error: error.message
+    });
+  }
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
   console.error('服务器错误:', err);

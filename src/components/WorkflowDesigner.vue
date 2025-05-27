@@ -1,5 +1,7 @@
 <template>
   <div class="workflow-designer">
+    <!-- 主设计区域 -->
+    <div class="flow-main">
     <!-- 左侧节点面板 -->
     <div class="node-panel">
       <div class="panel-header">
@@ -66,8 +68,8 @@
       </div>
     </div>
 
-    <!-- 主设计区域 -->
-    <div class="flow-main">
+      <!-- 中间画布区域 -->
+      <div class="canvas-area">
       <!-- 顶部工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
@@ -143,8 +145,8 @@
         </el-form-item>
         
         <el-form-item label="节点类型">
-          <el-tag :type="getNodeTypeColor(selectedNode.type)">
-            {{ getNodeTypeName(selectedNode.type) }}
+            <el-tag :type="getNodeTypeColor(selectedNode.data.nodeType || selectedNode.type)">
+              {{ getNodeTypeName(selectedNode.data.nodeType || selectedNode.type) }}
           </el-tag>
         </el-form-item>
         
@@ -159,7 +161,7 @@
         </el-form-item>
         
         <!-- 条件节点特殊配置 -->
-        <template v-if="selectedNode.type === 'decision'">
+          <template v-if="selectedNode.data.nodeType === 'decision'">
           <el-form-item label="条件表达式">
             <el-input 
               v-model="selectedNode.data.condition" 
@@ -170,7 +172,7 @@
         </template>
         
         <!-- 定时器节点特殊配置 -->
-        <template v-if="selectedNode.type === 'timer'">
+          <template v-if="selectedNode.data.nodeType === 'timer'">
           <el-form-item label="延迟时间(秒)">
             <el-input-number 
               v-model="selectedNode.data.delay" 
@@ -180,6 +182,7 @@
           </el-form-item>
         </template>
       </el-form>
+      </div>
     </div>
   </div>
 </template>
@@ -208,6 +211,28 @@ import {
 } from '@element-plus/icons-vue'
 import type { Node, Edge } from '@vue-flow/core'
 
+// 获取节点样式
+const getNodeStyle = (type: string) => {
+  const styles: Record<string, any> = {
+    decision: {
+      background: '#f0f9ff',
+      border: '2px solid #0ea5e9',
+      borderRadius: '8px'
+    },
+    parallel: {
+      background: '#f0fdf4',
+      border: '2px solid #22c55e',
+      borderRadius: '8px'
+    },
+    timer: {
+      background: '#fefce8',
+      border: '2px solid #eab308',
+      borderRadius: '8px'
+    }
+  }
+  return styles[type] || {}
+}
+
 // 初始化节点和连线
 const nodes = ref<Node[]>([
   {
@@ -216,7 +241,8 @@ const nodes = ref<Node[]>([
     position: { x: 100, y: 100 },
     data: { 
       label: '流程开始',
-      description: '流程的起始节点'
+      description: '流程的起始节点',
+      nodeType: 'input'
     },
   },
   {
@@ -225,18 +251,22 @@ const nodes = ref<Node[]>([
     position: { x: 300, y: 200 },
     data: { 
       label: '审核处理',
-      description: '进行业务审核处理'
+      description: '进行业务审核处理',
+      nodeType: 'default'
     },
   },
   {
     id: 'decision-1',
-    type: 'decision',
+    type: 'default',
     position: { x: 500, y: 200 },
     data: { 
       label: '审核结果',
       description: '判断审核是否通过',
+      nodeType: 'decision',
       condition: '${approved} == true'
     },
+    style: getNodeStyle('decision'),
+    class: 'node-decision'
   },
   {
     id: 'end-1',
@@ -244,7 +274,8 @@ const nodes = ref<Node[]>([
     position: { x: 700, y: 100 },
     data: { 
       label: '流程结束',
-      description: '流程的结束节点'
+      description: '流程的结束节点',
+      nodeType: 'output'
     },
   }
 ])
@@ -310,17 +341,27 @@ const onDrop = (event: DragEvent) => {
     y: event.clientY - top,
   })
 
+  // 根据类型确定节点的实际类型
+  let nodeType = type
+  // decision 节点在 vue-flow 中应该使用 default 类型，通过样式和数据来区分
+  if (type === 'decision' || type === 'parallel' || type === 'timer') {
+    nodeType = 'default'
+  }
+
   const newNode: Node = {
     id: `${type}-${Date.now()}`,
-    type: type === 'decision' ? 'default' : type,
+    type: nodeType,
     position,
     data: { 
       label: getNodeLabel(type),
       description: getNodeDescription(type),
+      nodeType: type, // 保存原始类型用于区分
       ...(type === 'decision' && { condition: '' }),
       ...(type === 'timer' && { delay: 60 })
     },
-    style: getNodeStyle(type)
+    style: getNodeStyle(type),
+    // 为特殊节点添加类名
+    class: type === 'decision' || type === 'parallel' || type === 'timer' ? `node-${type}` : ''
   }
 
   addNodes([newNode])
@@ -496,28 +537,6 @@ const getNodeDescription = (type: string): string => {
   return descriptions[type] || '节点描述'
 }
 
-// 获取节点样式
-const getNodeStyle = (type: string) => {
-  const styles: Record<string, any> = {
-    decision: {
-      background: '#f0f9ff',
-      border: '2px solid #0ea5e9',
-      borderRadius: '8px'
-    },
-    parallel: {
-      background: '#f0fdf4',
-      border: '2px solid #22c55e',
-      borderRadius: '8px'
-    },
-    timer: {
-      background: '#fefce8',
-      border: '2px solid #eab308',
-      borderRadius: '8px'
-    }
-  }
-  return styles[type] || {}
-}
-
 // 获取节点类型名称
 const getNodeTypeName = (type: string): string => {
   const names: Record<string, string> = {
@@ -546,6 +565,7 @@ const getNodeTypeColor = (type: string): string => {
 
 // 获取小地图节点颜色
 const getNodeColor = (node: Node): string => {
+  const nodeType = node.data?.nodeType || node.type || 'default'
   const colors: Record<string, string> = {
     input: '#22c55e',
     default: '#409eff',
@@ -554,7 +574,7 @@ const getNodeColor = (node: Node): string => {
     parallel: '#06b6d4',
     timer: '#f59e0b'
   }
-  return colors[node.type || 'default'] || '#409eff'
+  return colors[nodeType] || '#409eff'
 }
 
 onMounted(() => {
@@ -562,92 +582,191 @@ onMounted(() => {
 })
 </script>
 
-<style>
-@import '@vue-flow/core/dist/style.css';
-@import '@vue-flow/core/dist/theme-default.css';
-</style>
-
-<style scoped>
+<style scoped lang="scss">
 .workflow-designer {
-  display: flex;
-  width: 100%;
   height: 100vh;
-  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fa;
+  overflow: hidden;
 }
 
+/* 主设计区域 */
+.flow-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* 左侧节点面板 */
 .node-panel {
-  width: 280px;
+  width: 240px;
   background: white;
   border-right: 1px solid #e4e7ed;
-  overflow-y: auto;
-}
+  display: flex;
+  flex-direction: column;
 
 .panel-header {
-  padding: 20px 20px 0 20px;
-}
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafbfc;
 
-.panel-header h3 {
+    h3 {
   margin: 0;
-  color: #2c3e50;
-  font-size: 16px;
+      font-size: 14px;
+      color: #606266;
+      font-weight: 600;
+    }
+  }
 }
 
 .node-category {
-  padding: 0 20px 20px 20px;
-}
-
-.node-category h4 {
+  margin-bottom: 24px;
+  padding: 0 16px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  h4 {
   margin: 0 0 12px 0;
-  color: #606266;
-  font-size: 14px;
-  font-weight: 500;
+    font-size: 13px;
+    color: #909399;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 }
 
 .drag-node {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 12px 14px;
   margin-bottom: 8px;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
+  background: #ffffff;
+  border: 1.5px solid #e4e7ed;
+  border-radius: 8px;
   cursor: grab;
-  background: white;
-  transition: all 0.3s;
-  font-size: 14px;
-}
-
-.drag-node:hover {
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
-  border-color: #409eff;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 13px;
+  color: #606266;
+  
+  &:hover {
   transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: #c6e2ff;
 }
 
-.drag-node:active {
+  &:active {
   cursor: grabbing;
+    transform: translateY(0);
 }
 
-.start-node:hover {
+  .el-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  
+  span {
+    font-weight: 500;
+  }
+}
+
+// 节点类型特定样式
+.start-node {
   border-color: #67c23a;
-  box-shadow: 0 2px 12px rgba(103, 194, 58, 0.15);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e8 100%);
+  
+  .el-icon {
+    color: #67c23a;
+  }
+  
+  &:hover {
+    border-color: #85ce61;
+    background: linear-gradient(135deg, #e1f3d8 0%, #d5f2d5 100%);
+  }
 }
 
-.end-node:hover {
+.process-node {
+  border-color: #409eff;
+  background: linear-gradient(135deg, #ecf5ff 0%, #e1f0ff 100%);
+  
+  .el-icon {
+    color: #409eff;
+  }
+  
+  &:hover {
+    border-color: #66b1ff;
+    background: linear-gradient(135deg, #d9ecff 0%, #cce7ff 100%);
+  }
+}
+
+.end-node {
   border-color: #f56c6c;
-  box-shadow: 0 2px 12px rgba(245, 108, 108, 0.15);
+  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  
+  .el-icon {
+    color: #f56c6c;
+  }
+  
+  &:hover {
+    border-color: #f78989;
+    background: linear-gradient(135deg, #fde2e2 0%, #fcd5d5 100%);
+  }
 }
 
-.decision-node:hover {
+.decision-node {
   border-color: #e6a23c;
-  box-shadow: 0 2px 12px rgba(230, 162, 60, 0.15);
+  background: linear-gradient(135deg, #fdf6ec 0%, #faecd8 100%);
+  
+  .el-icon {
+    color: #e6a23c;
+  }
+  
+  &:hover {
+    border-color: #ebb563;
+    background: linear-gradient(135deg, #faecd8 0%, #f7e2c4 100%);
+  }
 }
 
-.flow-main {
+.parallel-node {
+  border-color: #909399;
+  background: linear-gradient(135deg, #f4f4f5 0%, #e9e9eb 100%);
+  
+  .el-icon {
+    color: #909399;
+  }
+  
+  &:hover {
+    border-color: #a6a9ad;
+    background: linear-gradient(135deg, #e9e9eb 0%, #dcdfe6 100%);
+  }
+}
+
+.timer-node {
+  border-color: #b88230;
+  background: linear-gradient(135deg, #fdf5e6 0%, #faecd0 100%);
+  
+  .el-icon {
+    color: #b88230;
+  }
+  
+  &:hover {
+    border-color: #c89450;
+    background: linear-gradient(135deg, #faecd0 0%, #f7e3bb 100%);
+  }
+}
+
+/* 中间画布区域 */
+.canvas-area {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
+/* 工具栏样式 */
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -655,89 +774,240 @@ onMounted(() => {
   padding: 12px 20px;
   background: white;
   border-bottom: 1px solid #e4e7ed;
-}
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
 .toolbar-left,
 .toolbar-right {
   display: flex;
   gap: 8px;
+  }
 }
 
+/* 流程画布样式 */
 .flow-canvas {
   flex: 1;
+  position: relative;
+  background: #fafbfc;
+  
+  // 网格背景
+  background-image: 
+    radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
 }
 
+/* 右侧属性面板 */
 .property-panel {
   width: 300px;
   background: white;
   border-left: 1px solid #e4e7ed;
-  overflow-y: auto;
-  padding: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafbfc;
+    
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #303133;
+      font-weight: 600;
+    }
+  }
+  
+  .el-form {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    
+    .el-form-item {
+      margin-bottom: 20px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    .el-form-item__label {
+      font-weight: 500;
+      color: #606266;
+    }
+  }
 }
 
-.property-panel .panel-header {
-  padding: 20px 20px 0 20px;
-}
-
-.property-panel .el-form {
-  padding: 0 20px;
-}
-
-/* Vue Flow 自定义样式 */
+/* Vue Flow 节点自定义样式 */
 :deep(.vue-flow__node) {
-  font-size: 12px;
+  background: white;
+  border: 2px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 120px;
+  
+  &:hover {
+    border-color: #409eff;
+    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  &.selected {
+    border-color: #409eff;
+    box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.2);
+  }
 }
 
-:deep(.vue-flow__node.selected) {
-  box-shadow: 0 0 0 2px #409eff;
+:deep(.vue-flow__node-input) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e8 100%);
+  border-color: #67c23a;
+  color: #67c23a;
+  font-weight: 600;
+}
+
+:deep(.vue-flow__node-output) {
+  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  border-color: #f56c6c;
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+:deep(.vue-flow__node-default) {
+  background: linear-gradient(135deg, #ecf5ff 0%, #e1f0ff 100%);
+  border-color: #409eff;
+  color: #409eff;
+  font-weight: 500;
+  
+  &.node-decision {
+    background: linear-gradient(135deg, #fdf6ec 0%, #faecd8 100%);
+    border-color: #e6a23c;
+    color: #e6a23c;
+    border-radius: 12px;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #e6a23c, #ebb563);
+      border-radius: 14px;
+      z-index: -1;
+    }
+  }
+}
+
+:deep(.vue-flow__edge-path) {
+  stroke: #409eff;
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke: #409eff;
+  stroke: #66b1ff;
   stroke-width: 3;
 }
 
-:deep(.vue-flow__controls) {
-  bottom: 20px;
-  left: 20px;
+:deep(.vue-flow__edge-textbg) {
+  fill: white;
+  stroke: #e4e7ed;
+  stroke-width: 1;
 }
 
+:deep(.vue-flow__edge-text) {
+  font-size: 12px;
+  font-weight: 500;
+  fill: #606266;
+}
+
+/* 控制面板样式 */
+:deep(.vue-flow__controls) {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  .vue-flow__controls-button {
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: white;
+    color: #606266;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #f5f7fa;
+      color: #409eff;
+}
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+/* 小地图样式 */
 :deep(.vue-flow__minimap) {
-  bottom: 20px;
-  right: 20px;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .node-panel {
-    width: 240px;
-  }
-  
   .property-panel {
-    width: 260px;
+    width: 280px;
   }
 }
 
 @media (max-width: 768px) {
-  .workflow-designer {
-    flex-direction: column;
+  .node-panel {
+    width: 200px;
   }
   
-  .node-panel,
   .property-panel {
-    width: 100%;
-    height: 200px;
+    width: 260px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    
+    &.show {
+      transform: translateX(0);
+    }
+  }
+  
+  .drag-node span {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .node-panel {
+    width: 60px;
+    
+    .panel-header h3,
+    .node-category h4,
+    .drag-node span {
+      display: none;
+  }
+  
+    .drag-node {
+    justify-content: center;
+      padding: 12px 8px;
+    }
   }
   
   .toolbar {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .toolbar-left,
-  .toolbar-right {
-    width: 100%;
-    justify-content: center;
+    padding: 8px 12px;
   }
 }
 </style> 
