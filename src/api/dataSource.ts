@@ -87,7 +87,7 @@ export const dataSourceApi = {
   },
 
   // 获取表的字段信息
-  getFieldsByTable: async (sourceId: number, tableName: string, dataSource: DataSource): Promise<FieldInfo[]> => {
+  getFieldsByTable: async (sourceId: number, tableName: string, dataSource: DataSource): Promise<any> => {
     const response = await post(dataSourceService, `/api/datasources/tables/${tableName}/fields`, {
       name: dataSource.name,
       type: dataSource.type,
@@ -98,16 +98,8 @@ export const dataSourceApi = {
       port: dataSource.port
     })
     
-    // 确保返回的数据格式符合 FieldInfo[] 的要求
-    return response.data.data.map(field => ({
-      name: field.name,
-      dataType: field.dataType,
-      isPrimary: field.isPrimary || false,
-      isNullable: field.isNullable || true,
-      description: field.description,
-      defaultValue: field.defaultValue,
-      tableName: tableName
-    }))
+    // 直接返回完整的响应对象，让调用者处理
+    return response
   },
 
   // 创建数据源

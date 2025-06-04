@@ -28,9 +28,9 @@ export interface DataSource {
 export interface DataSourceCreateRequest {
   name: string
   type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver'
-  host: string
+  url: string
   port: number
-  databaseName: string
+  database: string
   username: string
   password: string
   description?: string

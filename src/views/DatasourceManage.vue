@@ -603,14 +603,29 @@ const viewTableFields = async (table: TableInfo) => {
   loadingFields.value = true
   
   try {
-    fields.value = await dataSourceApi.getFieldsByTable(
+    const response = await dataSourceApi.getFieldsByTable(
       selectedDataSource.value.id, 
       table.name,
       selectedDataSource.value
     )
+    
+    // 处理API返回的数据格式：response.data 是数组格式
+    if (response && Array.isArray(response.data)) {
+      fields.value = response.data.map((column: any) => ({
+        name: column.columnName,
+        dataType: column.columnType,
+        isPrimary: column.isPrimaryKey,
+        isNullable: true, // API未返回此信息，默认为true
+        description: column.columnComment || '-',
+        tableName: table.name
+      }))
+    } else {
+      fields.value = []
+    }
   } catch (error) {
     ElMessage.error('加载字段信息失败')
     console.error('Failed to load table fields:', error)
+    fields.value = []
   } finally {
     loadingFields.value = false
   }

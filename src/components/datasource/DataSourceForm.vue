@@ -22,11 +22,12 @@
           <el-option label="SQLite" value="sqlite" />
           <el-option label="Oracle" value="oracle" />
           <el-option label="SQL Server" value="sqlserver" />
+          <el-option label="Mongo DB" value="mongodb" />
         </el-select>
       </el-form-item>
       
-      <el-form-item label="主机地址" prop="host" v-if="form.type !== 'sqlite'">
-        <el-input v-model="form.host" placeholder="请输入主机地址" />
+      <el-form-item label="主机地址" prop="url" v-if="form.type !== 'sqlite'">
+        <el-input v-model="form.url" placeholder="请输入主机地址" />
       </el-form-item>
       
       <el-form-item label="端口" prop="port" v-if="form.type !== 'sqlite'">
@@ -39,8 +40,8 @@
         />
       </el-form-item>
       
-      <el-form-item label="数据库名称" prop="databaseName">
-        <el-input v-model="form.databaseName" placeholder="请输入数据库名称" />
+      <el-form-item label="数据库名称" prop="database">
+        <el-input v-model="form.database" placeholder="请输入数据库名称" />
       </el-form-item>
       
       <el-form-item label="用户名" prop="username" v-if="form.type !== 'sqlite'">
@@ -109,9 +110,9 @@ const submitting = ref(false)
 const form = reactive<DataSourceCreateRequest>({
   name: '',
   type: 'mysql',
-  host: 'localhost',
+  url: 'localhost',
   port: 3306,
-  databaseName: '',
+  database: '',
   username: '',
   password: '',
   description: ''
@@ -237,7 +238,8 @@ watch(() => form.type, (newType) => {
     mysql: 3306,
     postgresql: 5432,
     oracle: 1521,
-    sqlserver: 1433
+    sqlserver: 1433,
+    mongodb: 27017
   }
   
   if (defaultPorts[newType]) {
@@ -251,9 +253,9 @@ watch(() => props.dataSource, (dataSource) => {
     Object.assign(form, {
       name: dataSource.name,
       type: dataSource.type,
-      host: dataSource.host,
+      url: dataSource.url,
       port: dataSource.port,
-      databaseName: dataSource.databaseName,
+      databaseName: dataSource.database,
       username: dataSource.username,
       password: '', // 编辑时不显示原密码
       description: dataSource.description || ''
