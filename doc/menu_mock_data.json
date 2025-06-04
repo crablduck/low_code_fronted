@@ -1,0 +1,114 @@
+[
+  {
+    "name": "首页",
+    "icon": "House",
+    "path": "/",
+    "parentId": 0,
+    "sort": 1
+  },
+  {
+    "name": "表单设计器",
+    "icon": "Edit",
+    "path": "/form-designer",
+    "parentId": 0,
+    "sort": 2
+  },
+  {
+    "name": "编辑表单",
+    "icon": "Edit",
+    "path": "/form-designer/edit/:id?",
+    "parentId": 2,
+    "sort": 1
+  },
+  {
+    "name": "打印设计器",
+    "icon": "Printer",
+    "path": "/print-designer",
+    "parentId": 0,
+    "sort": 3
+  },
+  {
+    "name": "报表设计器",
+    "icon": "TrendCharts",
+    "path": "/report-designer",
+    "parentId": 0,
+    "sort": 4
+  },
+  {
+    "name": "仪表盘",
+    "icon": "Monitor",
+    "path": "/dashboard",
+    "parentId": 0,
+    "sort": 5
+  },
+  {
+    "name": "仪表盘管理",
+    "icon": "Document",
+    "path": "/dashboard/list",
+    "parentId": 5,
+    "sort": 1
+  },
+  {
+    "name": "新建仪表盘",
+    "icon": "Edit",
+    "path": "/dashboard/create",
+    "parentId": 5,
+    "sort": 2
+  },
+  {
+    "name": "仪表盘设计器",
+    "icon": "TrendCharts",
+    "path": "/dashboard/designer",
+    "parentId": 5,
+    "sort": 3
+  },
+  {
+    "name": "数据源管理",
+    "icon": "DataAnalysis",
+    "path": "/datasource-manage",
+    "parentId": 0,
+    "sort": 6
+  },
+  {
+    "name": "数据集管理",
+    "icon": "Grid",
+    "path": "/dataset-manage",
+    "parentId": 0,
+    "sort": 7
+  },
+  {
+    "name": "API测试",
+    "icon": "Setting",
+    "path": "/api-test",
+    "parentId": 0,
+    "sort": 8
+  },
+  {
+    "name": "系统设置",
+    "icon": "Setting",
+    "path": "/settings",
+    "parentId": 0,
+    "sort": 9
+  },
+  {
+    "name": "用户管理",
+    "icon": "User",
+    "path": "/settings/users",
+    "parentId": 13,
+    "sort": 1
+  },
+  {
+    "name": "角色管理",
+    "icon": "UserFilled",
+    "path": "/settings/roles",
+    "parentId": 13,
+    "sort": 2
+  },
+  {
+    "name": "权限管理",
+    "icon": "Lock",
+    "path": "/settings/permissions",
+    "parentId": 13,
+    "sort": 3
+  }
+] 

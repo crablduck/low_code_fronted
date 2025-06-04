@@ -74,44 +74,49 @@ const goHome = () => {
 
 <style scoped>
 .layout {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--el-bg-color);
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #1e3c72 0%, #6b46c1 100%);
+  box-shadow: none;
   padding: 0;
-  height: 70px;
-  line-height: 70px;
+  height: var(--header-height);
+  line-height: var(--header-height);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 100%;
-  padding: 0 16px;
-  max-width: none;
-  margin: 0 auto;
-  width: 100%;
-  overflow: visible;
-  min-width: 320px;
+  gap: 40px;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   cursor: pointer;
-  transition: opacity 0.3s;
-  min-width: 140px;
-  flex-shrink: 0;
-}
-
-.logo-section:hover {
-  opacity: 0.8;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.3s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
 }
 
 .logo-icon {
@@ -120,208 +125,85 @@ const goHome = () => {
 }
 
 .logo-text {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: white;
-  letter-spacing: 1px;
-}
-
-.nav-menu {
-  flex: 1;
-  margin: 0 12px;
-  border-bottom: none;
-  background-color: transparent !important;
-  overflow: visible;
-  max-width: none;
-}
-
-.nav-menu .el-menu-item,
-.nav-menu .el-sub-menu__title {
-  border-bottom: none;
-  height: 70px;
-  line-height: 70px;
-  padding: 0 20px;
-  margin: 0 2px;
-  transition: all 0.3s;
-  background-color: transparent !important;
-  border-radius: 8px;
-  font-size: 15px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.nav-menu .el-menu-item:hover,
-.nav-menu .el-sub-menu__title:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  transform: translateY(-1px);
-}
-
-.nav-menu .el-menu-item.is-active {
-  background-color: rgba(255, 208, 75, 0.25) !important;
-  border-bottom: 3px solid #ffd04b;
-  box-shadow: 0 2px 8px rgba(255, 208, 75, 0.3);
-}
-
-/* 子菜单样式 */
-.nav-menu .el-sub-menu .el-menu {
-  background-color: rgba(102, 126, 234, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-  margin-top: 8px;
-}
-
-.nav-menu .el-sub-menu .el-menu-item {
-  background-color: transparent !important;
-  color: #fff !important;
-  height: 48px;
-  line-height: 48px;
-  padding: 0 20px;
-  margin: 4px 8px;
-  border-radius: 6px;
-}
-
-.nav-menu .el-sub-menu .el-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background: linear-gradient(135deg, #fff 0%, #ffd04b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .user-section {
-  flex-shrink: 0;
-  min-width: 140px;
+  margin-left: auto;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  padding: 6px 12px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
   transition: all 0.3s;
-  font-size: 14px;
-}
-
-.user-info:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+  }
 }
 
 .username {
+  color: white;
   font-size: 14px;
   font-weight: 500;
 }
 
 .arrow-down {
   font-size: 12px;
-  transition: transform 0.3s;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .main-content {
   flex: 1;
-  padding: 0;
-  overflow: auto;
+  padding: 24px;
+  margin-top: var(--header-height);
   background: #f5f7fa;
+  min-height: calc(100vh - var(--header-height));
 }
 
-/* 响应式设计 - 弹性布局 */
-@media (max-width: 1920px) {
-  .header-content {
-    padding: 0 16px;
-  }
-  
-  .nav-menu {
-    margin: 0 16px;
-  }
+:deep(.el-dropdown-menu) {
+  background: rgba(30, 60, 114, 0.95) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-@media (max-width: 1600px) {
-  .header-content {
-    padding: 0 12px;
+:deep(.el-dropdown-menu__item) {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
   }
   
-  .nav-menu {
-    margin: 0 12px;
-  }
-  
-  .logo-icon {
-    font-size: 28px;
-  }
-  
-  .logo-text {
-    font-size: 18px;
-  }
-}
-
-@media (max-width: 1400px) {
-  .header-content {
-    padding: 0 10px;
-  }
-  
-  .nav-menu {
-    margin: 0 10px;
-  }
-  
-  .logo-section {
-    min-width: 160px;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .header-content {
-    padding: 0 8px;
-  }
-  
-  .nav-menu {
-    margin: 0 8px;
-  }
-  
-  .logo-section {
-    min-width: 140px;
-    gap: 8px;
-  }
-  
-  .logo-icon {
-    font-size: 24px;
-  }
-  
-  .logo-text {
+  .el-icon {
+    margin-right: 8px;
     font-size: 16px;
   }
 }
 
-@media (max-width: 992px) {
-  .header-content {
-    padding: 0 6px;
-  }
-  
-  .nav-menu {
-    margin: 0 6px;
-  }
-  
-  .user-section {
-    min-width: 120px;
-  }
-}
-
 @media (max-width: 768px) {
-  .header-content {
-    padding: 0 8px;
-  }
-
   .logo-text {
     display: none;
   }
   
-  .logo-section {
-    min-width: 40px;
-  }
-
-  .nav-menu {
-    margin: 0 8px;
-  }
-
   .username {
     display: none;
   }
@@ -329,48 +211,9 @@ const goHome = () => {
   .user-section {
     min-width: 60px;
   }
-}
 
-@media (max-width: 480px) {
   .header-content {
-    padding: 0 4px;
-  }
-  
-  .nav-menu {
-    margin: 0 4px;
-  }
-  
-  .logo-icon {
-    font-size: 20px;
-  }
-  
-  .user-section {
-    min-width: 50px;
-  }
-}
-
-/* 响应式设计 - 针对2K显示器优化 */
-@media (min-width: 1920px) {
-  .header-content {
-    padding: 0 20px;
-    max-width: 1920px;
-    margin: 0 auto;
-  }
-  
-  .nav-menu {
-    margin: 0 16px;
-  }
-  
-  .logo-section {
-    min-width: 180px;
-  }
-
-  .logo-icon {
-    font-size: 32px;
-  }
-  
-  .logo-text {
-    font-size: 20px;
+    padding: 0 12px;
   }
 }
 </style> 

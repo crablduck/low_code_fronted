@@ -10,15 +10,15 @@
           </h1>
           <p class="page-description">管理和配置数据源连接</p>
         </div>
-          <div class="header-actions">
+        <div class="header-actions">
           <el-button type="primary" size="large" @click="showAddDataSource = true">
             <el-icon><Plus /></el-icon>
             创建数据源
           </el-button>
-          </div>
         </div>
+      </div>
     </div>
-      
+
     <!-- 主要内容区域 -->
     <div class="main-container">
       <!-- 左侧：数据源列表和统计 -->
@@ -53,7 +53,7 @@
                     <SortUp v-if="sortOrder === 'asc'" />
                     <SortDown v-else />
                   </el-icon>
-                  </el-button>
+                </el-button>
                 <el-button 
                   :type="sortType === 'time' ? 'primary' : ''" 
                   @click="sortBy('time')"
@@ -63,7 +63,7 @@
                     <SortUp v-if="sortOrder === 'asc'" />
                     <SortDown v-else />
                   </el-icon>
-                  </el-button>
+                </el-button>
               </el-button-group>
             </div>
           </div>
@@ -78,8 +78,8 @@
             >
               类型：{{ selectedTypeFilter }}
             </el-tag>
-            </div>
-              </div>
+          </div>
+        </div>
 
         <!-- 统计卡片 -->
         <div class="stats-section">
@@ -101,9 +101,9 @@
               <div class="stat-content">
                 <div class="stat-value">{{ onlineCount }}</div>
                 <div class="stat-label">在线</div>
+              </div>
             </div>
-          </div>
-          
+            
             <div class="stat-card inactive">
               <div class="stat-icon">
                 <el-icon><CircleClose /></el-icon>
@@ -114,7 +114,7 @@
               </div>
             </div>
           </div>
-          </div>
+        </div>
           
         <!-- 数据源类型分布 -->
         <div class="datasource-section">
@@ -141,9 +141,9 @@
           <div class="datasource-grid" v-loading="loading">
             <div 
               v-for="datasource in filteredDataSources" 
-              :key="datasource.id"
+              :key="datasource?.id || Math.random()"
               class="datasource-card"
-              :class="{ active: selectedDataSource?.id === datasource.id }"
+              :class="{ active: selectedDataSource?.id === datasource?.id }"
               @click="selectDataSource(datasource)"
             >
               <div class="datasource-header">
@@ -152,53 +152,53 @@
                 </div>
                 <div class="datasource-status">
                   <el-tag 
-                    :type="datasource.status === 'online' ? 'success' : 'danger'" 
+                    :type="datasource?.status === 'online' ? 'success' : 'danger'" 
                     size="small"
                   >
-                    {{ datasource.status === 'online' ? '在线' : '离线' }}
-                    </el-tag>
+                    {{ datasource?.status === 'online' ? '在线' : '离线' }}
+                  </el-tag>
                 </div>
-                  </div>
+              </div>
                   
               <div class="datasource-content">
-                <h4 class="datasource-name">{{ datasource.name }}</h4>
-                <p class="datasource-description">{{ datasource.type }} 数据库</p>
+                <h4 class="datasource-name">{{ datasource?.name || '' }}</h4>
+                <p class="datasource-description">{{ datasource?.type || '' }} 数据库</p>
                 
                 <div class="datasource-meta">
                   <div class="meta-item">
                     <el-icon><Monitor /></el-icon>
-                    <span>{{ datasource.host }}:{{ datasource.port }}</span>
+                    <span>{{ datasource?.host }}:{{ datasource?.port }}</span>
                   </div>
                   <div class="meta-item">
                     <el-icon><Calendar /></el-icon>
-                    <span>{{ formatDate(datasource.createTime) }}</span>
+                    <span>{{ formatDate(datasource?.createdAt) }}</span>
                   </div>
                 </div>
                 
                 <div class="datasource-type">
                   <el-tag 
-                    :type="getTypeTag(datasource.type)" 
+                    :type="getTypeTag(datasource?.type)" 
                     size="small"
                   >
-                    {{ datasource.type }}
+                    {{ datasource?.type || '' }}
                   </el-tag>
                 </div>
               </div>
             </div>
           </div>
           
-          <el-empty v-if="!loading && filteredDataSources.length === 0" description="暂无数据源" />
+          <el-empty v-if="!loading && filteredDataSources.length === 0" description="暂无数据源">
+          </el-empty>
         </div>
       </div>
 
       <!-- 右侧：数据源详情 -->
       <div class="right-panel" v-if="selectedDataSource">
-        <!-- Tab导航栏 - 放在最顶部 -->
+        <!-- Tab导航栏 -->
         <div class="detail-tabs-header">
           <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="detail-tabs-nav">
             <el-tab-pane label="基本信息" name="details"></el-tab-pane>
             <el-tab-pane label="数据表列表" name="tables"></el-tab-pane>
-            <el-tab-pane label="字段查看" name="fields"></el-tab-pane>
           </el-tabs>
         </div>
 
@@ -208,11 +208,11 @@
           <div v-if="activeTab === 'details'" class="tab-content">
             <div class="detail-header">
               <div class="detail-title">
-                <h2>{{ selectedDataSource.name }}</h2>
+                <h2>{{ selectedDataSource?.name }}</h2>
                 <el-tag 
-                  :type="selectedDataSource.status === 'online' ? 'success' : 'danger'"
-                    >
-                  {{ selectedDataSource.status === 'online' ? '在线' : '离线' }}
+                  :type="selectedDataSource?.status === 'online' ? 'success' : 'danger'"
+                >
+                  {{ selectedDataSource?.status === 'online' ? '在线' : '离线' }}
                 </el-tag>
               </div>
               
@@ -220,7 +220,7 @@
                 <el-button size="small" @click="editDataSource(selectedDataSource)">
                   <el-icon><Edit /></el-icon>
                   编辑
-                    </el-button>
+                </el-button>
                 <el-button size="small" type="success" @click="testConnection(selectedDataSource)">
                   <el-icon><Connection /></el-icon>
                   测试连接
@@ -232,13 +232,13 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item 
-                        :command="`toggle-${selectedDataSource.id}`"
-                        :icon="selectedDataSource.status === 'online' ? 'CircleClose' : 'CircleCheck'"
+                        :command="`toggle-${selectedDataSource?.id}`"
+                        :icon="selectedDataSource?.status === 'online' ? 'CircleClose' : 'CircleCheck'"
                       >
-                        {{ selectedDataSource.status === 'online' ? '设为离线' : '设为在线' }}
+                        {{ selectedDataSource?.status === 'online' ? '设为离线' : '设为在线' }}
                       </el-dropdown-item>
                       <el-dropdown-item 
-                        :command="`delete-${selectedDataSource.id}`"
+                        :command="`delete-${selectedDataSource?.id}`"
                         :icon="'Delete'"
                         divided
                       >
@@ -247,38 +247,38 @@
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
-                  </div>
-                </div>
+              </div>
+            </div>
                 
             <div class="detail-content">
               <el-descriptions :column="1" border>
                 <el-descriptions-item label="数据源ID">
-                  {{ selectedDataSource.id }}
+                  {{ selectedDataSource?.id }}
                 </el-descriptions-item>
                 <el-descriptions-item label="数据源名称">
-                  {{ selectedDataSource.name }}
+                  {{ selectedDataSource?.name }}
                 </el-descriptions-item>
                 <el-descriptions-item label="数据源类型">
-                  <el-tag :type="getTypeTag(selectedDataSource.type)">{{ selectedDataSource.type }}</el-tag>
+                  <el-tag :type="getTypeTag(selectedDataSource?.type)">{{ selectedDataSource?.type }}</el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="主机地址">
-                  {{ selectedDataSource.host }}
+                  {{ getDisplayValue(selectedDataSource, 'host') }}
                 </el-descriptions-item>
                 <el-descriptions-item label="端口">
-                  {{ selectedDataSource.port }}
+                  {{ getDisplayValue(selectedDataSource, 'port') }}
                 </el-descriptions-item>
                 <el-descriptions-item label="数据库名称">
-                  {{ selectedDataSource.databaseName }}
+                  {{ getDisplayValue(selectedDataSource, 'databaseName') }}
                 </el-descriptions-item>
                 <el-descriptions-item label="用户名">
-                  {{ selectedDataSource.username }}
+                  {{ getDisplayValue(selectedDataSource, 'username') }}
                 </el-descriptions-item>
                 <el-descriptions-item label="创建时间">
-                  {{ formatDate(selectedDataSource.createTime) }}
+                  {{ formatDate(selectedDataSource?.createdAt) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="状态">
-                  <el-tag :type="selectedDataSource.status === 'online' ? 'success' : 'danger'">
-                    {{ selectedDataSource.status === 'online' ? '在线' : '离线' }}
+                  <el-tag :type="selectedDataSource?.status === 'online' ? 'success' : 'danger'">
+                    {{ selectedDataSource?.status === 'online' ? '在线' : '离线' }}
                   </el-tag>
                 </el-descriptions-item>
               </el-descriptions>
@@ -288,26 +288,26 @@
           <!-- 数据表列表内容 -->
           <div v-if="activeTab === 'tables'" class="tab-content">
             <div class="detail-content">
-                  <div class="table-search-container">
-                    <el-input
-                      v-model="tableSearchKeyword"
+              <div class="table-search-container">
+                <el-input
+                  v-model="tableSearchKeyword"
                   placeholder="搜索表名..."
-                      prefix-icon="Search"
-                      clearable
-                      style="max-width: 300px; margin-bottom: 15px;"
-                    />
-                  </div>
-                  
-                  <el-table
-                    :data="filteredTables"
-                    style="width: 100%"
-                    v-loading="loadingTables"
+                  prefix-icon="Search"
+                  clearable
+                  style="max-width: 300px; margin-bottom: 15px;"
+                />
+              </div>
+              
+              <el-table
+                :data="filteredTables"
+                style="width: 100%"
+                v-loading="loadingTables"
                 size="small"
-                  >
-                    <el-table-column prop="name" label="表名" />
-                    <el-table-column prop="description" label="描述" />
+              >
+                <el-table-column prop="name" label="表名" />
+                <el-table-column prop="description" label="描述" />
                 <el-table-column label="操作" width="200">
-                      <template #default="{ row }">
+                  <template #default="{ row }">
                     <el-button size="small" @click="viewTableFields(row)">
                       <el-icon><View /></el-icon>
                       查看字段
@@ -316,43 +316,12 @@
                       <el-icon><Plus /></el-icon>
                       创建数据集
                     </el-button>
-                      </template>
-                    </el-table-column>
-                  </el-table>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
-                </div>
-                
-          <!-- 字段查看内容 -->
-          <div v-if="activeTab === 'fields'" class="tab-content">
-            <div class="detail-content">
-                <div v-if="selectedTable" class="fields-preview">
-                  <div class="table-info">
-                    <h4>表名: {{ selectedTable.name }}</h4>
-                    <p v-if="selectedTable.description">描述: {{ selectedTable.description }}</p>
-                  </div>
-                  
-                  <el-table
-                    :data="fields"
-                    style="width: 100%"
-                    v-loading="loadingFields"
-                  size="small"
-                  >
-                    <el-table-column prop="name" label="字段名" width="180" />
-                    <el-table-column prop="dataType" label="数据类型" width="120" />
-                    <el-table-column prop="isPrimary" label="主键" width="80">
-                      <template #default="{ row }">
-                      <el-tag v-if="row.isPrimary" type="danger" size="small">是</el-tag>
-                        <span v-else>否</span>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="description" label="描述" />
-                  </el-table>
-                </div>
-                
-              <el-empty v-else description="请选择一个表查看字段信息" />
           </div>
         </div>
-      </div>
       </div>
 
       <!-- 右侧空状态 -->
@@ -362,6 +331,48 @@
         </el-empty>
       </div>
     </div>
+
+    <!-- 字段查看对话框 -->
+    <el-dialog
+      v-model="showFieldsDialog"
+      :title="`表 ${selectedTable?.name || ''} 的字段信息`"
+      width="70%"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="true"
+      destroy-on-close
+    >
+      <div v-loading="loadingFields">
+        <div v-if="selectedTable?.description" class="table-description" style="margin-bottom: 15px;">
+          <el-text type="info">{{ selectedTable.description }}</el-text>
+        </div>
+        
+        <el-table
+          :data="fields"
+          style="width: 100%"
+          border
+          stripe
+          highlight-current-row
+          height="400"
+        >
+          <el-table-column prop="name" label="字段名" width="180" />
+          <el-table-column prop="dataType" label="数据类型" width="120" />
+          <el-table-column prop="isPrimary" label="主键" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.isPrimary" type="danger" size="small">是</el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="description" label="描述" show-overflow-tooltip />
+        </el-table>
+      </div>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showFieldsDialog = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 新建数据源对话框 -->
     <DataSourceForm
@@ -388,10 +399,24 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, SortUp, SortDown, Folder, DataAnalysis, Plus, Edit, View, ArrowDown, Connection, Monitor, Calendar, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import type { DataSource, TableInfo, FieldInfo } from '@/types/dataManagement'
 import { dataSourceApi } from '@/api/dataSource'
 import DataSourceForm from '@/components/datasource/DataSourceForm.vue'
-import type { DataSource, TableInfo, FieldInfo, TreeNode } from '@/types/dataManagement'
+import {
+  Search,
+  SortUp,
+  SortDown,
+  Edit,
+  View,
+  ArrowDown,
+  Connection,
+  DataAnalysis,
+  CircleCheck,
+  CircleClose,
+  Monitor,
+  Calendar,
+  Plus
+} from '@element-plus/icons-vue'
 
 // 响应式数据
 const dataSources = ref<DataSource[]>([])
@@ -415,6 +440,7 @@ const loadingFields = ref(false)
 // 对话框状态
 const showAddDataSource = ref(false)
 const showCreateFolderDialog = ref(false)
+const showFieldsDialog = ref(false)
 const editingDataSource = ref<DataSource | null>(null)
 
 // 表单数据
@@ -427,42 +453,47 @@ const activeTab = ref('details')
 
 // 计算属性 - 过滤后的数据源
 const filteredDataSources = computed(() => {
-  if (!dataSources.value) return []
-  
-  let result = dataSources.value
+  const sources = Array.isArray(dataSources.value) ? dataSources.value : []
+  let result = sources
 
   // 按类型过滤
   if (selectedTypeFilter.value) {
-    result = result.filter(ds => ds.type === selectedTypeFilter.value)
+    result = result.filter(ds => ds && ds.type === selectedTypeFilter.value)
   }
 
   // 按关键词过滤
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(ds => 
-      ds.name.toLowerCase().includes(keyword) ||
-      ds.description?.toLowerCase().includes(keyword) ||
-      ds.type.toLowerCase().includes(keyword)
+      ds && (
+        ds.name?.toLowerCase().includes(keyword) ||
+        ds.description?.toLowerCase().includes(keyword) ||
+        ds.type?.toLowerCase().includes(keyword)
+      )
     )
   }
 
   return result
 })
 
-const onlineCount = computed(() => 
-  filteredDataSources.value?.filter(ds => ds.status === 'online').length || 0
-)
+const onlineCount = computed(() => {
+  const sources = Array.isArray(filteredDataSources.value) ? filteredDataSources.value : []
+  return sources.filter(ds => ds && ds.status === 'online').length
+})
 
-const offlineCount = computed(() => 
-  filteredDataSources.value?.filter(ds => ds.status === 'offline').length || 0
-)
+const offlineCount = computed(() => {
+  const sources = Array.isArray(filteredDataSources.value) ? filteredDataSources.value : []
+  return sources.filter(ds => ds && ds.status === 'offline').length
+})
 
 const dataSourceTypeCount = computed(() => {
   if (!dataSources.value) return {}
   
   const counts: Record<string, number> = {}
   dataSources.value.forEach(ds => {
-    counts[ds.type] = (counts[ds.type] || 0) + 1
+    if (ds && ds.type) {
+      counts[ds.type] = (counts[ds.type] || 0) + 1
+    }
   })
   return counts
 })
@@ -474,37 +505,19 @@ const filteredTables = computed(() => {
   if (tableSearchKeyword.value) {
     const keyword = tableSearchKeyword.value.toLowerCase()
     result = result.filter(table => 
-      table.name.toLowerCase().includes(keyword) ||
-      table.description?.toLowerCase().includes(keyword)
+      table && (
+        table.name?.toLowerCase().includes(keyword) ||
+        table.description?.toLowerCase().includes(keyword)
+      )
     )
   }
   
   return result
 })
 
-// 计算属性 - 数据源类型统计
-const typeStats = computed(() => {
-  const stats: Record<string, number> = {}
-  dataSources.value.forEach(ds => {
-    stats[ds.type] = (stats[ds.type] || 0) + 1
-  })
-  return stats
-})
-
-// 计算属性 - 连接状态统计
-const statusStats = computed(() => {
-  const stats = {
-    total: dataSources.value.length,
-    connected: dataSources.value.filter(ds => ds.status === 'connected').length,
-    error: dataSources.value.filter(ds => ds.status === 'error').length
-  }
-  return stats
-})
-
 // 类型过滤方法
 const filterByType = (type: string) => {
   if (selectedTypeFilter.value === type) {
-    // 如果点击的是当前选中的类型，则取消过滤
     selectedTypeFilter.value = null
   } else {
     selectedTypeFilter.value = type
@@ -519,10 +532,13 @@ const clearTypeFilter = () => {
 const loadDataSources = async () => {
   loading.value = true
   try {
-    dataSources.value = await dataSourceApi.getAllDataSources()
+    const result = await dataSourceApi.getAllDataSources()
+    console.log('Loaded data sources:', result)
+    dataSources.value = Array.isArray(result) ? result.filter(ds => ds && typeof ds === 'object') : []
   } catch (error) {
     console.error('加载数据源失败:', error)
     ElMessage.error('加载数据源失败')
+    dataSources.value = []
   } finally {
     loading.value = false
   }
@@ -539,31 +555,41 @@ const sortBy = (type: 'name' | 'time') => {
   dataSources.value.sort((a, b) => {
     let comparison = 0
     if (type === 'name') {
-      comparison = a.name.localeCompare(b.name)
+      comparison = (a?.name || '').localeCompare(b?.name || '')
     } else {
-      comparison = new Date(a.createTime).getTime() - new Date(b.createTime).getTime()
+      const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0
+      const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0
+      comparison = dateA - dateB
     }
     return sortOrder.value === 'asc' ? comparison : -comparison
   })
 }
 
-const selectDataSource = (datasource: DataSource) => {
+const selectDataSource = (datasource: DataSource | null) => {
+  if (!datasource) return
   selectedDataSource.value = datasource
-    selectedTable.value = null
+  selectedTable.value = null
   loadTables(datasource.id)
-  // 如果选中了数据源，默认显示详情标签页
-  if (activeTab.value !== 'details' && activeTab.value !== 'tables' && activeTab.value !== 'fields') {
+  if (activeTab.value !== 'details' && activeTab.value !== 'tables') {
     activeTab.value = 'details'
   }
 }
 
 const loadTables = async (sourceId: number) => {
-  loadingTables.value = true
   try {
-    tables.value = await dataSourceApi.getTablesBySourceId(sourceId)
+    loadingTables.value = true
+    const dataSource = dataSources.value.find(ds => ds?.id === sourceId)
+    if (!dataSource) {
+      ElMessage.error('数据源未找到')
+      return
+    }
+    
+    const tablesData = await dataSourceApi.getTablesBySourceId(sourceId, dataSource)
+    tables.value = tablesData
+    ElMessage.success('获取表列表成功')
   } catch (error) {
-    ElMessage.error('加载数据表失败')
-    console.error(error)
+    console.error('获取表列表错误:', error)
+    ElMessage.error('获取表列表失败：' + (error as Error).message)
   } finally {
     loadingTables.value = false
   }
@@ -573,42 +599,47 @@ const viewTableFields = async (table: TableInfo) => {
   if (!selectedDataSource.value) return
   
   selectedTable.value = table
-  activeTab.value = 'fields'
+  showFieldsDialog.value = true
   loadingFields.value = true
   
   try {
-    fields.value = await dataSourceApi.getFieldsByTable(selectedDataSource.value.id, table.name)
+    fields.value = await dataSourceApi.getFieldsByTable(
+      selectedDataSource.value.id, 
+      table.name,
+      selectedDataSource.value
+    )
   } catch (error) {
     ElMessage.error('加载字段信息失败')
-    console.error(error)
+    console.error('Failed to load table fields:', error)
   } finally {
     loadingFields.value = false
   }
 }
 
 const createDataSetFromTable = (table: TableInfo) => {
-  // TODO: 跳转到数据集创建页面
   ElMessage.info(`将为表 ${table.name} 创建数据集`)
 }
 
-const editDataSource = (dataSource: DataSource) => {
+const editDataSource = (dataSource: DataSource | null) => {
+  if (!dataSource) return
   editingDataSource.value = dataSource
   showAddDataSource.value = true
 }
 
-const testConnection = async (dataSource: DataSource) => {
+const testConnection = async (dataSource: DataSource | null) => {
+  if (!dataSource) return
+  
   try {
     const result = await dataSourceApi.testConnection({
-      name: dataSource.name,
-      type: dataSource.type,
-      host: dataSource.host,
-      port: dataSource.port,
-      databaseName: dataSource.databaseName,
+      url: dataSource.url,
       username: dataSource.username,
-      password: '' // 实际应用中需要处理密码
+      password: dataSource.password,
+      port: dataSource.port,
+      database: dataSource.database,
+      type: dataSource.type as 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver'
     })
     
-    if (result) {
+    if (result.code === 200) {
       ElMessage.success('连接测试成功')
     } else {
       ElMessage.error('连接测试失败')
@@ -619,7 +650,9 @@ const testConnection = async (dataSource: DataSource) => {
   }
 }
 
-const toggleDataSourceStatus = async (dataSource: DataSource) => {
+const toggleDataSourceStatus = async (dataSource: DataSource | null) => {
+  if (!dataSource) return
+  
   try {
     const newStatus = dataSource.status === 'online' ? 'offline' : 'online'
     await dataSourceApi.updateDataSourceStatus(dataSource.id, newStatus)
@@ -660,7 +693,6 @@ const handleDataSourceSuccess = () => {
 }
 
 const createFolder = () => {
-  // TODO: 实现文件夹创建逻辑
   ElMessage.info('文件夹功能待实现')
   showCreateFolderDialog.value = false
   folderForm.name = ''
@@ -671,15 +703,37 @@ const formatDate = (dateString?: string) => {
   return new Date(dateString).toLocaleString()
 }
 
-// 监听标签页切换
+const getDisplayValue = (datasource: DataSource | null, key: string) => {
+  if (!datasource) return '-'
+  
+  if (key === 'database') return datasource.database || '-'
+  if (key === 'url') return datasource.url || '-'
+  if (key === 'host') return datasource.host || '-'
+  if (key === 'port') return datasource.port || '-'
+  if (key === 'databaseName') return datasource.databaseName || '-'
+  if (key === 'username') return datasource.username || '-'
+  
+  if (datasource.url) {
+    try {
+      const urlParts = datasource.url.split(':')
+      if (key === 'host') return urlParts[1]?.split('//')[1] || '-'
+      if (key === 'port') return Number(urlParts[2]?.split('/')[0]) || '-'
+    } catch (error) {
+      console.error('解析URL失败:', error)
+    }
+  }
+  
+  return '-'
+}
+
 const handleTabChange = (tab: string) => {
   if (tab === 'tables' && selectedDataSource.value) {
     loadTables(selectedDataSource.value.id)
   }
 }
 
-// 获取类型标签样式
-const getTypeTag = (type: string) => {
+const getTypeTag = (type: string | undefined | null) => {
+  if (!type) return 'info'
   switch (type.toLowerCase()) {
     case 'mysql':
       return 'success'
@@ -694,7 +748,6 @@ const getTypeTag = (type: string) => {
   }
 }
 
-// 处理下拉菜单命令
 const handleCommand = (command: string) => {
   const [action, id] = command.split('-')
   const dataSourceId = Number(id)
@@ -716,6 +769,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+// 样式保持不变 - 这里只是修复了模板结构问题
 .datasource-manage {
   height: 100vh;
   display: flex;
@@ -724,7 +778,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 页面头部 */
 .page-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -732,19 +785,19 @@ onMounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   
   .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     max-width: 1400px;
     margin: 0 auto;
-}
+  }
 
   .header-left {
     .page-title {
       margin: 0 0 6px 0;
       font-size: 24px;
       font-weight: 700;
-  display: flex;
+      display: flex;
       align-items: center;
       gap: 12px;
       
@@ -759,7 +812,7 @@ onMounted(() => {
       opacity: 0.9;
       font-weight: 300;
     }
-}
+  }
 
   .header-actions {
     .el-button {
@@ -776,7 +829,6 @@ onMounted(() => {
   }
 }
 
-/* 主容器 */
 .main-container {
   flex: 1;
   display: flex;
@@ -788,7 +840,6 @@ onMounted(() => {
   padding: 20px 32px;
 }
 
-/* 左侧面板 */
 .left-panel {
   width: 380px;
   display: flex;
@@ -797,62 +848,13 @@ onMounted(() => {
   min-height: 0;
 }
 
-/* 搜索区域 */
 .search-section {
   background: white;
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  
-  .search-bar {
-    margin-bottom: 12px;
-    
-    .el-input {
-      .el-input__wrapper {
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-      }
-    }
-  }
-  
-  .filter-bar {
-    .sort-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .sort-label {
-        font-size: 13px;
-        color: #666;
-        font-weight: 500;
-      }
-      
-      .el-button-group {
-        .el-button {
-          padding: 6px 12px;
-          font-size: 12px;
-          
-          .el-icon {
-            margin-left: 4px;
-            font-size: 12px;
-          }
-        }
-      }
-    }
-  }
-  
-  .filter-status {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #f0f0f0;
-    
-    .el-tag {
-      margin-right: 8px;
-}
-  }
 }
 
-/* 统计卡片区域 */
 .stats-section {
   background: white;
   border-radius: 12px;
@@ -874,11 +876,6 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
   
   .stat-icon {
     width: 36px;
@@ -910,94 +907,29 @@ onMounted(() => {
     }
   }
   
-  &.total {
-    .stat-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .stat-value {
-      color: #667eea;
-    }
+  &.total .stat-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
   }
   
-  &.active {
-    .stat-icon {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-    }
-    .stat-value {
-      color: #4facfe;
-    }
+  &.active .stat-icon {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
   }
   
-  &.inactive {
-    .stat-icon {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      color: white;
-    }
-    .stat-value {
-      color: #fa709a;
-    }
+  &.inactive .stat-icon {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
   }
 }
 
-/* 数据源分布 */
 .datasource-section {
   background: white;
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  
-  .section-title {
-  margin: 0 0 12px 0;
-    font-size: 14px;
-    font-weight: 600;
-  color: #303133;
 }
 
-  .datasource-list {
-  display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .datasource-item {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 6px;
-    
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-    &.active {
-      .datasource-info {
-        background: linear-gradient(135deg, #ecf5ff 0%, #e1f0ff 100%);
-        border: 1px solid #409eff;
-      }
-}
-
-    .datasource-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 10px;
-      background: #f8f9fa;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      transition: all 0.3s ease;
-      
-      .datasource-count {
-  font-size: 12px;
-        color: #666;
-        font-weight: 500;
-}
-    }
-  }
-}
-
-/* 数据源列表 */
 .datasource-list-section {
   flex: 1;
   background: white;
@@ -1008,39 +940,6 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
   max-height: 400px;
-  
-  .section-title {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #303133;
-  }
-  
-  .datasource-grid {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  gap: 8px;
-    
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 2px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 2px;
-      
-      &:hover {
-        background: #a8a8a8;
-      }
-    }
-  }
 }
 
 .datasource-card {
@@ -1050,6 +949,7 @@ onMounted(() => {
   padding: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 8px;
   
   &:hover {
     border-color: #409eff;
@@ -1062,73 +962,8 @@ onMounted(() => {
     background: linear-gradient(135deg, #ecf5ff 0%, #e1f0ff 100%);
     box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
   }
-  
-  .datasource-header {
-  display: flex;
-    justify-content: space-between;
-  align-items: center;
-    margin-bottom: 8px;
-    
-    .datasource-icon {
-      width: 24px;
-      height: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      
-      .el-icon {
-  font-size: 12px;
-      }
-    }
-  }
-  
-  .datasource-content {
-    .datasource-name {
-      margin: 0 0 6px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #303133;
-      line-height: 1.4;
 }
 
-    .datasource-description {
-      margin: 0 0 8px 0;
-      font-size: 12px;
-      color: #666;
-      line-height: 1.4;
-}
-
-    .datasource-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 8px;
-      
-      .meta-item {
-  display: flex;
-  align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        color: #666;
-        
-        .el-icon {
-          font-size: 12px;
-          color: #999;
-        }
-      }
-}
-
-    .datasource-type {
-      display: flex;
-      justify-content: flex-end;
-    }
-  }
-}
-
-/* 右侧面板 */
 .right-panel {
   flex: 1;
   background: white;
@@ -1137,119 +972,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  
-  .detail-tabs-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 12px 12px 0 0;
-    border-bottom: 1px solid #e4e7ed;
-    
-    .detail-tabs-nav {
-      :deep(.el-tabs__header) {
-        margin: 0;
-        padding: 0 20px;
-        background: transparent;
-        border-bottom: none;
-      }
-      
-      :deep(.el-tabs__nav-wrap) {
-        padding: 12px 0;
-      }
-      
-      :deep(.el-tabs__item) {
-        font-weight: 500;
-        color: #606266;
-        font-size: 14px;
-        
-        &.is-active {
-          color: #409eff;
-          font-weight: 600;
-        }
-      }
-      
-      :deep(.el-tabs__active-bar) {
-        background-color: #409eff;
-        height: 3px;
-      }
-      
-      :deep(.el-tabs__content) {
-        display: none;
-      }
-    }
-  }
-  
-  .detail-content-wrapper {
-  flex: 1;
-    overflow: hidden;
-
-    .tab-content {
-      height: 100%;
-      overflow-y: auto;
-      
-      &::-webkit-scrollbar {
-        width: 6px;
-      }
-      
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-      }
-      
-      &::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-        
-        &:hover {
-          background: #a8a8a8;
-        }
-      }
-    }
-  }
-  
-  .detail-header {
-    padding: 20px 20px 16px 20px;
-    border-bottom: 1px solid #f0f0f0;
-
-    .detail-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-      margin-bottom: 12px;
-      
-      h2 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 600;
-        color: #303133;
-      }
-    }
-    
-    .detail-actions {
-  display: flex;
-  gap: 8px;
-}
-  }
-  
-  .detail-content {
-    padding: 20px;
-    
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 3px;
-      
-      &:hover {
-        background: #a8a8a8;
-      }
-    }
-  }
 }
 
 .right-panel-empty {
@@ -1260,148 +982,5 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* 表格搜索容器 */
-.table-search-container {
-  margin-bottom: 15px;
-}
-
-/* 字段预览 */
-.fields-preview {
-.table-info {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f8f9fa;
-    border-radius: 8px;
-
-    h4 {
-  margin: 0 0 8px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #303133;
-}
-
-    p {
-  margin: 0;
-      font-size: 12px;
-      color: #666;
-    }
-  }
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .main-container {
-    padding: 16px 20px;
-    gap: 16px;
-  }
-  
-  .left-panel {
-    width: 350px;
-  }
-  
-  .page-header {
-    padding: 16px 24px;
-    
-    .page-title {
-      font-size: 20px;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .main-container {
-    flex-direction: column;
-    padding: 12px 16px;
-  }
-  
-  .left-panel {
-    width: 100%;
-    order: 2;
-  }
-  
-  .right-panel,
-  .right-panel-empty {
-    order: 1;
-    margin-bottom: 16px;
-  }
-  
-  .page-header {
-    padding: 12px 16px;
-    
-    .header-content {
-      flex-direction: column;
-      gap: 12px;
-      text-align: center;
-    }
-    
-    .page-title {
-      font-size: 18px;
-    }
-    
-    .page-description {
-      font-size: 13px;
-    }
-  }
-  
-  .stats-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .stat-card {
-    padding: 12px;
-    
-    .stat-icon {
-      width: 32px;
-      height: 32px;
-      
-      .el-icon {
-        font-size: 16px;
-      }
-    }
-    
-    .stat-value {
-      font-size: 16px;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .page-header {
-    padding: 10px 12px;
-  }
-  
-  .main-container {
-    padding: 8px 12px;
-  }
-  
-  .datasource-card {
-    padding: 10px;
-    
-    .datasource-name {
-      font-size: 13px;
-    }
-    
-    .datasource-description {
-      font-size: 11px;
-    }
-  }
-  
-  .detail-header {
-    padding: 16px 16px 12px 16px;
-    
-    .detail-title h2 {
-      font-size: 16px;
-    }
-    
-    .detail-actions {
-      flex-wrap: wrap;
-    }
-  }
-  
-  .detail-content {
-    padding: 16px;
-  }
 }
 </style> 

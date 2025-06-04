@@ -1,4 +1,5 @@
-import request from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
+import { dataSourceService } from '@/utils/request'
 import type { 
   DataSource, 
   DataSourceCreateRequest, 
@@ -11,52 +12,132 @@ import type {
   PagedResponse 
 } from '@/types/dataManagement'
 
+// 测试连接请求参数类型
+interface TestConnectionRequest {
+  url: string
+  username: string
+  password: string
+  port: number
+  database: string
+  type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver'
+}
+
+// 测试连接响应类型
+interface TestConnectionResponse {
+  code: number
+  data: string
+  message: string
+}
+
 // 数据源 API
 export const dataSourceApi = {
   // 获取所有数据源
   getAllDataSources: async (): Promise<DataSource[]> => {
-    const response = await request.get('/api/data-sources')
-    return response.data
+    const response = await get(dataSourceService, '/api/datasources')
+    console.log('Data source response:', response)
+    // Extract data from paginated response
+    return response.data.content
   },
 
   // 获取数据源下的所有表
-  getTablesBySourceId: async (sourceId: number): Promise<TableInfo[]> => {
-    const response = await request.get(`/api/table-list?db=${sourceId}`)
-    return response.data
+  getTablesBySourceId: async (sourceId: number, dataSource?: DataSource): Promise<TableInfo[]> => {
+    debugger
+    if (!dataSource) {
+      throw new Error('DataSource information is required')
+    }
+
+    interface TableResponse {
+      code: number;
+      message: string;
+      data: string[] | TableInfo[];
+    }
+
+    const response = await post(dataSourceService, '/api/datasources/tables', {
+      name: dataSource.name,
+      type: dataSource.type,
+      url: dataSource.url,
+      username: dataSource.username,
+      password: dataSource.password,
+      database: dataSource.database,
+      port: dataSource.port
+    })
+    
+    if (response.code === 200) {
+      const responseData = response.data;
+      // 如果返回的是字符串数组，转换为TableInfo数组
+      if (Array.isArray(responseData)) {
+        return responseData.map((item: string | TableInfo) => {
+          if (typeof item === 'string') {
+            return {
+              name: item,
+              description: '',
+              type: 'table',
+              createTime: new Date().toISOString(),
+              updateTime: new Date().toISOString()
+            } as TableInfo;
+          }
+          return item;
+        });
+      }
+      // 如果已经是TableInfo数组，直接返回
+      return responseData as TableInfo[];
+    }
+    
+    throw new Error(response.data.message || 'Failed to fetch tables');
   },
 
   // 获取表的字段信息
-  getFieldsByTable: async (sourceId: number, tableName: string): Promise<FieldInfo[]> => {
-    const response = await request.get(`/api/table-fields/${tableName}?db=${sourceId}`)
-    return response.data
+  getFieldsByTable: async (sourceId: number, tableName: string, dataSource: DataSource): Promise<FieldInfo[]> => {
+    const response = await post(dataSourceService, `/api/datasources/tables/${tableName}/fields`, {
+      name: dataSource.name,
+      type: dataSource.type,
+      url: dataSource.url,
+      username: dataSource.username,
+      password: dataSource.password,
+      database: dataSource.database,
+      port: dataSource.port
+    })
+    
+    // 确保返回的数据格式符合 FieldInfo[] 的要求
+    return response.data.data.map(field => ({
+      name: field.name,
+      dataType: field.dataType,
+      isPrimary: field.isPrimary || false,
+      isNullable: field.isNullable || true,
+      description: field.description,
+      defaultValue: field.defaultValue,
+      tableName: tableName
+    }))
   },
 
   // 创建数据源
   createDataSource: async (dataSource: DataSourceCreateRequest): Promise<DataSource> => {
-    const response = await request.post('/api/data-sources', dataSource)
+    const response = await post(dataSourceService, '/api/datasources', dataSource)
     return response.data
   },
 
   // 更新数据源
   updateDataSource: async (id: number, updates: Partial<DataSource>): Promise<DataSource> => {
-    const response = await request.put(`/api/data-sources/${id}`, updates)
+    const response = await put(dataSourceService, `/api/datasources/${id}`, updates)
     return response.data
   },
 
   // 删除数据源
   deleteDataSource: async (id: number): Promise<void> => {
-    await request.delete(`/api/data-sources/${id}`)
+    await del(dataSourceService, `/api/datasources/${id}`)
   },
 
   // 测试数据源连接
-  testConnection: async (dataSource: Partial<DataSource>): Promise<boolean> => {
-    const response = await request.post('/api/data-sources/test', dataSource)
-    return response.data.success
-  },
+  testConnection: async (params: TestConnectionRequest): Promise<TestConnectionResponse> => {
+    const response = await post(dataSourceService, '/api/datasources/test-connection', params)
+    return response
+  }
+
+,
 
   // 更新数据源状态
   updateDataSourceStatus: async (id: number, status: string): Promise<DataSource> => {
-    const response = await request.patch(`/api/data-sources/${id}/status`, { status })
+    const response = await put(dataSourceService, `/api/datasources/${id}/status`, { status })
     return response.data
   }
 }
@@ -65,97 +146,59 @@ export const dataSourceApi = {
 export const dataSetApi = {
   // 获取数据集列表
   getDatasets: async (params: { page: number; pageSize: number; keyword?: string }): Promise<PagedResponse<DataSet>> => {
-    // 使用 mock 数据
-    const mockDatasets = [
-      {
-        id: 1,
-        name: '患者基础信息数据集',
-        description: '患者基本信息，包含姓名、年龄、性别等基础数据',
-        dataSourceId: 1,
-        dataSourceName: 'MySQL主库',
-        queryType: 'single',
-        tableName: 'patients',
-        status: 'active',
-        createTime: '2024-01-15T10:30:00Z',
-        updateTime: '2024-01-20T14:20:00Z',
-        fields: [
-          {
-            id: 1,
-            datasetId: 1,
-            fieldName: 'patient_name',
-            fieldType: 'dimension',
-            displayName: '患者姓名',
-            description: '患者的真实姓名',
-            isVisible: true,
-            sortOrder: 1,
-            tableName: 'patients',
-            physicalName: 'patient_name',
-            dataType: 'varchar'
-          }
-        ]
-      }
-    ];
-
-    return {
-      items: mockDatasets,
-      total: mockDatasets.length,
-      page: params.page,
-      pageSize: params.pageSize
-    };
+    const response = await get(dataSourceService, '/api/datasets', { params })
+    return response.data
   },
 
   // 获取单个数据集
   getDatasetById: async (id: number): Promise<DataSet> => {
-    const response = await request.get(`/api/datasets/${id}`)
+    const response = await get(dataSourceService, `/api/datasets/${id}`)
     return response.data
+  },
+
+  // 测试数据源连接
+  testConnection: async (id: number): Promise<boolean> => {
+    const response = await post(dataSourceService, `/api/datasources/${id}/test-connection`, {})
+    return response.data.success
   },
 
   // 创建数据集
   createDataset: async (dataset: DataSetCreateRequest): Promise<DataSet> => {
-    const response = await request.post('/api/datasets', dataset)
+    const response = await post(dataSourceService, '/api/datasets', dataset)
     return response.data
   },
 
   // 更新数据集
   updateDataset: async (id: number, updates: DataSetUpdateRequest): Promise<DataSet> => {
-    const response = await request.put(`/api/datasets/${id}`, updates)
+    const response = await put(dataSourceService, `/api/datasets/${id}`, updates)
     return response.data
   },
 
   // 删除数据集
   deleteDataset: async (id: number): Promise<void> => {
-    await request.delete(`/api/datasets/${id}`)
+    await del(dataSourceService, `/api/datasets/${id}`)
   },
 
   // 更新数据集状态
   updateDatasetStatus: async (id: number, status: string): Promise<void> => {
-    await request.put(`/api/datasets/${id}/status`, { status })
+    await put(dataSourceService, `/api/datasets/${id}/status`, { status })
   },
 
   // 预览数据
   previewData: async (datasetId: number, limit: number = 100): Promise<DataPreviewDTO> => {
-    const response = await request.get(`/api/datasets/${datasetId}/preview`, {
-      params: { limit }
-    })
+    const response = await get(dataSourceService, `/api/datasets/${datasetId}/preview`, { params: { limit } })
     return response.data
   },
 
   // 验证SQL查询
   validateSQL: async (dataSourceId: number, sql: string): Promise<{ valid: boolean; error?: string }> => {
-    const response = await request.post('/api/datasets/validate-sql', {
-      dataSourceId,
-      sql
-    })
+    const response = await post(dataSourceService, `/api/datasources/${dataSourceId}/validate-sql`, { sql })
     return response.data
   },
 
   // 获取SQL查询结果预览
   previewSQL: async (dataSourceId: number, sql: string, limit: number = 100): Promise<DataPreviewDTO> => {
-    const response = await request.post('/api/datasets/preview-sql', {
-      dataSourceId,
-      sql,
-      limit
-    })
+    const response = await post(dataSourceService, `/api/datasources/${dataSourceId}/preview-sql`, { sql, limit })
     return response.data
   }
 }
@@ -164,30 +207,30 @@ export const dataSetApi = {
 export const dashboardApi = {
   // 保存仪表盘
   saveDashboard: async (data: any): Promise<any> => {
-    const response = await request.post('/api/dashboards', data)
-    return response.data
+    const response = await post(dataSourceService, '/api/dashboards', data)
+    return response
   },
 
   // 获取仪表盘列表
   getDashboards: async (): Promise<any[]> => {
-    const response = await request.get('/api/dashboards')
+    const response = await get(dataSourceService, '/api/dashboards')
     return response.data
   },
 
   // 获取仪表盘详情
   getDashboard: async (id: string): Promise<any> => {
-    const response = await request.get(`/api/dashboards/${id}`)
-    return response.data
+    const response = await get(dataSourceService, `/api/dashboards/${id}`)
+    return response
   },
 
   // 更新仪表盘
   updateDashboard: async (id: string, data: any): Promise<any> => {
-    const response = await request.put(`/api/dashboards/${id}`, data)
-    return response.data
+    const response = await put(dataSourceService, `/api/dashboards/${id}`, data)
+    return response
   },
 
   // 删除仪表盘
   deleteDashboard: async (id: string): Promise<void> => {
-    await request.delete(`/api/dashboards/${id}`)
+    await del(dataSourceService, `/api/dashboards/${id}`)
   }
 }

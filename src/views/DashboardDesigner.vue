@@ -284,7 +284,7 @@
               <h3>数据配置</h3>
               <div class="panel-actions">
                 <el-button-group>
-                  <el-button size="small" @click="previewData">
+                  <el-button size="small" @click="showPreview">
                     <el-icon><View /></el-icon>
                     预览
                   </el-button>
@@ -416,7 +416,7 @@
           <el-tag type="info">{{ selectedDataset?.tableName }}</el-tag>
         </div>
         
-        <el-table :data="previewData" border style="width: 100%">
+        <el-table :data="previewDataList" border style="width: 100%">
           <el-table-column
             v-for="field in selectedDataset?.fields"
             :key="field.fieldName"
@@ -439,20 +439,6 @@
         <el-form-item label="仪表盘名称" required>
           <el-input v-model="saveForm.name" placeholder="请输入仪表盘名称" />
         </el-form-item>
-        <el-form-item label="保存位置" required>
-          <el-cascader
-            v-model="saveForm.menuId"
-            :options="menuOptions"
-            :props="{
-              checkStrictly: true,
-              value: 'id',
-              label: 'name',
-              children: 'children'
-            }"
-            placeholder="请选择保存位置"
-            style="width: 100%"
-          />
-        </el-form-item>
         <el-form-item label="仪表盘描述">
           <el-input
             v-model="saveForm.description"
@@ -461,10 +447,57 @@
             placeholder="请输入仪表盘描述"
           />
         </el-form-item>
+        <el-form-item label="菜单">
+          <el-cascader
+            v-model="saveForm.menuPath"
+            :options="menuOptions"
+            :props="{
+              checkStrictly: true,
+              label: 'label',
+              value: 'value',
+              emitPath: true
+            }"
+            placeholder="选择挂载的菜单位置"
+            clearable
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showSaveDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveDashboard">保存</el-button>
+        <el-button type="primary" @click="handleSave">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 发布对话框 -->
+    <el-dialog
+      v-model="publishDialogVisible"
+      title="发布仪表盘"
+      width="500px"
+    >
+      <div class="publish-form">
+        <el-form ref="publishForm" :model="publishForm" label-width="100px">
+          <el-form-item label="选择菜单">
+            <el-cascader
+              v-model="publishForm.menuPath"
+              :options="menuOptions"
+              :props="{
+                checkStrictly: true,
+                label: 'label',
+                value: 'value',
+                emitPath: true
+              }"
+              placeholder="选择挂载的菜单位置"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="显示名称">
+            <el-input v-model="publishForm.displayName" placeholder="菜单中显示的名称" />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handlePublish">确认发布</el-button>
       </template>
     </el-dialog>
   </div>
@@ -472,44 +505,23 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, computed, h, createVNode, render } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, ElTable, ElTableColumn } from 'element-plus'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
 import { Rank, TrendCharts, ArrowDown, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled } from '@element-plus/icons-vue'
 import type { DataSet, DataSetField } from '@/types/dataManagement'
-import { dataSetApi, dashboardApi } from '@/api/dataSource'
-import { useDatasourceStore } from '@/stores/datasource'
-import { useDatasetStore } from '@/stores/dataset'
+import type { MenuSelectOption, MenuItem } from '@/types/menu'
+import { getMenuTree } from '@/api/menu'
+import { createDashboard, getDashboardDetail } from '@/api/dashboard'
+import { DashboardStatus, DashboardType, LayoutItem } from '@/types/dashboard'
 import { mockMedicalData, mockDatasets, defaultFieldMappings } from '@/mock/dashboardData'
+import { useDatasetStore } from '@/stores/dataset'
+import type { DashboardForm, ChartConfig } from '@/types/dashboard'
 
 // 预览数据类型
 interface PreviewData {
   [key: string]: string | number | null
-}
-
-// 图表配置类型
-interface ChartConfig {
-  i: string
-  type: 'bar' | 'line' | 'pie' | 'table'
-  xField?: string
-  yField?: string
-  nameField?: string
-  valueField?: string
-  tableFields?: string[]
-  title?: string
-  showLegend?: boolean
-  showToolbox?: boolean
-  dataLimit?: number
-}
-
-// 布局项类型
-interface LayoutItem {
-  x: number
-  y: number
-  w: number
-  h: number
-  i: string
-  chartConfig: ChartConfig
 }
 
 // 图表类型配置
@@ -566,10 +578,12 @@ const metricFields = computed(() => {
 // 保存表单
 const saveForm = ref({
   name: '',
-  menuId: null,
-  description: ''
+  description: '',
+  menuPath: [] as string[]
 })
-const menuOptions = ref([])
+
+// 菜单选项
+const menuOptions = ref<MenuSelectOption[]>([])
 
 // 响应式设计相关
 const windowWidth = ref(window.innerWidth)
@@ -665,73 +679,26 @@ const handleDrop = (e: DragEvent) => {
   selectedChart.value = chartConfig
   
   nextTick(() => {
-    initChart(newItem.i, chartConfig)
+    initChartInstance(newItem.i, chartConfig)
     ElMessage.success(`已添加新的${chartTypeData.label}图表，请配置字段`)
   })
 }
 
-const initChart = (id: string, config: ChartConfig) => {
-  const container = document.getElementById(`chart-${id}`)
-  if (!container) return
+// 初始化图表
+const initChartInstance = (chartId: string, config: ChartConfig) => {
+  const chartContainer = document.getElementById(`chart-${chartId}`)
+  if (!chartContainer) return
 
-  const chartContent = container.querySelector('.chart-content')
-  if (!chartContent) return
-
-  // 清空现有内容
-  chartContent.innerHTML = ''
-
-  // 如果是表格类型
-  if (config.type === 'table') {
-    // 创建表格容器
-    const tableContainer = document.createElement('div')
-    tableContainer.className = 'chart-table'
-    chartContent.appendChild(tableContainer)
-
-    // 如果没有配置字段，显示提示信息
-    if (!config.tableFields?.length) {
-      const emptyHint = document.createElement('div')
-      emptyHint.className = 'empty-hint'
-      emptyHint.innerHTML = `
-        <el-empty description="请配置表格字段">
-          <el-button size="small" type="primary">配置字段</el-button>
-        </el-empty>
-      `
-      tableContainer.appendChild(emptyHint)
-      return
-    }
-
-    // 渲染表格
-    const tableVNode = h(ElTable, {
-      data: chartData.value.slice(0, config.dataLimit || 100),
-      border: true,
-      stripe: true,
-      height: '100%',
-      style: { width: '100%' }
-    }, {
-      default: () => config.tableFields!.map(field => 
-        h(ElTableColumn, {
-          prop: field,
-          label: getFieldDisplayName(field),
-          minWidth: 120,
-          showOverflowTooltip: true
-        })
-      )
-    })
-
-    render(tableVNode, tableContainer)
-    return
-  }
-
-  // 其他图表类型的处理
-  const chart = echarts.init(chartContent)
-  chartInstances.value.set(id, chart)
-  updateChart(id, config)
+  const chart = echarts.init(chartContainer)
+  const option = getChartOption(config)
+  chart.setOption(option)
+  chartInstances.value.set(chartId, chart)
 }
 
 const updateChart = (id: string, config: ChartConfig) => {
   // 如果是表格类型，重新初始化
   if (config.type === 'table') {
-    initChart(id, config)
+    initChartInstance(id, config)
     return
   }
 
@@ -1010,9 +977,7 @@ const currentFields = computed(() => {
 })
 
 // 预览数据
-const currentPreviewData = computed(() => {
-  return chartData.value.slice(0, 5) // 只显示前5条数据
-})
+const previewDataList = ref<any[]>([])
 
 // 布局更新事件
 const onLayoutUpdated = (newLayout: LayoutItem[]) => {
@@ -1084,7 +1049,7 @@ const refreshData = async () => {
   }
 }
 
-const previewData = () => {
+const showPreview = () => {
   showDatasetPreview.value = true
 }
 
@@ -1199,7 +1164,7 @@ const duplicateChart = (item: LayoutItem) => {
   selectedChart.value = newChartConfig
   
   nextTick(() => {
-    initChart(newItem.i, newChartConfig)
+    initChartInstance(newItem.i, newChartConfig)
     ElMessage.success('图表已复制')
   })
 }
@@ -1300,16 +1265,58 @@ const removeTableField = (fieldName: string) => {
   updateSelectedChart()
 }
 
+// 获取图表标题
+const getChartTitle = (type: ChartConfig['type']) => {
+  const titles = {
+    bar: '柱状图',
+    line: '折线图',
+    pie: '饼图',
+    table: '表格'
+  }
+  return titles[type] || '图表'
+}
+
+// 获取默认图表宽度
+const getDefaultChartWidth = (type: ChartConfig['type']) => {
+  const widths = {
+    bar: 6,
+    line: 6,
+    pie: 6,
+    table: 8
+  }
+  return widths[type] || 6
+}
+
+// 获取默认图表高度
+const getDefaultChartHeight = (type: ChartConfig['type']) => {
+  const heights = {
+    bar: 7,
+    line: 7,
+    pie: 7,
+    table: 8
+  }
+  return heights[type] || 7
+}
+
 // 组件挂载
-onMounted(() => {
+onMounted(async () => {
+  const route = useRoute()
+  const dashboardId = route.params.id
+  
+  if (dashboardId) {
+    await loadDashboard(dashboardId as string)
+  }
+  
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('resize', handleResize)
   
   // 初始化选中第一个数据集
-  if (datasets.value.length > 0) {
+  if (!selectedDatasetId.value && datasets.value.length > 0) {
     selectedDatasetId.value = datasets.value[0].id
     handleDatasetChange(datasets.value[0].id)
   }
+  
+  await loadMenuTree()
 })
 
 // 组件卸载
@@ -1322,6 +1329,253 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleWindowResize)
   window.removeEventListener('resize', handleResize)
 })
+
+const router = useRouter()
+const dashboardName = ref('')
+const publishDialogVisible = ref(false)
+
+// 发布表单数据
+const publishForm = ref({
+  menuPath: [],
+  displayName: ''
+})
+
+// 显示发布对话框
+const showPublishDialog = () => {
+  publishForm.value.displayName = dashboardName.value
+  publishDialogVisible.value = true
+}
+
+// 保存仪表盘
+const handleSave = async () => {
+  try {
+    if (!saveForm.value.name) {
+      ElMessage.warning('请输入仪表盘名称')
+      return
+    }
+
+    // 构建仪表盘数据
+    const dashboardData: DashboardForm = {
+      name: saveForm.value.name,
+      description: saveForm.value.description,
+      layout: JSON.stringify(layout.value.map(item => ({
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+        i: item.i,
+        chartConfig: {
+          i: item.i,
+          id: item.i,
+          type: item.chartConfig.type,
+          title: item.chartConfig.title,
+          xField: item.chartConfig.xField,
+          yField: item.chartConfig.yField,
+          nameField: item.chartConfig.nameField,
+          valueField: item.chartConfig.valueField,
+          tableFields: item.chartConfig.tableFields,
+          showLegend: item.chartConfig.showLegend,
+          showToolbox: item.chartConfig.showToolbox,
+          dataLimit: item.chartConfig.dataLimit
+        }
+      }))),
+      status: DashboardStatus.DRAFT,
+      type: DashboardType.CUSTOM,
+      menuId: saveForm.value.menuPath[saveForm.value.menuPath.length - 1]
+    }
+
+    const result = await createDashboard(dashboardData)
+    
+    if (result.code === 200 || result.code === 201) {
+      ElMessage.success('保存成功')
+      showSaveDialog.value = false
+      
+      // 修改这里：使用 router.push 并添加 skipAuthCheck 参数
+      router.push({
+        path: '/dashboard/list',
+        query: { skipAuthCheck: 'true' }
+      })
+      
+      return result.data.id
+    } else {
+      throw new Error(result.message || '保存失败')
+    }
+  } catch (error: any) {
+    console.error('保存失败:', error)
+    ElMessage.error(error.message || '保存失败')
+    return null
+  }
+}
+
+// 加载仪表盘数据
+const loadDashboard = async (id: string) => {
+  try {
+    const response = await getDashboardDetail(id)
+    const dashboardDetail = response.data
+    
+    // 更新表单数据
+    saveForm.value.name = dashboardDetail.name
+    saveForm.value.description = dashboardDetail.description || ''
+    
+    // 更新布局
+    if (dashboardDetail.layout) {
+      const layoutData = JSON.parse(dashboardDetail.layout)
+      layout.value = layoutData.map((item: any) => ({
+        ...item,
+        chartConfig: {
+          i: item.i,
+          ...item.chartConfig
+        }
+      }))
+    }
+    
+    // 初始化所有图表
+    nextTick(() => {
+      layout.value.forEach(item => {
+        initChartInstance(item.i, item.chartConfig)
+      })
+    })
+    
+    ElMessage.success('仪表盘加载成功')
+  } catch (error) {
+    console.error('加载仪表盘失败:', error)
+    ElMessage.error('加载仪表盘失败: ' + (error.message || '未知错误'))
+  }
+}
+
+// 发布仪表盘
+const handlePublish = async () => {
+  try {
+    if (!publishForm.value.menuPath?.length) {
+      ElMessage.warning('请选择发布位置')
+      return
+    }
+
+    // 1. 先保存仪表盘
+    const dashboardId = await handleSave()
+    
+    // 2. 创建菜单项
+    const response = await fetch('http://localhost:4000/api/menus', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        parentId: publishForm.value.menuPath[publishForm.value.menuPath.length - 1],
+        name: publishForm.value.displayName || saveForm.value.name,
+        path: `/dashboard/view/${dashboardId}`,
+        icon: 'Monitor',
+        type: 'dashboard'
+      })
+    })
+
+    const result = await response.json()
+    if (result.code === 200) {
+      ElMessage.success('发布成功')
+      publishDialogVisible.value = false
+      
+      // 3. 刷新菜单
+      window.dispatchEvent(new Event('menuUpdated'))
+    } else {
+      throw new Error(result.message)
+    }
+  } catch (error) {
+    ElMessage.error('发布失败')
+  }
+}
+
+// 加载菜单树
+const loadMenuTree = async () => {
+  try {
+    const result = await getMenuTree()
+    if (result.code === 200) {
+      menuOptions.value = convertMenuToOptions(result.data)
+    }
+  } catch (error) {
+    console.error('加载菜单树失败:', error)
+    ElMessage.error('加载菜单树失败')
+  }
+}
+
+// 将菜单树转换为级联选择器选项
+const convertMenuToOptions = (menuItems: MenuItem[]): MenuSelectOption[] => {
+  return menuItems.map(item => ({
+    value: item.id,
+    label: item.name,
+    children: item.children ? convertMenuToOptions(item.children) : undefined
+  }))
+}
+
+// 添加图表
+const handleAddChart = (type: ChartConfig['type']) => {
+  const chartId = `chart-${Date.now()}`
+  const chartConfig: ChartConfig = {
+    i: chartId,
+    id: chartId,
+    type,
+    title: getChartTitle(type),
+    showLegend: true,
+    showToolbox: false,
+    dataLimit: 100
+  }
+
+  layout.value.push({
+    x: 0,
+    y: 0,
+    w: getDefaultChartWidth(type),
+    h: getDefaultChartHeight(type),
+    i: chartId,
+    chartConfig
+  })
+
+  nextTick(() => {
+    initChartInstance(chartId, chartConfig)
+  })
+}
+
+// 获取图表配置
+const getChartOption = (config: ChartConfig) => {
+  // 根据图表类型返回不同的配置
+  switch (config.type) {
+    case 'bar':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        xAxis: { type: 'category' },
+        yAxis: { type: 'value' },
+        series: [{
+          type: 'bar',
+          data: []
+        }]
+      }
+    case 'line':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        xAxis: { type: 'category' },
+        yAxis: { type: 'value' },
+        series: [{
+          type: 'line',
+          data: []
+        }]
+      }
+    case 'pie':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        series: [{
+          type: 'pie',
+          data: []
+        }]
+      }
+    default:
+      return {}
+  }
+}
 </script>
 
 <style scoped lang="scss">

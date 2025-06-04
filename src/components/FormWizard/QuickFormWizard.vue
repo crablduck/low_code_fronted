@@ -498,7 +498,11 @@ const handleDataSourceChange = async (dataSourceId: string) => {
 const loadMenuList = async () => {
   menuListLoading.value = true
   try {
-    const response = await fetch('http://localhost:4000/api/menu-list')
+    const token = localStorage.getItem('token');
+const headers = {
+  'x-access-token': token
+};
+const response = await fetch('http://localhost:4000/api/menu-list', { headers });
     const result = await response.json()
     
     if (result.code === 200) {
@@ -768,4 +772,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>

@@ -1,6 +1,6 @@
 <template>
   <el-menu
-    :default-active="activeIndex"
+    :default-active="activeMenu"
     mode="horizontal"
     class="nav-menu"
     @select="handleMenuSelect"
@@ -33,11 +33,25 @@
       <span>报表设计器</span>
     </el-menu-item>
     
-    <!-- 仪表盘设计器菜单 -->
-    <el-menu-item index="/dashboard-designer" class="menu-item-dashboard">
-      <el-icon><Monitor /></el-icon>
-      <span>仪表盘设计器</span>
-    </el-menu-item>
+    <!-- 仪表盘菜单 -->
+    <el-sub-menu index="/dashboard" class="menu-item-dashboard">
+      <template #title>
+        <el-icon><Monitor /></el-icon>
+        <span>仪表盘</span>
+      </template>
+      <el-menu-item index="/dashboard/list">
+        <el-icon><Document /></el-icon>
+        <span>仪表盘管理</span>
+      </el-menu-item>
+      <el-menu-item index="/dashboard/create">
+        <el-icon><Edit /></el-icon>
+        <span>新建仪表盘</span>
+      </el-menu-item>
+      <el-menu-item index="/dashboard/designer">
+        <el-icon><TrendCharts /></el-icon>
+        <span>仪表盘设计器</span>
+      </el-menu-item>
+    </el-sub-menu>
     
     <!-- 数据源管理菜单 -->
     <el-menu-item index="/datasource-manage" class="menu-item-datasource">
@@ -51,45 +65,42 @@
       <span>数据集管理</span>
     </el-menu-item>
     
-    <!-- 动态菜单项 - 支持层级菜单和悬停显示子菜单 -->
-    <template v-for="menu in topLevelMenus" :key="menu.id">
-      <!-- 有子菜单的父菜单 -->
-      <el-sub-menu v-if="hasChildren(menu)" :index="menu.path" class="menu-item-parent">
+    <!-- 动态菜单项 -->
+    <template v-for="menu in menuList" :key="menu.id">
+      <!-- 有子菜单的情况 -->
+      <el-sub-menu 
+        v-if="menu.children && menu.children.length > 0" 
+        :index="menu.path"
+        class="menu-item-parent menu-item-dynamic"
+      >
         <template #title>
           <el-icon><component :is="getMenuIcon(menu.icon)" /></el-icon>
           <span>{{ menu.name }}</span>
-          <el-badge 
-            v-if="getChildren(menu).length > 0" 
-            :value="getChildren(menu).length" 
-            class="menu-badge"
-            type="info"
-          />
+          <el-tag size="small" type="info" class="dynamic-tag">动态</el-tag>
         </template>
-        <!-- 子菜单 -->
-        <el-menu-item 
-          v-for="childMenu in getChildren(menu)" 
-          :key="childMenu.id"
-          :index="childMenu.path"
-          class="menu-item-child"
+        <el-menu-item
+          v-for="child in menu.children"
+          :key="child.id"
+          :index="child.path"
+          @click="handleMenuClick(child)"
+          class="menu-item-child menu-item-dynamic"
         >
-          <el-icon><component :is="getMenuIcon(childMenu.icon)" /></el-icon>
-          <span>{{ childMenu.name }}</span>
-          <!-- 动态生成的表单页面标识 -->
-          <el-tag 
-            v-if="childMenu.path.includes('auto_page_')" 
-            size="small" 
-            type="success"
-            class="dynamic-tag"
-          >
-            动态
-          </el-tag>
+          <el-icon><component :is="getMenuIcon(child.icon)" /></el-icon>
+          <span>{{ child.name }}</span>
+          <el-tag size="small" type="info" class="dynamic-tag">动态</el-tag>
         </el-menu-item>
       </el-sub-menu>
       
-      <!-- 没有子菜单的顶级菜单 -->
-      <el-menu-item v-else :index="menu.path" class="menu-item-single">
+      <!-- 没有子菜单的情况 -->
+      <el-menu-item
+        v-else
+        :index="menu.path"
+        @click="handleMenuClick(menu)"
+        class="menu-item-single menu-item-dynamic"
+      >
         <el-icon><component :is="getMenuIcon(menu.icon)" /></el-icon>
         <span>{{ menu.name }}</span>
+        <el-tag size="small" type="info" class="dynamic-tag">动态</el-tag>
       </el-menu-item>
     </template>
     
@@ -136,18 +147,16 @@ import {
   CircleCheck,
   Loading,
   TrendCharts,
-  DataAnalysis
+  DataAnalysis,
+  HomeFilled,
+  EditPen,
+  Link,
+  Tickets,
+  Platform
 } from '@element-plus/icons-vue'
-
-// 接口定义
-interface MenuItem {
-  id: number
-  name: string
-  path: string
-  parent_id: number | null
-  icon: string
-  sort_order: number
-}
+import request from '@/utils/request'  // 导入封装的请求实例
+import { getMenuList, buildMenuTree } from '@/api/menu'
+import type { MenuItem } from '@/api/menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,50 +164,61 @@ const router = useRouter()
 // 响应式数据
 const menuLoading = ref(false)
 const menuList = ref<MenuItem[]>([])
+const activeMenu = ref('')
 
 // 图标映射
-const iconMap = {
-  'Setting': Setting,
-  'Management': Management,
-  'DataBoard': DataBoard,
-  'Document': Document,
-  'User': User,
-  'UserFilled': UserFilled,
-  'Lock': Lock,
-  'Connection': Connection,
-  'Edit': Edit,
-  'Database': DataBoard,
-  'Grid': Grid,
-  'Monitor': Monitor,
-  'Printer': Printer,
-  'TrendCharts': TrendCharts,
-  'DataAnalysis': DataAnalysis
+const iconMap: Record<string, any> = {
+  house: House,
+  edit: Edit,
+  setting: Setting,
+  document: Document,
+  management: Management,
+  user: UserFilled,
+  lock: Lock,
+  connection: Connection,
+  databoard: DataBoard,
+  grid: Grid,
+  monitor: Monitor,
+  printer: Printer,
+  chart: TrendCharts,
+  analysis: DataAnalysis,
+  star: Star,
+  more: More
 }
 
 // 计算属性
 const activeIndex = computed(() => route.path)
 
-// 获取顶级菜单（parent_id为null的菜单）
-const topLevelMenus = computed(() => {
-  return menuList.value
-    .filter(menu => menu.parent_id === null)
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-})
-
-// 检查菜单是否有子菜单
-const hasChildren = (menu: MenuItem) => {
-  return menuList.value.some(item => item.parent_id === menu.id)
+const getMenuIcon = (iconName?: string | null) => {
+  if (!iconName) return Setting
+  return iconMap[iconName.toLowerCase()] || Setting
 }
 
-// 获取子菜单
-const getChildren = (menu: MenuItem) => {
-  return menuList.value
-    .filter(item => item.parent_id === menu.id)
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+const loadMenuData = async () => {
+  try {
+    menuLoading.value = true
+    const result = await getMenuList()
+    console.log('菜单接口返回数据:', result)
+    if (result.code === 200) {
+      // 构建树形结构
+      const treeData = buildMenuTree(result.data)
+      console.log('构建的菜单树:', treeData)
+      menuList.value = treeData
+    } else {
+      throw new Error(result.message)
+    }
+  } catch (error) {
+    console.error('加载菜单失败:', error)
+    ElMessage.error('加载菜单失败')
+  } finally {
+    menuLoading.value = false
+  }
 }
 
-const getMenuIcon = (iconName: string) => {
-  return iconMap[iconName] || Setting
+const handleMenuClick = (menu: MenuItem) => {
+  if (menu.path) {
+    router.push(menu.path)
+  }
 }
 
 const handleMenuSelect = (index: string) => {
@@ -215,47 +235,139 @@ const handleMenuSelect = (index: string) => {
   }
 }
 
-// 方法
-const loadMenus = async () => {
-  menuLoading.value = true
-  
-  try {
-    const response = await fetch('http://localhost:4000/api/menu-list')
-    const result = await response.json()
-    
-    if (result.code === 200) {
-      menuList.value = Array.isArray(result.data) ? result.data : []
-    } else {
-      throw new Error(result.message || '获取菜单失败')
-    }
-  } catch (error) {
-    console.error('加载菜单失败:', error)
-    ElMessage.error('加载菜单失败')
-  } finally {
-    menuLoading.value = false
-  }
-}
-
-// 暴露方法供外部调用
-defineExpose({
-  loadMenus
-})
-
 // 生命周期
 onMounted(() => {
-  loadMenus()
+  loadMenuData()
   
   // 监听菜单更新事件
-  window.addEventListener('menuUpdated', loadMenus)
+  window.addEventListener('menuUpdated', loadMenuData)
 })
 
 // 组件卸载时清理事件监听
 onUnmounted(() => {
-  window.removeEventListener('menuUpdated', loadMenus)
+  window.removeEventListener('menuUpdated', loadMenuData)
 })
 </script>
 
 <style scoped>
+/* 导航菜单基础样式 */
+.nav-menu {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 20px;
+}
+
+/* 一级菜单项样式 */
+:deep(.el-menu--horizontal) {
+  border: none !important;
+  background: transparent !important;
+  display: flex;
+  gap: 8px;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  height: 48px !important;
+  line-height: 48px !important;
+  padding: 0 20px !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-size: 15px !important;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin: 0 2px;
+  
+  &:hover, &:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+  }
+  
+  &.is-active {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #ffd04b !important;
+    font-weight: 600;
+  }
+
+  .el-icon {
+    margin-right: 8px;
+    font-size: 18px;
+    vertical-align: middle;
+  }
+}
+
+/* 子菜单样式 */
+:deep(.el-menu--popup) {
+  background: rgba(30, 60, 114, 0.95) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 200px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+:deep(.el-menu--popup .el-menu-item) {
+  height: 44px !important;
+  line-height: 44px !important;
+  padding: 0 16px !important;
+  margin: 4px 0;
+  border-radius: 6px;
+  font-size: 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* 菜单项右侧的数字提示 */
+  .menu-badge {
+    background: rgba(255, 208, 75, 0.2);
+    color: #ffd04b;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+}
+
+/* 子菜单箭头图标 */
+:deep(.el-sub-menu__icon-arrow) {
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  :deep(.el-menu-item),
+  :deep(.el-sub-menu__title) {
+    padding: 0 16px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-menu {
+    padding: 0 8px;
+  }
+  
+  :deep(.el-menu-item),
+  :deep(.el-sub-menu__title) {
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    
+    .el-icon {
+      margin-right: 4px;
+      font-size: 16px;
+    }
+  }
+}
+
 /* 基础菜单样式 */
 .nav-menu {
   position: relative;
@@ -275,6 +387,8 @@ onUnmounted(() => {
   gap: 2px; /* 减小间距 */
   min-width: 100% !important;
   overflow: visible !important;
+  background: transparent;
+  border: none;
 }
 
 /* 菜单项容器样式 */
@@ -289,7 +403,7 @@ onUnmounted(() => {
 /* 菜单项基本样式 - 进一步优化宽度 */
 .nav-menu :deep(.el-menu-item),
 .nav-menu :deep(.el-sub-menu__title) {
-  color: #fff !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   border-bottom: none !important;
   background-color: transparent !important;
   transition: all 0.3s ease;
@@ -302,6 +416,12 @@ onUnmounted(() => {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   min-width: fit-content !important;
+  
+  &:hover, &.is-active {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border-bottom: 2px solid #ffd04b !important;
+  }
 }
 
 /* 特殊菜单项样式 */
@@ -335,53 +455,6 @@ onUnmounted(() => {
 
 .menu-item-tools:hover {
   background: linear-gradient(135deg, rgba(245, 108, 108, 0.3), rgba(245, 108, 108, 0.2)) !important;
-}
-
-/* 子菜单样式 */
-.nav-menu .el-sub-menu .el-menu {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  margin-top: 12px;
-  padding: 12px 0;
-  backdrop-filter: blur(20px);
-  min-width: 200px;
-}
-
-.nav-menu .el-sub-menu .el-menu-item {
-  background-color: transparent !important;
-  color: #fff !important;
-  height: 48px;
-  line-height: 48px;
-  padding: 0 20px;
-  margin: 4px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  position: relative;
-}
-
-.nav-menu .el-sub-menu .el-menu-item:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)) !important;
-  transform: translateX(6px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 图标样式优化 - 减小图标大小 */
-.nav-menu .el-icon {
-  margin-right: 6px; /* 减小图标与文字间距 */
-  font-size: 14px; /* 减小图标大小 */
-  transition: all 0.3s;
-  flex-shrink: 0;
-}
-
-.nav-menu .el-sub-menu .el-icon {
-  font-size: 14px;
-}
-
-.nav-menu .el-menu-item:hover .el-icon,
-.nav-menu .el-sub-menu__title:hover .el-icon {
-  transform: scale(1.1);
 }
 
 /* 菜单徽章样式 */
@@ -614,4 +687,26 @@ onUnmounted(() => {
   color: #ffd04b !important;
   padding: 0 8px !important; /* 设计器菜单稍微大一点 */
 }
-</style> 
+
+.menu-item-dynamic {
+  position: relative;
+}
+
+.dynamic-tag {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #409eff !important;
+  border-color: #409eff !important;
+  color: white !important;
+  padding: 0 4px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 10px;
+}
+
+.el-sub-menu .dynamic-tag {
+  right: 24px;
+}
+</style>

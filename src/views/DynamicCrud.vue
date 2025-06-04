@@ -238,7 +238,11 @@ const loadFormConfig = async () => {
       console.log('当前路径:', currentPath)
       
       // 获取菜单数据，找到匹配的菜单项
-      const menuResponse = await fetch('http://localhost:4000/api/menu-list')
+      const token = localStorage.getItem('token');
+const headers = {
+  'x-access-token': token
+};
+const menuResponse = await fetch('http://localhost:4000/api/menu-list', { headers });
       const menuResult = await menuResponse.json()
       
       if (menuResult.code === 200) {
@@ -564,4 +568,4 @@ onMounted(async () => {
     text-align: right;
   }
 }
-</style> 
+</style>

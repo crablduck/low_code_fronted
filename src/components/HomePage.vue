@@ -269,29 +269,19 @@ const navigateTo = (path: string) => {
 
 <style scoped>
 .home-page {
+  min-height: 100%;
+  margin: -24px;
   padding: 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 主横幅区域 */
 .hero-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e3c72 0%, #6b46c1 100%);
+  padding: 120px 24px 60px;
+  margin-top: -60px;
   color: white;
-  padding: 80px 40px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-  opacity: 0.3;
+  text-align: center;
 }
 
 .hero-content {
@@ -419,15 +409,19 @@ const navigateTo = (path: string) => {
 .scenarios-section,
 .advantages-section {
   padding: 80px 40px;
-  max-width: 1200px;
-  margin: 0 auto;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+  position: relative;
 }
 
-.quick-start-section {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-  color: white;
-  padding: 80px 40px;
-  margin: 80px 0;
+.scenarios-section::before,
+.advantages-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.2), transparent);
 }
 
 .section-header {
@@ -452,8 +446,20 @@ const navigateTo = (path: string) => {
 /* 设计器卡片 */
 .designers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1400px) {
+  .designers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .designers-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .designer-card {
@@ -593,56 +599,90 @@ const navigateTo = (path: string) => {
 /* 场景应用 */
 .scenarios-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .scenario-card {
   background: white;
-  padding: 30px 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 40px 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   text-align: center;
-  transition: all 0.3s;
-  border: 1px solid #e2e8f0;
+  transition: all 0.4s ease;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.scenario-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .scenario-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  border-color: #667eea;
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.scenario-card:hover::before {
+  opacity: 1;
 }
 
 .scenario-icon {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px auto;
+  margin: 0 auto 30px;
+  transform: rotate(-5deg);
+  transition: all 0.4s ease;
+}
+
+.scenario-card:hover .scenario-icon {
+  transform: rotate(0) scale(1.1);
 }
 
 .scenario-icon .el-icon {
-  font-size: 32px;
+  font-size: 36px;
   color: white;
 }
 
 .scenario-card h4 {
-  font-size: 1.2rem;
-  margin: 0 0 12px 0;
+  font-size: 1.4rem;
+  margin: 0 0 16px;
   color: #2d3748;
   font-weight: 600;
 }
 
 .scenario-card p {
   color: #718096;
-  line-height: 1.6;
-  font-size: 14px;
+  line-height: 1.7;
+  font-size: 1rem;
+  margin: 0;
 }
 
 /* 快速开始 */
+.quick-start-section {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  color: white;
+  padding: 80px 40px;
+  margin: 80px 0;
+}
+
 .quick-start-content {
   text-align: center;
   max-width: 800px;
@@ -700,59 +740,82 @@ const navigateTo = (path: string) => {
 }
 
 /* 系统优势 */
-.advantages-section {
-  background: #f7fafc;
-}
-
 .advantages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .advantage-item {
   background: white;
-  padding: 30px 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 40px 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   text-align: center;
-  transition: all 0.3s;
-  border: 1px solid #e2e8f0;
+  transition: all 0.4s ease;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.advantage-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .advantage-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  border-color: #667eea;
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.advantage-item:hover::before {
+  opacity: 1;
 }
 
 .advantage-icon {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px auto;
+  margin: 0 auto 30px;
+  transform: rotate(-5deg);
+  transition: all 0.4s ease;
+}
+
+.advantage-item:hover .advantage-icon {
+  transform: rotate(0) scale(1.1);
 }
 
 .advantage-icon .el-icon {
-  font-size: 32px;
+  font-size: 36px;
   color: white;
 }
 
 .advantage-item h4 {
-  font-size: 1.2rem;
-  margin: 0 0 12px 0;
+  font-size: 1.4rem;
+  margin: 0 0 16px;
   color: #2d3748;
   font-weight: 600;
 }
 
 .advantage-item p {
   color: #718096;
-  line-height: 1.6;
-  font-size: 14px;
+  line-height: 1.7;
+  font-size: 1rem;
+  margin: 0;
 }
 
 /* 响应式设计 */
@@ -815,6 +878,22 @@ const navigateTo = (path: string) => {
   
   .card {
     width: 140px;
+  }
+
+  .scenarios-section,
+  .advantages-section {
+    padding: 60px 20px;
+  }
+  
+  .scenarios-grid,
+  .advantages-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .scenario-card,
+  .advantage-item {
+    padding: 30px 20px;
   }
 }
 

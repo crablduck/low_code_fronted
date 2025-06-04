@@ -2,17 +2,27 @@
 export interface DataSource {
   id: number
   name: string
-  type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver'
-  host: string
-  port: number
-  databaseName: string
-  username: string
+  type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver' | 'clickhouse'
+  // API返回格式
+  url?: string
+  database?: string
+  properties?: string
+  createdAt?: string
+  updatedAt?: string
+  status?: 'online' | 'offline'
+  // 表单使用格式
+  host?: string
+  port?: number
+  databaseName?: string
+  username?: string
   password?: string
-  status: 'online' | 'offline'
-  createTime: string
-  updateTime?: string
   description?: string
   folderId?: number
+  // 用于显示的计算属性
+  displayHost?: string
+  displayPort?: number
+  displayDatabase?: string
+  displayUsername?: string
 }
 
 export interface DataSourceCreateRequest {
@@ -108,7 +118,7 @@ export interface DataSetField {
   id: number
   datasetId: number
   fieldName: string
-  fieldType: 'dimension' | 'metric'
+  fieldType: 'dimension' | 'metric' | 'date'
   displayName: string
   description?: string
   isVisible: boolean
@@ -126,7 +136,7 @@ export interface DataSetField {
 export interface DataSetFieldConfig {
   fieldName: string
   tableName?: string
-  fieldType: 'dimension' | 'metric'
+  fieldType: 'dimension' | 'metric' | 'date'
   displayName: string
   description?: string
   isVisible: boolean
@@ -176,7 +186,7 @@ export type TreeNode = FolderNode | DataSourceNode | DatasetNode
 export interface DataSetField {
   fieldName: string
   displayName: string
-  fieldType: 'dimension' | 'metric'
+  fieldType: 'dimension' | 'metric' | 'date'
   dataType: 'string' | 'number' | 'date' | 'datetime'
   description?: string
   format?: string
@@ -247,4 +257,10 @@ export interface ConnectionTestResult {
   success: boolean
   message: string
   error?: string
+}
+
+export interface DataSetQuery {
+  page: number
+  pageSize: number
+  keyword?: string
 } 

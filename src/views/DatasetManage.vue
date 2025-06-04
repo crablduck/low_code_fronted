@@ -496,19 +496,25 @@ const clearDataSourceFilter = () => {
 const loadDatasets = async () => {
   loading.value = true;
   try {
-    const response = await dataSetApi.getDatasets({
+    const params = {
       page: 1,
       pageSize: 100,
       keyword: searchKeyword.value
-    });
+    };
     
-    datasets.value = response.items;
-    treeData.value = datasets.value.map(dataset => ({
-      id: dataset.id,
-      name: dataset.name,
-      type: 'dataset' as const,
-      dataset
-    }));
+    const response = await dataSourceService.get('/api/datasets', { params });
+    
+    if (response.code === 200) {
+      dataSources.value = response.data.items;
+      treeData.value = dataSources.value.map(datasource => ({
+        id: datasource.id,
+        name: datasource.name,
+        type: 'datasource' as const,
+        datasource
+      }));
+    } else {
+      ElMessage.error(response.message || '获取数据集列表失败');
+    }
   } catch (error) {
     console.error('加载数据集列表失败:', error);
     ElMessage.error('加载数据集列表失败');
@@ -721,7 +727,7 @@ const getAggregatorLabel = (type: string) => {
 
 // 生命周期
 onMounted(() => {
-  loadDatasets()
+  // loadDatasets()
   loadDataSources()
 })
 

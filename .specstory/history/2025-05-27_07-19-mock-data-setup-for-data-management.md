@@ -5971,11 +5971,502 @@ _**Assistant**_
 
 ---
 
+```bash
+git status
+```
 
+```
+位于分支 master
+您的分支与上游分支 'origin/master' 一致。
+
+尚未暂存以备提交的变更：
+  （使用 "git add/rm <文件>..." 更新要提交的内容）
+  （使用 "git restore <文件>..." 丢弃工作区的改动）
+        删除：     API_CONNECTION_FIXED.md
+        删除：     CURRENT_STATUS_FIXED.md
+        删除：     DATABASE_INTEGRATION_GUIDE.md
+        删除：     DRAG_AND_CONTEXT_MENU_FIX.md
+        删除：     DRAG_AND_CONTEXT_MENU_GUIDE.md
+        删除：     FEATURE_DEMO.md
+        删除：     FEATURE_SUMMARY.md
+        删除：     FORM_DESIGNER_GUIDE.md
+        删除：     IMPLEMENTATION_SUMMARY.md
+        删除：     PORT_CONFIGURATION.md
+        删除：     QUICK_FIX_GUIDE.md
+        修改：     README.md
+        删除：     RESIZE_FEATURE_GUIDE.md
+        删除：     STYLE_CONFIG_GUIDE.md
+        删除：     STYLE_DEMO.md
+        删除：     "doc/\345\217\221\345\270\203\346\216\247\345\210\266\345\212\23
+7\350\203\275\350\257\264
+\346\230\216.md"
+                                    删除：     "doc/\345\276\205\345\256\214\346\21
+0\220\345\212\237\350\203\275.md"
+        删除：     "doc/\350\217\234\345\215\225\347\273\223\346\236\204\350\260\20
+3\346\225\264\346\200\273
+\347\273\223.md"
+                                    删除：     "doc/\350\217\234\345\215\225\350\24
+1\245\345\205\205\350\257\264\346\230\216.md"
+        删除：     "doc/\351\207\215\346\236\204\350\241\250\345\215\225\350\256\27
+6\350\256\241\351\234\200
+\346\261\202.md"
+                                    修改：     mock-server/server.js
+        修改：     node_backend/database.sqlite
+        修改：     node_backend/server.js
+        修改：     package-lock.json
+        修改：     package.json
+        修改：     src/api/dataSource.ts
+        修改：     src/api/formApi.ts
+        修改：     src/components/HomePage.vue
+        修改：     src/components/Layout.vue
+        修改：     src/components/NavigationMenu.vue
+        修改：     src/components/WorkflowDesigner.vue
+        修改：     src/components/print-designer/ComponentPanel.vue
+        修改：     src/components/print-designer/PropertyPanel.vue
+        修改：     src/main.ts
+        修改：     src/router/index.ts
+        修改：     src/style.css
+        修改：     src/views/FormDesign.vue
+        修改：     src/views/PrintDesigner.vue
+        删除：     start-dev.sh
+        修改：     start-services.sh
+        修改：     vite.config.ts
+        修改：     yarn.lock
+        删除：     "\350\217\234\345\215\225\345\261\202\347\272\247\345\205\263\34
+7\263\273\346\265\213\350
+\257\225\350\257\264\346\230\216.md"
+                                    删除：     "\350\217\234\345\215\225\346\230\27
+6\347\244\272\351\227\256\351\242\230\344\277\256\345
+\244\215\346\200\273\347\273\223.md"
+                                    删除：     "\350\217\234\345\215\225\351\227\25
+6\351\242\230\350\257\212\346\226\255\346\212\245\345
+\221\212.md"
+                            
+未跟踪的文件:
+  （使用 "git add <文件>..." 以包含要提交的内容）
+        .specstory/.gitignore
+        ".specstory/history/2025-05-26_22-26-\347\247\273\346\244\215\346\225\26
+0\346\215\256\346\272\220\34
+5\222\214\344\273\252\350\241\250\347\233\230\345\212\237\350\203\275\350\256\25
+0\350\256\272.md"                   ".specstory/history/2025-05-27_03-09-\345\25
+7\274\350\210\252\346\240\217\345\222\214\351\241\265\35
+1\235\242\345\256\275\345\272\246\351\205\215\347\275\256\350\256\250\350\256\27
+2.md"                               .specstory/history/2025-05-27_06-06-implemen
+ting-user-change-request-for-dashboard.md
+        ".specstory/history/2025-05-27_06-24-\344\273\252\350\241\250\347\233\23
+0\350\256\276\350\256\241\34
+5\231\250\345\212\237\350\203\275\351\234\200\346\261\202.md"
+                                    .specstory/history/2025-05-27_07-19-mock-dat
+a-setup-for-data-management.md
+        "Vue Flow \345\222\214\344\272\213\344\273\266\347\233\221\345\220\254\3
+45\231\250\344\277\256\345\2
+44\215\346\200\273\347\273\223.md"
+                                    "doc/\345\212\237\350\203\275\346\200\273\35
+0\247\210.md"
+        "doc/\345\265\214\345\205\245\346\226\271\345\274\217\347\232\204\344\27
+4\230\345\214\226\346\226\27
+1\346\241\210.md"
+                                    "doc/\350\256\276\350\256\241\345\231\250\34
+6\265\201\347\250\213\344\274\230\345\214\226\347\232\20
+4\346\250\241\345\274\217.md"
+                                    mock-server/mock-server.pid
+        mock-server/start.sh
+        src/api/mockData.ts
+        src/components/dashboard/
+        src/components/dataset/
+        src/components/datasource/
+        src/components/layout/
+        src/components/print-designer/DesignerLayout.vue
+        src/env.d.ts
+        src/mock/
+        src/stores/
+        src/styles/
+        src/types/dataManagement.ts
+        src/utils/request.ts
+        src/views/DashboardDesigner.vue
+        src/views/DatasetDesigner.vue
+        src/views/DatasetManage.vue
+        src/views/DatasourceManage.vue
+        test-responsive.html
+        "\344\273\252\350\241\250\347\233\230\350\256\276\350\256\241\345\231\25
+0\346\225\260\346\215\256\35
+1\233\206\346\210\220\346\265\213\350\257\225.html"
+                            
+修改尚未加入提交（使用 "git add" 和/或 "git commit -a"）
+
+```
 
 ---
 
+我看到有很多文件变更，让我们分类处理：
 
+1. 首先添加所有新增的文件：
+
+---
+
+```bash
+git add .specstory/ src/ mock-server/ doc/ test-responsive.html "Vue Flow 和事件监听器修改总结.md" "仪表盘设计器数据集成测试.html"
+```
+
+```
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ±  git add .specstory
+/ src/ mock-server/ doc/ test-responsive.html "Vue Flow 和事件监听器修改总结.md" "仪表盘设计器数据集成测试.h
+tml"                                                                                      git add .specstory
+/ src/ mock-server/ doc/ test-responsive.html "Vue Flow 和事件监听器修改总结.md" "仪表盘设计器数据集成测试.h
+<件监听器修改总结.md" "仪表盘设计器数据集成测试.html"
+fatal: 路径规格 'Vue Flow 和事件监听器修改总结.md' 未匹配任何文件
+(base)  ✘ xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ± 
+```
+
+---
+
+看来有些文件名包含空格，让我们使用不同的方式：
+
+---
+
+```bash
+git add .
+```
+
+```
+(base)  ✘ xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ±  git add .
+```
+
+---
+
+现在让我们检查一下状态：
+
+---
+
+```bash
+git status
+```
+
+```
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ✚  git status
+位于分支 master
+您的分支与上游分支 'origin/master' 一致。
+
+要提交的变更：
+  （使用 "git restore --staged <文件>..." 以取消暂存）
+        新文件：   .specstory/.gitignore
+        新文件：   ".specstory/history/2025-05-26_22-26-\347\247\273\346\244\215\346\225\260\346\215\256\346
+\272\220\345\222\214\344\273\252\350\241\250\347\233\230\345\212\237\350\203\275\350\256\250\350\256\272.md"
+        新文件：   ".specstory/history/2025-05-27_03-09-\345\257\274\350\210\252\346\240\217\345\222\214\351
+\241\265\351\235\242\345\256\275\345\272\246\351\205\215\347\275\256\350\256\250\350\256\272.md"
+        新文件：   .specstory/history/2025-05-27_06-06-implementing-user-change-request-for-dashboard.md
+        新文件：   ".specstory/history/2025-05-27_06-24-\344\273\252\350\241\250\347\233\230\350\256\276\350
+\256\241\345\231\250\345\212\237\350\203\275\351\234\200\346\261\202.md"
+        新文件：   .specstory/history/2025-05-27_07-19-mock-data-setup-for-data-management.md
+        删除：     API_CONNECTION_FIXED.md
+        删除：     CURRENT_STATUS_FIXED.md
+        删除：     DATABASE_INTEGRATION_GUIDE.md
+        删除：     DRAG_AND_CONTEXT_MENU_FIX.md
+        删除：     DRAG_AND_CONTEXT_MENU_GUIDE.md
+        删除：     FEATURE_DEMO.md
+        删除：     FEATURE_SUMMARY.md
+        删除：     FORM_DESIGNER_GUIDE.md
+        删除：     IMPLEMENTATION_SUMMARY.md
+        删除：     PORT_CONFIGURATION.md
+        删除：     QUICK_FIX_GUIDE.md
+        修改：     README.md
+        删除：     RESIZE_FEATURE_GUIDE.md
+        删除：     STYLE_CONFIG_GUIDE.md
+        删除：     STYLE_DEMO.md
+        新文件：   "Vue Flow \345\222\214\344\272\213\344\273\266\347\233\221\345\220\254\345\231\250\344\27
+7\256\345\244\215\346\200\273\347\273\223.md"
+        新文件：   "doc/\345\212\237\350\203\275\346\200\273\350\247\210.md"
+        删除：     "doc/\345\217\221\345\270\203\346\216\247\345\210\266\345\212\237\350\203\275\350\257\264
+\346\230\216.md"
+        新文件：   "doc/\345\265\214\345\205\245\346\226\271\345\274\217\347\232\204\344\274\230\345\214\226
+\346\226\271\346\241\210.md"
+        删除：     "doc/\350\217\234\345\215\225\347\273\223\346\236\204\350\260\203\346\225\264\346\200\273
+\347\273\223.md"
+        删除：     "doc/\350\217\234\345\215\225\350\241\245\345\205\205\350\257\264\346\230\216.md"
+        重命名：   "doc/\345\276\205\345\256\214\346\210\220\345\212\237\350\203\275.md" -> "doc/\350\256\27
+6\350\256\241\345\231\250\346\265\201\347\250\213\344\274\230\345\214\226\347\232\204\346\250\241\345\274\21
+7.md"
+        删除：     "doc/\351\207\215\346\236\204\350\241\250\345\215\225\350\256\276\350\256\241\351\234\200
+\346\261\202.md"
+        新文件：   mock-server/mock-server.pid
+        修改：     mock-server/server.js
+        新文件：   mock-server/start.sh
+        修改：     node_backend/database.sqlite
+        修改：     node_backend/server.js
+        修改：     package-lock.json
+        修改：     package.json
+        修改：     src/api/dataSource.ts
+        修改：     src/api/formApi.ts
+        新文件：   src/api/mockData.ts
+        修改：     src/components/HomePage.vue
+        修改：     src/components/Layout.vue
+        修改：     src/components/NavigationMenu.vue
+        修改：     src/components/WorkflowDesigner.vue
+        新文件：   src/components/dashboard/ChartComponents.vue
+        新文件：   src/components/dataset/DataPreview.vue
+        新文件：   src/components/dataset/DatasetForm.vue
+        新文件：   src/components/dataset/FieldsConfig.vue
+        新文件：   src/components/dataset/MultiTableDesigner.vue
+        新文件：   src/components/dataset/SQLEditor.vue
+        新文件：   src/components/datasource/DataSourceForm.vue
+        新文件：   src/components/layout/Sidebar.vue
+        修改：     src/components/print-designer/ComponentPanel.vue
+        新文件：   src/components/print-designer/DesignerLayout.vue
+        修改：     src/components/print-designer/PropertyPanel.vue
+        新文件：   src/env.d.ts
+        修改：     src/main.ts
+        新文件：   src/mock/dashboardData.ts
+        新文件：   src/mock/dataset.ts
+        新文件：   src/mock/datasource.ts
+        修改：     src/router/index.ts
+        新文件：   src/stores/dashboard.ts
+        新文件：   src/stores/dataset.ts
+        新文件：   src/stores/datasource.ts
+        修改：     src/style.css
+        新文件：   src/styles/designer-common-layout.scss
+        新文件：   src/styles/designer-layout.scss
+        新文件：   src/styles/responsive.css
+        新文件：   src/types/dataManagement.ts
+        新文件：   src/utils/request.ts
+        新文件：   src/views/DashboardDesigner.vue
+        新文件：   src/views/DatasetDesigner.vue
+        新文件：   src/views/DatasetManage.vue
+        新文件：   src/views/DatasourceManage.vue
+        修改：     src/views/FormDesign.vue
+        修改：     src/views/PrintDesigner.vue
+        删除：     start-dev.sh
+        修改：     start-services.sh
+        新文件：   test-responsive.html
+        修改：     vite.config.ts
+        修改：     yarn.lock
+        新文件：   "\344\273\252\350\241\250\347\233\230\350\256\276\350\256\241\345\231\250\346\225\260\346
+\215\256\351\233\206\346\210\220\346\265\213\350\257\225.html"
+        删除：     "\350\217\234\345\215\225\345\261\202\347\272\247\345\205\263\347\263\273\346\265\213\350
+\257\225\350\257\264\346\230\216.md"
+        删除：     "\350\217\234\345\215\225\346\230\276\347\244\272\351\227\256\351\242\230\344\277\256\345
+\244\215\346\200\273\347\273\223.md"
+        删除：     "\350\217\234\345\215\225\351\227\256\351\242\230\350\257\212\346\226\255\346\212\245\345
+\221\212.md"
+
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ✚ 
+```
+
+---
+
+现在所有文件都已经添加到暂存区，让我们创建一个提交：
+
+---
+
+Model provided invalid arguments to terminal tool.
+
+---
+
+抱歉，让我重新提交，这次使用简短的消息：
+
+---
+
+```bash
+git commit -m "feat: 完善数据源管理和数据集管理功能"
+```
+
+```
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ✚  git commit -m "fea
+t: 完善数据源管理和数据集管理功能"                                                        git commit -m "fea
+t: 完善数据源管理和数据集管理功能"                                                        git commit -m "fea
+t: 完善数据源管理和数据集管理功能"                                                        git           "fea
+t: 完善数据源管理和数据集管理功能"
+[master 04d6cdc] feat: 完善数据源管理和数据集管理功能
+ 84 files changed, 75411 insertions(+), 4138 deletions(-)
+ create mode 100644 .specstory/.gitignore
+ create mode 100644 ".specstory/history/2025-05-26_22-26-\347\247\273\346\244\215\346\225\260\346\215\256\34
+6\272\220\345\222\214\344\273\252\350\241\250\347\233\230\345\212\237\350\203\275\350\256\250\350\256\272.md
+"
+ create mode 100644 ".specstory/history/2025-05-27_03-09-\345\257\274\350\210\252\346\240\217\345\222\214\35
+1\241\265\351\235\242\345\256\275\345\272\246\351\205\215\347\275\256\350\256\250\350\256\272.md"
+ create mode 100644 .specstory/history/2025-05-27_06-06-implementing-user-change-request-for-dashboard.md
+ create mode 100644 ".specstory/history/2025-05-27_06-24-\344\273\252\350\241\250\347\233\230\350\256\276\35
+0\256\241\345\231\250\345\212\237\350\203\275\351\234\200\346\261\202.md"
+ create mode 100644 .specstory/history/2025-05-27_07-19-mock-data-setup-for-data-management.md
+ delete mode 100644 API_CONNECTION_FIXED.md
+ delete mode 100644 CURRENT_STATUS_FIXED.md
+ delete mode 100644 DATABASE_INTEGRATION_GUIDE.md
+ delete mode 100644 DRAG_AND_CONTEXT_MENU_FIX.md
+ delete mode 100644 DRAG_AND_CONTEXT_MENU_GUIDE.md
+ delete mode 100644 FEATURE_DEMO.md
+ delete mode 100644 FEATURE_SUMMARY.md
+ delete mode 100644 FORM_DESIGNER_GUIDE.md
+ delete mode 100644 IMPLEMENTATION_SUMMARY.md
+ delete mode 100644 PORT_CONFIGURATION.md
+ delete mode 100644 QUICK_FIX_GUIDE.md
+ delete mode 100644 RESIZE_FEATURE_GUIDE.md
+ delete mode 100644 STYLE_CONFIG_GUIDE.md
+ delete mode 100644 STYLE_DEMO.md
+ create mode 100644 "Vue Flow \345\222\214\344\272\213\344\273\266\347\233\221\345\220\254\345\231\250\344\2
+77\256\345\244\215\346\200\273\347\273\223.md"
+ create mode 100644 "doc/\345\212\237\350\203\275\346\200\273\350\247\210.md"
+ delete mode 100644 "doc/\345\217\221\345\270\203\346\216\247\345\210\266\345\212\237\350\203\275\350\257\26
+4\346\230\216.md"
+ create mode 100644 "doc/\345\265\214\345\205\245\346\226\271\345\274\217\347\232\204\344\274\230\345\214\22
+6\346\226\271\346\241\210.md"
+ delete mode 100644 "doc/\350\217\234\345\215\225\347\273\223\346\236\204\350\260\203\346\225\264\346\200\27
+3\347\273\223.md"
+ delete mode 100644 "doc/\350\217\234\345\215\225\350\241\245\345\205\205\350\257\264\346\230\216.md"
+ rename "doc/\345\276\205\345\256\214\346\210\220\345\212\237\350\203\275.md" => "doc/\350\256\276\350\256\2
+41\345\231\250\346\265\201\347\250\213\344\274\230\345\214\226\347\232\204\346\250\241\345\274\217.md" (100%
+)
+ delete mode 100644 "doc/\351\207\215\346\236\204\350\241\250\345\215\225\350\256\276\350\256\241\351\234\20
+0\346\261\202.md"
+ create mode 100644 mock-server/mock-server.pid
+ create mode 100755 mock-server/start.sh
+ rewrite src/api/dataSource.ts (99%)
+ create mode 100644 src/api/mockData.ts
+ rewrite src/components/HomePage.vue (67%)
+ create mode 100644 src/components/dashboard/ChartComponents.vue
+ create mode 100644 src/components/dataset/DataPreview.vue
+ create mode 100644 src/components/dataset/DatasetForm.vue
+ create mode 100644 src/components/dataset/FieldsConfig.vue
+ create mode 100644 src/components/dataset/MultiTableDesigner.vue
+ create mode 100644 src/components/dataset/SQLEditor.vue
+ create mode 100644 src/components/datasource/DataSourceForm.vue
+ create mode 100644 src/components/layout/Sidebar.vue
+ create mode 100644 src/components/print-designer/DesignerLayout.vue
+ create mode 100644 src/env.d.ts
+ create mode 100644 src/mock/dashboardData.ts
+ create mode 100644 src/mock/dataset.ts
+ create mode 100644 src/mock/datasource.ts
+ create mode 100644 src/stores/dashboard.ts
+ create mode 100644 src/stores/dataset.ts
+ create mode 100644 src/stores/datasource.ts
+ create mode 100644 src/styles/designer-common-layout.scss
+ create mode 100644 src/styles/designer-layout.scss
+ create mode 100644 src/styles/responsive.css
+ create mode 100644 src/types/dataManagement.ts
+ create mode 100644 src/utils/request.ts
+ create mode 100644 src/views/DashboardDesigner.vue
+ create mode 100644 src/views/DatasetDesigner.vue
+ create mode 100644 src/views/DatasetManage.vue
+ create mode 100644 src/views/DatasourceManage.vue
+ delete mode 100644 start-dev.sh
+ create mode 100644 test-responsive.html
+ create mode 100644 "\344\273\252\350\241\250\347\233\230\350\256\276\350\256\241\345\231\250\346\225\260\34
+6\215\256\351\233\206\346\210\220\346\265\213\350\257\225.html"
+ delete mode 100644 "\350\217\234\345\215\225\345\261\202\347\272\247\345\205\263\347\263\273\346\265\213\35
+0\257\225\350\257\264\346\230\216.md"
+ delete mode 100644 "\350\217\234\345\215\225\346\230\276\347\244\272\351\227\256\351\242\230\344\277\256\34
+5\244\215\346\200\273\347\273\223.md"
+ delete mode 100644 "\350\217\234\345\215\225\351\227\256\351\242\230\350\257\212\346\226\255\346\212\245\34
+5\221\212.md"
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system  ↱ master 
+```
+
+---
+
+很好，所有更改都已经提交到本地仓库。这次提交包含了：
+
+1. 新增功能：
+   - 数据源管理模块
+   - 数据集管理模块
+   - 仪表盘设计器
+   - 响应式布局支持
+
+2. 文件结构优化：
+   - 重组了项目目录结构
+   - 添加了新的组件和工具类
+   - 更新了文档
+
+3. 删除了一些旧的文档文件，整理成了新的文档结构
+
+4. 更新了配置文件和依赖
+
+如果您需要将这些更改推送到远程仓库，我可以帮您执行 `git push` 命令。您需要我这样做吗？
+
+---
+
+_**User**_
+
+确定要你这么做
+
+---
+
+_**Assistant**_
+
+好的，我来帮您推送代码到远程仓库：
+
+---
+
+```bash
+git push origin master
+```
+
+```
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system  ↱ master  git push origin mast
+er                                                                                      git push origin mast
+er                                                                                      git push origin mast
+er                                                                                      git
+枚举对象中: 119, 完成.
+对象计数中: 100% (119/119), 完成.
+使用 8 个线程进行压缩
+压缩对象中: 100% (77/77), 完成.
+写入对象中: 100% (83/83), 456.27 KiB | 9.31 MiB/s, 完成.
+总共 83（差异 30），复用 0（差异 0），包复用 0
+remote: . Processing 1 references
+remote: Processed 1 references in total
+To http://172.16.0.238:3000/xiejw/workflow-system.git
+   942a807..04d6cdc  master -> master
+(base)  xiejiawei@MacBook-Pro  ~/codeEtong/lowcode_backed/workflow-system   master ± 
+```
+
+---
+
+推送成功完成！本次提交的内容已经同步到远程仓库。具体信息：
+
+1. 提交了 83 个新对象
+2. 有 30 个差异文件
+3. 提交 ID 从 942a807 更新到 04d6cdc
+4. 推送到了 http://172.16.0.238:3000/xiejw/workflow-system.git 仓库
+
+所有的更改都已经成功同步到远程仓库。您的团队成员现在可以通过 pull 操作获取这些更新了。需要我为您做其他操作吗？
+
+---
+
+_**User**_
+
+好
+
+---
+
+_**Assistant**_
+
+既然代码已经成功提交和推送，让我总结一下当前项目的状态：
+
+1. **最新完成的功能**
+   - 数据源管理模块已完成
+   - 数据集管理功能已实现
+   - 响应式布局已优化
+   - 文档结构已重组
+
+2. **项目结构更新**
+   ```
+   src/
+   ├── api/          - API 接口层
+   ├── components/   - 组件库
+   │   ├── dashboard/    - 仪表盘组件
+   │   ├── dataset/      - 数据集组件
+   │   ├── datasource/   - 数据源组件
+   │   └── layout/       - 布局组件
+   ├── stores/      - 状态管理
+   ├── styles/      - 样式文件
+   ├── types/       - 类型定义
+   └── views/       - 页面视图
+   ```
+
+3. **下一步建议**
+   - 完善数据预览功能
+   - 添加更多的数据可视化组件
+   - 优化用户交互体验
+   - 增加单元测试覆盖
+
+您想了解哪个方面的具体细节，或者需要开始实现哪个新功能？
 
 ---
 
