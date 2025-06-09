@@ -12,6 +12,10 @@ const layout = computed(() => {
   if (route.meta.public) {
     return 'div'
   }
+  // 全屏页面不使用布局
+  if (route.meta.layout === 'fullscreen') {
+    return 'div'
+  }
   // 设计器页面使用特殊布局
   if (route.meta.layout === 'designer') {
     return DesignerLayout

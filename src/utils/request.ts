@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-28 10:00:35
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-06-04 11:30:34
+ * @LastEditTime: 2025-06-06 09:37:51
  * @FilePath: /workflow-system/src/utils/request.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -11,6 +11,7 @@ import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'a
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
+import type { ApiResponse } from '@/types/dataManagement'
 
 // 创建两个axios实例
 // 1. 主服务API实例（用于登录、菜单等）
@@ -103,21 +104,15 @@ export const request = (service: AxiosInstance, config: InternalAxiosRequestConf
   return service(config)
 }
 
-export const get = (service: AxiosInstance, url: string, params?: any, config?: InternalAxiosRequestConfig) => {
-  return service.get(url, { params, ...config })
+export const get = async <T>(service: AxiosInstance, url: string): Promise<ApiResponse<T>> => {
+  const response = await service.get(url)
+  return response
 }
 
-export const post = (service: AxiosInstance, url: string, data?: any, config?: InternalAxiosRequestConfig) => {
-  return service.post(url, data, config)
+export const post = async <T>(service: AxiosInstance, url: string, data?: any): Promise<ApiResponse<T>> => {
+  const response = await service.post(url, data)
+  return response
 }
-// export function post<T = any>(service: AxiosInstance, url: string, data?: any, config?: InternalAxiosRequestConfig): Promise<T> {
-//   return request(service, {
-//     method: 'post',
-//     url,
-//     data,
-//     ...config
-//   }) as Promise<T>
-// }
 
 export const put = (service: AxiosInstance, url: string, data?: any, config?: InternalAxiosRequestConfig) => {
   return service.put(url, data, config)

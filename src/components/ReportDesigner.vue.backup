@@ -204,20 +204,6 @@
               更新渲染
             </el-button>
           </div>
-
-          <!-- 工具栏-导入导出 -->
-          <div class="toolbar-group">
-            <el-button-group>
-              <el-button size="small" @click="showInsertTableDialog">
-                <el-icon><Grid /></el-icon>
-                插入表格
-              </el-button>
-              <el-button size="small" @click="showExportDialog">
-                <el-icon><Download /></el-icon>
-                导出
-              </el-button>
-            </el-button-group>
-          </div>
         </div>
       </div>
 
@@ -315,7 +301,7 @@
                   <tr v-for="rowIndex in allRows" :key="rowIndex">
                     <td v-for="col in allColumns" :key="col" 
                         :class="getCellClass(rowIndex, col)"
-                        @click="selectCell(rowIndex, col, $event)"
+                        @click="selectCell(rowIndex, col)"
                         @mousedown="startCellSelection($event, rowIndex, col)"
                         @mouseenter="handleCellMouseEnter($event, rowIndex, col)"
                         @mouseup="endCellSelection"
@@ -545,70 +531,65 @@
     </div>
 
     <!-- 右键菜单 -->
-    <el-dropdown
-      ref="contextMenuRef"
-      :show-timeout="0"
-      :hide-timeout="0"
-      trigger="contextmenu"
-      :visible="contextMenu.visible"
-      placement="bottom-start"
-      style="position: fixed; z-index: 9999;"
+    <div 
+      v-if="contextMenu.visible" 
+      class="context-menu"
       :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      @click.stop
     >
-      <span></span>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <!-- 单元格范围选择时的菜单 -->
-          <template v-if="selectedCells.length > 1">
-            <el-dropdown-item @click="mergeCells">
-              <el-icon><Grid /></el-icon>
-              合并单元格
-            </el-dropdown-item>
-            <el-dropdown-item @click="clearSelection">
-              <el-icon><Close /></el-icon>
-              清除选择
-            </el-dropdown-item>
-            <el-dropdown-item divided @click="copySelection">
-              <el-icon><CopyDocument /></el-icon>
-              复制
-            </el-dropdown-item>
-            <el-dropdown-item @click="deleteSelection">
-              <el-icon><Delete /></el-icon>
-              删除内容
-            </el-dropdown-item>
-          </template>
-          
-          <!-- 单个单元格菜单 -->
-          <template v-else>
-            <el-dropdown-item @click="editCell(selectedCell.row, selectedCell.col)">
-              <el-icon><Edit /></el-icon>
-              编辑单元格
-            </el-dropdown-item>
-            <el-dropdown-item @click="showInsertTableDialog">
-              <el-icon><Grid /></el-icon>
-              插入表格
-            </el-dropdown-item>
-            <el-dropdown-item divided @click="copyCell">
-              <el-icon><CopyDocument /></el-icon>
-              复制
-            </el-dropdown-item>
-            <el-dropdown-item @click="pasteCell">
-              <el-icon><Document /></el-icon>
-              粘贴
-            </el-dropdown-item>
-            <el-dropdown-item @click="clearCell">
-              <el-icon><Delete /></el-icon>
-              清除内容
-            </el-dropdown-item>
-          </template>
-          
-          <el-dropdown-item divided @click="showExportDialog">
-            <el-icon><Download /></el-icon>
-            导出
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+      <div class="menu-item" @click="copyCell">
+        <el-icon><DocumentCopy /></el-icon>
+        <span>复制</span>
+      </div>
+      <div class="menu-item" @click="pasteCell" :class="{ disabled: !clipboard.hasData }">
+        <el-icon><Document /></el-icon>
+        <span>粘贴</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" @click="insertRowAbove">
+        <el-icon><Plus /></el-icon>
+        <span>在上方插入行</span>
+      </div>
+      <div class="menu-item" @click="insertRowBelow">
+        <el-icon><Plus /></el-icon>
+        <span>在下方插入行</span>
+      </div>
+      <div class="menu-item" @click="insertColumnLeft">
+        <el-icon><Plus /></el-icon>
+        <span>在左侧插入列</span>
+      </div>
+      <div class="menu-item" @click="insertColumnRight">
+        <el-icon><Plus /></el-icon>
+        <span>在右侧插入列</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" @click="deleteRow">
+        <el-icon><Delete /></el-icon>
+        <span>删除行</span>
+      </div>
+      <div class="menu-item" @click="deleteColumn">
+        <el-icon><Delete /></el-icon>
+        <span>删除列</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" @click="mergeCells">
+        <el-icon><CopyDocument /></el-icon>
+        <span>合并单元格</span>
+      </div>
+      <div class="menu-item" @click="splitCells">
+        <el-icon><DocumentRemove /></el-icon>
+        <span>拆分单元格</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" @click="formatCell">
+        <el-icon><Edit /></el-icon>
+        <span>设置格式</span>
+      </div>
+      <div class="menu-item" @click="clearCell">
+        <el-icon><Delete /></el-icon>
+        <span>清除内容</span>
+      </div>
+    </div>
 
     <!-- 格式设置对话框 -->
     <el-dialog v-model="formatDialog.visible" title="单元格格式" width="500px">
@@ -648,59 +629,6 @@
         <el-button type="primary" @click="applyFormat">应用</el-button>
       </template>
     </el-dialog>
-
-    <!-- 插入表格对话框 -->
-    <el-dialog v-model="insertTableDialog" title="插入表格" width="500px">
-      <el-form :model="insertTableForm" label-width="100px">
-        <el-form-item label="行数">
-          <el-input-number v-model="insertTableForm.rows" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item label="列数">
-          <el-input-number v-model="insertTableForm.cols" :min="1" :max="50" />
-        </el-form-item>
-        <el-form-item label="表头">
-          <el-checkbox v-model="insertTableForm.hasHeader" />
-        </el-form-item>
-        <el-form-item label="数据">
-          <el-table :data="insertTableForm.data" border>
-            <el-table-column v-for="col in insertTableForm.cols" :key="col" :label="`列${col}`">
-              <template #default="scope">
-                <el-input v-model="scope.row[col]" />
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="insertTableDialog = false">取消</el-button>
-        <el-button type="primary" @click="insertTable">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 导出对话框 -->
-    <el-dialog v-model="exportDialog" title="导出报表" width="500px">
-      <el-form :model="exportForm" label-width="100px">
-        <el-form-item label="格式">
-          <el-radio-group v-model="exportForm.format">
-            <el-radio label="xlsx" />
-            <el-radio label="pdf" />
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="范围">
-          <el-radio-group v-model="exportForm.range">
-            <el-radio label="all">全部</el-radio>
-            <el-radio label="selection">选择范围</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="文件名">
-          <el-input v-model="exportForm.filename" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="exportDialog = false">取消</el-button>
-        <el-button type="primary" @click="exportReport">确定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -712,7 +640,7 @@ import {
   DocumentCopy, ArrowLeft, Delete, Grid, Rank, Close, Operation, Edit, Refresh,
   Plus, FolderOpened, Printer, RefreshLeft, RefreshRight, Position, Back, Right,
   Picture, TrendCharts, ScaleToOriginal, Link, Sort, Filter, CopyDocument, DocumentRemove, Star, Check,
-  DataAnalysis, CirclePlus, Collection, Minus, Reading, Search, Document, Select, Download
+  DataAnalysis, CirclePlus, Collection, Minus, Reading, Search, Document, Select
 } from '@element-plus/icons-vue'
 import { reportApi, reportDataSourceApi } from '@/api/report'
 
@@ -767,10 +695,6 @@ const reportParameters = reactive<Record<string, any>>({})
 const editingCell = ref<{row: number, col: string} | null>(null)
 const editingValue = ref('')
 const cellInputRef = ref<HTMLInputElement>()
-
-// DOM 引用
-const rowHeadersRef = ref<HTMLElement>()
-const cellsAreaRef = ref<HTMLElement>()
 
 // 合并单元格数据结构
 const mergedCells = reactive<Record<string, {
@@ -841,6 +765,10 @@ const isCellInSelection = (row: number, col: string) => {
   if (!selectionRange.active) return false
   return selectedCells.value.some(cell => cell.row === row && cell.col === col)
 }
+
+// DOM引用
+const rowHeadersRef = ref<HTMLElement>()
+const cellsAreaRef = ref<HTMLElement>()
 
 // 生成大量列和行，真正Excel感觉
 const generateColumns = () => {
@@ -922,22 +850,6 @@ const isDragOverColumn = ref<string | null>(null)
 const isFormulaDragOver = ref(false)
 const columnFormulas = reactive<Record<string, string>>({}) // 列级公式存储
 const currentEditingColumn = ref<string>('')
-
-// 🎯 新增：表格插入和导出功能
-const insertTableDialog = ref(false)
-const insertTableForm = reactive({
-  rows: 3,
-  cols: 3,
-  hasHeader: true,
-  data: [] as string[][]
-})
-
-const exportDialog = ref(false)
-const exportForm = reactive({
-  format: 'xlsx' as 'xlsx' | 'pdf',
-  range: 'all' as 'all' | 'selection',
-  filename: '报表导出'
-})
 
 // 方法
 const toggleRightPanel = () => {
@@ -1331,9 +1243,9 @@ const getCellStyle = (row: number, col: string) => {
   }
 }
 
-const selectCell = (row: number, col: string, event?: MouseEvent) => {
+const selectCell = (row: number, col: string) => {
   // 检查是否按下Shift键进行范围选择
-  if (event && event.shiftKey && selectionRange.active) {
+  if (event && (event as KeyboardEvent).shiftKey && selectionRange.active) {
     // 扩展选择范围
     selectionRange.end = { row, col }
   } else {
@@ -1355,18 +1267,15 @@ const selectCell = (row: number, col: string, event?: MouseEvent) => {
 }
 
 const editCell = (row: number, col: string) => {
-  selectCell(row, col) // 内部调用，不需要event参数
+  selectCell(row, col)
   editingCell.value = { row, col }
   editingValue.value = getCellValue(row, col)
   
   // 在下一个 tick 中聚焦输入框
   nextTick(() => {
-    // 查找当前编辑单元格的输入框
-    const cellKey = `${col}${row}`
-    const inputElement = document.querySelector(`.cell-input`) as HTMLInputElement
-    if (inputElement) {
-      inputElement.focus()
-      inputElement.select()
+    if (cellInputRef.value) {
+      cellInputRef.value.focus()
+      cellInputRef.value.select()
     }
   })
 }
@@ -1653,8 +1562,42 @@ const removeColumnField = (col: string) => {
 const updateRender = async () => {
   rendering.value = true
   try {
-    // 重新渲染数据
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // 清空现有渲染数据
+    Object.keys(renderedData).forEach(key => delete renderedData[key])
+    
+    // 计算计算字段的值
+    const computedData = sourceData.value.map(row => {
+      const newRow = { ...row }
+      
+      computedFields.value.forEach(field => {
+        try {
+          newRow[field.name] = evaluateExpression(field.expression, row)
+        } catch (error: any) {
+          newRow[field.name] = 'Error: ' + error.message
+        }
+      })
+      
+      return newRow
+    })
+    
+    // 渲染绑定的字段到单元格
+    Object.keys(columnFieldMap).forEach(col => {
+      const field = columnFieldMap[col]
+      computedData.forEach((row, index) => {
+        const rowNum = index + 1
+        const cellKey = `${col}${rowNum}`
+        
+        const value = row[field.name]
+        if (value !== undefined && value !== null) {
+          if (field.type === 'number' && typeof value === 'number') {
+            renderedData[cellKey] = value.toLocaleString()
+          } else {
+            renderedData[cellKey] = String(value)
+          }
+        }
+      })
+    })
+    
     ElMessage.success('数据渲染完成')
   } catch (error: any) {
     ElMessage.error('渲染失败: ' + error.message)
@@ -1735,40 +1678,60 @@ const evaluateExpression = (expression: string, row: any): any => {
 // Excel工具栏方法
 const toggleBold = () => {
   cellFormat.bold = !cellFormat.bold
-  applyCurrentFormatToCell()
+  applyFormatToSelectedCells()
 }
 
 const toggleItalic = () => {
   cellFormat.italic = !cellFormat.italic
-  applyCurrentFormatToCell()
+  applyFormatToSelectedCells()
 }
 
 const toggleUnderline = () => {
   cellFormat.underline = !cellFormat.underline
-  applyCurrentFormatToCell()
+  applyFormatToSelectedCells()
 }
 
 const setBorderStyle = (style: 'all' | 'outer' | 'none') => {
   cellFormat.borderStyle = style
-  applyCurrentFormatToCell()
+  ElMessage.success(`已应用${style}边框样式`)
 }
 
 const clearAll = () => {
-  // 清空所有数据
-  Object.keys(renderedData).forEach(key => {
-    delete renderedData[key]
-  })
+  Object.keys(columnFieldMap).forEach(key => delete columnFieldMap[key])
+  Object.keys(renderedData).forEach(key => delete renderedData[key])
   ElMessage.success('表格已清空')
 }
 
 const handleSave = async () => {
   saving.value = true
   try {
-    // 保存逻辑
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('报表保存成功')
-  } catch (error) {
-    ElMessage.error('保存失败')
+    // 转换字段映射为简单的字符串映射
+    const mappingForSave: Record<string, string> = {}
+    Object.keys(columnFieldMap).forEach(key => {
+      const field = columnFieldMap[key]
+      mappingForSave[key] = field.name
+    })
+
+    const config = {
+      template: 'computed',
+      dataSource: {
+        type: 'table' as const,
+        tableName: selectedDataSource.value,
+        sqlQuery: '',
+        apiUrl: ''
+      },
+      fields: {
+        selected: Object.keys(columnFieldMap),
+        mapping: mappingForSave
+      }
+    }
+    
+    if (reportData.id) {
+      await reportApi.updateReport(reportData.id, { config })
+      ElMessage.success('保存成功')
+    }
+  } catch (error: any) {
+    ElMessage.error('保存失败: ' + error.message)
   } finally {
     saving.value = false
   }
@@ -1970,46 +1933,25 @@ const clearCell = () => {
 
 // 📋 单元格合并功能
 const mergeCells = () => {
-  if (selectedCells.value.length < 2) {
-    ElMessage.warning('请选择多个单元格进行合并')
-    return
-  }
+  // 这里需要选择区域，先用当前选中单元格作为示例
+  const startRow = selectedCell.row
+  const endRow = selectedCell.row + 1 // 示例：合并2行
+  const startCol = selectedCell.col
+  const endCol = getNextColumn(selectedCell.col) // 示例：合并2列
   
-  // 计算合并范围
-  const startCell = selectedCells.value[0]
-  const endCell = selectedCells.value[selectedCells.value.length - 1]
-  
-  // 创建合并单元格记录
-  const mergeKey = `${startCell.col}${startCell.row}`
-  const rowspan = Math.abs(endCell.row - startCell.row) + 1
-  const colspan = Math.abs(getColumnIndex(endCell.col) - getColumnIndex(startCell.col)) + 1
+  const mergeKey = `${startCol}${startRow}`
   
   mergedCells[mergeKey] = {
-    rowspan,
-    colspan,
-    startRow: Math.min(startCell.row, endCell.row),
-    startCol: startCell.col < endCell.col ? startCell.col : endCell.col,
-    endRow: Math.max(startCell.row, endCell.row),
-    endCol: startCell.col > endCell.col ? startCell.col : endCell.col
+    rowspan: endRow - startRow + 1,
+    colspan: getColumnIndex(endCol) - getColumnIndex(startCol) + 1,
+    startRow,
+    startCol,
+    endRow,
+    endCol
   }
   
-  // 保留第一个单元格的内容，清空其他单元格
-  const firstCellKey = mergeKey
-  const firstCellValue = renderedData[firstCellKey] || ''
-  
-  selectedCells.value.forEach((cell, index) => {
-    const cellKey = `${cell.col}${cell.row}`
-    if (index === 0) {
-      // 保留第一个单元格的内容
-      renderedData[cellKey] = firstCellValue
-    } else {
-      // 清空其他单元格
-      delete renderedData[cellKey]
-    }
-  })
-  
-  clearSelection()
-  ElMessage.success(`已合并 ${rowspan}x${colspan} 单元格`)
+  contextMenu.visible = false
+  ElMessage.success(`已合并单元格 ${startCol}${startRow}:${endCol}${endRow}`)
 }
 
 // 拆分单元格
@@ -2063,11 +2005,8 @@ const contextMenu = reactive({
   y: 0
 })
 
-// 剪贴板数据
 const clipboard = reactive({
-  hasData: false,
-  data: [] as any[],
-  type: 'single' as 'single' | 'range'
+  hasData: false
 })
 
 const formatDialog = reactive({
@@ -2116,12 +2055,7 @@ const pasteCell = () => {
 // 右键菜单处理
 const handleCellRightClick = (event: MouseEvent, row: number, col: string) => {
   event.preventDefault()
-  
-  // 如果点击的单元格不在当前选择范围内，选择该单元格
-  if (!isCellInSelection(row, col)) {
-    selectCell(row, col) // 内部调用，不需要event参数
-  }
-  
+  selectCell(row, col)
   contextMenu.x = event.clientX
   contextMenu.y = event.clientY
   contextMenu.visible = true
@@ -2139,15 +2073,59 @@ const handleCellRightClick = (event: MouseEvent, row: number, col: string) => {
 // 组件拖拽处理
 const handleComponentDragStart = (event: DragEvent, component: any) => {
   if (event.dataTransfer) {
-    event.dataTransfer.setData('component', JSON.stringify(component))
+    event.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'component',
+      componentType: component.type,
+      componentName: component.name
+    }))
+    event.dataTransfer.effectAllowed = 'copy'
+    console.log('🔥 开始拖拽组件:', component.name)
   }
 }
 
 // 在当前选中单元格插入组件
 const insertComponentAtCursor = (component: any) => {
-  const cellKey = `${selectedCell.col}${selectedCell.row}`
-  renderedData[cellKey] = `[${component.name}]`
-  ElMessage.success(`已插入${component.name}组件`)
+  const cellRef = `${selectedCell.col}${selectedCell.row}`
+  
+  switch (component.type) {
+    case 'text':
+      renderedData[cellRef] = '文本内容'
+      break
+    case 'table':
+      renderedData[cellRef] = '[表格]'
+      // 可以在这里打开表格编辑对话框
+      showTableEditor(cellRef)
+      break
+    case 'chart':
+      renderedData[cellRef] = '[图表]'
+      // 可以在这里打开图表编辑对话框
+      showChartEditor(cellRef)
+      break
+    case 'image':
+      renderedData[cellRef] = '[图片]'
+      // 可以在这里打开图片选择对话框
+      showImageSelector(cellRef)
+      break
+    default:
+      renderedData[cellRef] = `[${component.name}]`
+  }
+  
+  ElMessage.success(`已在 ${cellRef} 插入 ${component.name}`)
+}
+
+// 显示表格编辑器
+const showTableEditor = (cellRef: string) => {
+  ElMessage.info('表格编辑器开发中...')
+}
+
+// 显示图表编辑器
+const showChartEditor = (cellRef: string) => {
+  ElMessage.info('图表编辑器开发中...')
+}
+
+// 显示图片选择器
+const showImageSelector = (cellRef: string) => {
+  ElMessage.info('图片选择器开发中...')
 }
 
 // 格式化单元格值
@@ -2275,18 +2253,17 @@ const canSplit = computed(() => {
 })
 
 const selectAll = () => {
-  selectionRange.start = { row: 1, col: 'A' }
-  selectionRange.end = { row: allRows.value[allRows.value.length - 1], col: allColumns.value[allColumns.value.length - 1] }
+  selectionRange.start = { row: 0, col: '' }
+  selectionRange.end = { row: allRows.value.length - 1, col: allColumns.value[allColumns.value.length - 1] }
   selectionRange.active = true
-  ElMessage.success('已全选所有单元格')
+  selectionRange.selecting = true
 }
 
 const clearSelection = () => {
+  selectionRange.start = { row: 0, col: '' }
+  selectionRange.end = { row: 0, col: '' }
   selectionRange.active = false
-  selectedCell.row = 1
-  selectedCell.col = 'A'
-  selectedCell.ref = 'A1'
-  ElMessage.success('已清除选择')
+  selectionRange.selecting = false
 }
 
 const mergeSelectedCells = () => {
@@ -2325,7 +2302,7 @@ const splitSelectedCells = () => {
 
 const setAlignment = (alignment: 'left' | 'center' | 'right') => {
   cellFormat.textAlign = alignment
-  applyCurrentFormatToCell()
+  applyFormatToSelectedCells()
   ElMessage.success(`已应用${alignment}对齐方式`)
 }
 
@@ -2370,10 +2347,6 @@ const endCellSelection = () => {
     const startCell = selectionRange.start
     const endCell = selectionRange.end
     cellFormula.value = `范围: ${startCell.col}${startCell.row}:${endCell.col}${endCell.row} (${selectedCells.value.length} 个单元格)`
-  } else {
-    // 单个单元格，显示其内容
-    const cellKey = `${selectionRange.start.col}${selectionRange.start.row}`
-    cellFormula.value = renderedData[cellKey] || ''
   }
 }
 
@@ -2399,207 +2372,6 @@ const applyFormatToSelectedCells = () => {
       textAlign: cellFormat.textAlign
     })
   })
-}
-
-// 简化的格式应用函数
-const applyCurrentFormatToCell = () => {
-  selectedCells.value.forEach(cell => {
-    const cellKey = `${cell.col}${cell.row}`
-    cellFormatMap[cellKey] = { ...cellFormat }
-  })
-}
-
-// 🎯 新增功能实现
-
-// 插入表格功能
-const showInsertTableDialog = () => {
-  insertTableDialog.value = true
-  // 初始化表格数据
-  insertTableForm.data = Array(insertTableForm.rows).fill(null).map(() => 
-    Array(insertTableForm.cols).fill('')
-  )
-}
-
-const insertTable = () => {
-  const startRow = selectedCell.row
-  const startColIndex = getColumnIndex(selectedCell.col)
-  
-  // 插入表格数据到单元格
-  insertTableForm.data.forEach((row, rowIndex) => {
-    row.forEach((cellValue, colIndex) => {
-      const targetRow = startRow + rowIndex
-      const targetCol = allColumns.value[startColIndex + colIndex]
-      if (targetCol) {
-        const cellKey = `${targetCol}${targetRow}`
-        renderedData[cellKey] = cellValue
-      }
-    })
-  })
-  
-  insertTableDialog.value = false
-  ElMessage.success(`已插入 ${insertTableForm.rows}x${insertTableForm.cols} 表格`)
-}
-
-// 绑定数据集到表格
-const bindDatasetToTable = () => {
-  if (sourceData.value.length === 0) {
-    ElMessage.warning('请先加载数据源')
-    return
-  }
-  
-  const startRow = selectedCell.row
-  const startColIndex = getColumnIndex(selectedCell.col)
-  
-  // 插入表头
-  if (insertTableForm.hasHeader) {
-    originalFields.value.forEach((field, index) => {
-      const targetCol = allColumns.value[startColIndex + index]
-      if (targetCol) {
-        const cellKey = `${targetCol}${startRow}`
-        renderedData[cellKey] = field.label
-      }
-    })
-  }
-  
-  // 插入数据
-  const dataStartRow = insertTableForm.hasHeader ? startRow + 1 : startRow
-  sourceData.value.slice(0, 10).forEach((rowData, rowIndex) => { // 限制10行数据
-    originalFields.value.forEach((field, colIndex) => {
-      const targetCol = allColumns.value[startColIndex + colIndex]
-      if (targetCol) {
-        const cellKey = `${targetCol}${dataStartRow + rowIndex}`
-        renderedData[cellKey] = String(rowData[field.name] || '')
-      }
-    })
-  })
-  
-  insertTableDialog.value = false
-  ElMessage.success('数据集已绑定到表格')
-}
-
-// 导出功能
-const showExportDialog = () => {
-  exportDialog.value = true
-}
-
-const exportReport = async () => {
-  try {
-    if (exportForm.format === 'xlsx') {
-      await exportToExcel()
-    } else if (exportForm.format === 'pdf') {
-      await exportToPDF()
-    }
-    exportDialog.value = false
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
-  }
-}
-
-const exportToExcel = async () => {
-  // 使用动态导入避免打包体积过大
-  const XLSX = await import('xlsx')
-  
-  const worksheet = XLSX.utils.aoa_to_sheet([])
-  const workbook = XLSX.utils.book_new()
-  
-  // 收集要导出的数据
-  const exportData: any[][] = []
-  const maxRow = Math.max(...Object.keys(renderedData).map(key => {
-    const match = key.match(/([A-Z]+)(\d+)/)
-    return match ? parseInt(match[2]) : 0
-  }))
-  
-  for (let row = 1; row <= maxRow; row++) {
-    const rowData: any[] = []
-    allColumns.value.forEach(col => {
-      const cellKey = `${col}${row}`
-      rowData.push(renderedData[cellKey] || '')
-    })
-    exportData.push(rowData)
-  }
-  
-  const ws = XLSX.utils.aoa_to_sheet(exportData)
-  XLSX.utils.book_append_sheet(workbook, ws, '报表')
-  XLSX.writeFile(workbook, `${exportForm.filename}.xlsx`)
-  
-  ElMessage.success('Excel导出成功')
-}
-
-const exportToPDF = async () => {
-  // 使用html2canvas和jsPDF进行PDF导出
-  const html2canvas = await import('html2canvas')
-  const jsPDF = await import('jspdf')
-  
-  const canvas = await html2canvas.default(document.querySelector('.excel-table') as HTMLElement)
-  const imgData = canvas.toDataURL('image/png')
-  
-  const pdf = new jsPDF.jsPDF()
-  const imgWidth = 210
-  const pageHeight = 295
-  const imgHeight = (canvas.height * imgWidth) / canvas.width
-  let heightLeft = imgHeight
-  
-  let position = 0
-  
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-  heightLeft -= pageHeight
-  
-  while (heightLeft >= 0) {
-    position = heightLeft - imgHeight
-    pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
-  }
-  
-  pdf.save(`${exportForm.filename}.pdf`)
-  ElMessage.success('PDF导出成功')
-}
-
-// 复制选择范围
-const copySelection = () => {
-  const data = selectedCells.value.map(cell => {
-    const cellKey = `${cell.col}${cell.row}`
-    return renderedData[cellKey] || ''
-  })
-  
-  // 保存到剪贴板数据
-  clipboard.data = data
-  clipboard.hasData = true
-  clipboard.type = 'range'
-  
-  ElMessage.success(`已复制 ${selectedCells.value.length} 个单元格`)
-}
-
-// 删除选择范围
-const deleteSelection = () => {
-  selectedCells.value.forEach(cell => {
-    const cellKey = `${cell.col}${cell.row}`
-    delete renderedData[cellKey]
-  })
-  
-  ElMessage.success(`已删除 ${selectedCells.value.length} 个单元格内容`)
-}
-
-// 检查单元格是否被合并
-const isCellMerged = (row: number, col: string): boolean => {
-  return Object.values(mergedCells).some(merge => {
-    const colIndex = getColumnIndex(col)
-    const startColIndex = getColumnIndex(merge.startCol)
-    const endColIndex = getColumnIndex(merge.endCol)
-    
-    return row >= merge.startRow && 
-           row <= merge.endRow && 
-           colIndex >= startColIndex && 
-           colIndex <= endColIndex &&
-           !(row === merge.startRow && col === merge.startCol) // 不是起始单元格
-  })
-}
-
-// 获取合并单元格信息
-const getMergedCellInfo = (row: number, col: string) => {
-  const cellKey = `${col}${row}`
-  return mergedCells[cellKey]
 }
 </script>
 
@@ -3177,14 +2949,13 @@ $excel-toolbar-bg: #f7f7f7;
   height: 2100px; // 足够高以容纳100行
 
   td {
+    width: 80px;
     height: 21px;
     border-right: 1px solid #c0c0c0;
     border-bottom: 1px solid #c0c0c0;
-    padding: 0;
+  padding: 0;
     position: relative;
     background: white;
-    // 移除固定宽度，让getCellStyle中的width样式生效
-    box-sizing: border-box;
 
     &:hover {
       background: #f8fafc;
@@ -3195,38 +2966,6 @@ $excel-toolbar-bg: #f7f7f7;
       border: 2px solid $excel-selected-blue !important;
       z-index: 3;
       box-shadow: 0 0 0 1px $excel-selected-blue;
-    }
-    
-    // 🎯 选择范围样式 - 与列标题保持一致
-    &.in-selection {
-      background: rgba(64, 158, 255, 0.1) !important;
-      border: 1px solid rgba(64, 158, 255, 0.3) !important;
-    }
-    
-    &.selection-start {
-      border-top-left-radius: 4px;
-      border: 2px solid #1976d2 !important;
-    }
-    
-    &.selection-end {
-      border-bottom-right-radius: 4px;
-      border: 2px solid #1976d2 !important;
-    }
-    
-    // 合并单元格样式
-    &.merged-cell {
-      background: #f3e5f5;
-      border: 2px solid #9c27b0;
-      
-      &::after {
-        content: '⊞';
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        font-size: 8px;
-        color: #9c27b0;
-        opacity: 0.7;
-      }
     }
   }
 }
@@ -3757,6 +3496,7 @@ $excel-toolbar-bg: #f7f7f7;
     }
   }
 }
+
 .toolbar-section {
   .section-label {
     font-size: 10px;

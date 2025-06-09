@@ -514,10 +514,11 @@ import type { DataSet, DataSetField } from '@/types/dataManagement'
 import type { MenuSelectOption, MenuItem } from '@/types/menu'
 import { getMenuTree } from '@/api/menu'
 import { createDashboard, getDashboardDetail } from '@/api/dashboard'
-import { DashboardStatus, DashboardType, LayoutItem } from '@/types/dashboard'
-import { mockMedicalData, mockDatasets, defaultFieldMappings } from '@/mock/dashboardData'
+import { DashboardStatus, DashboardType } from '@/types/dashboard'
 import { useDatasetStore } from '@/stores/dataset'
 import type { DashboardForm, ChartConfig } from '@/types/dashboard'
+import type { LayoutItem } from '@/types/dashboard'
+import { mockMedicalData, mockDatasets, defaultFieldMappings } from '@/mock/dashboardData'
 
 // 预览数据类型
 interface PreviewData {
@@ -650,6 +651,7 @@ const handleDrop = (e: DragEvent) => {
   // 创建图表配置
   const chartConfig: ChartConfig = {
     i: `chart-${Date.now()}`,
+    id: `chart-${Date.now()}`,
     type: chartTypeData.value,
     title: chartTypeData.label,
     showLegend: true,
@@ -1187,8 +1189,10 @@ const removeChart = (chartId: string) => {
 
 // 数据集变更处理
 const handleDatasetChange = (datasetId: number) => {
-  selectedDataset.value = datasets.value.find(d => d.id === datasetId) || null
-  if (selectedDataset.value) {
+  const dataset = datasets.value.find(d => d.id === datasetId)
+  if (dataset) {
+    // 使用类型断言来处理模拟数据和真实数据类型的差异
+    selectedDataset.value = dataset as any
     // 使用模拟数据
     const dataSourceKey = 'patientStats'
     chartData.value = mockMedicalData[dataSourceKey]

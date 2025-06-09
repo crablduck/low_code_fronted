@@ -263,4 +263,16 @@ export interface DataSetQuery {
   page: number
   pageSize: number
   keyword?: string
+}
+
+export interface ApiResponse<T> {
+  code: number;
+  data: {
+    content: T[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  };
+  message: string;
 } 

@@ -502,22 +502,19 @@ const loadDatasets = async () => {
       keyword: searchKeyword.value
     };
     
-    const response = await dataSourceService.get('/api/datasets', { params });
+    const response = await dataSetApi.getDatasets(params);
     
-    if (response.code === 200) {
-      dataSources.value = response.data.items;
-      treeData.value = dataSources.value.map(datasource => ({
-        id: datasource.id,
-        name: datasource.name,
-        type: 'datasource' as const,
-        datasource
-      }));
+    // PagedResponse结构：{ data: T[], total: number, page: number, size: number }
+    if (response && response.content) {
+      datasets.value = response.content;
     } else {
-      ElMessage.error(response.message || '获取数据集列表失败');
+      datasets.value = [];
+      ElMessage.error('获取数据集列表失败');
     }
   } catch (error) {
     console.error('加载数据集列表失败:', error);
     ElMessage.error('加载数据集列表失败');
+    datasets.value = [];
   } finally {
     loading.value = false;
   }
@@ -525,9 +522,16 @@ const loadDatasets = async () => {
 
 const loadDataSources = async () => {
   try {
-    dataSources.value = await dataSourceApi.getAllDataSources()
+    const result = await dataSourceApi.getAllDataSources()
+    if (result.code === 200 && result.data?.content) {
+      dataSources.value = result.data.content
+    } else {
+      console.error('数据源API返回的数据结构不正确:', result)
+      dataSources.value = []
+    }
   } catch (error) {
     console.error('加载数据源失败:', error)
+    dataSources.value = []
   }
 }
 
@@ -727,7 +731,7 @@ const getAggregatorLabel = (type: string) => {
 
 // 生命周期
 onMounted(() => {
-  // loadDatasets()
+  loadDatasets()
   loadDataSources()
 })
 

@@ -33,6 +33,12 @@
       <span>报表设计器</span>
     </el-menu-item>
     
+    <!-- 固定的Univer报表设计器菜单 -->
+    <el-menu-item index="/univer-report-designer" class="menu-item-univer">
+      <el-icon><DataAnalysis /></el-icon>
+      <span>Univer报表</span>
+    </el-menu-item>
+    
     <!-- 仪表盘菜单 -->
     <el-sub-menu index="/dashboard" class="menu-item-dashboard">
       <template #title>

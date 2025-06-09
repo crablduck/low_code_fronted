@@ -14,6 +14,8 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": false,
-    "noUncheckedSideEffectImports": false
+    "noUncheckedSideEffectImports": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   }
 }

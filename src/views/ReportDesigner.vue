@@ -198,6 +198,24 @@
         @back="showPreview = false"
       />
     </el-dialog>
+
+    <!-- Excel风格报表设计器 -->
+    <el-dialog
+      v-model="showDesigner"
+      :title="`设计报表：${currentReport?.name}`"
+      width="95%"
+      top="2vh"
+      :show-close="false"
+      :close-on-click-modal="false"
+      custom-class="designer-dialog"
+    >
+      <ReportDesignerComponent
+        v-if="showDesigner && currentReport"
+        :mode="'edit'"
+        :report-data="currentReport"
+        @back="showDesigner = false"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -215,6 +233,9 @@ import {
 } from '@element-plus/icons-vue'
 import ReportWizard from '../components/ReportWizard.vue'
 import ReportDesignerComponent from '../components/ReportDesigner.vue'
+// 导入我们创建的报表API
+import { reportApi } from '@/api/report'
+import type { Report, ReportListParams } from '@/api/report'
 
 // 定义组件的 props 和 emits
 defineProps<{
@@ -234,17 +255,18 @@ const router = useRouter()
 // 响应式数据
 const showWizard = ref(false)
 const showPreview = ref(false)
+const showDesigner = ref(false)
 const tableLoading = ref(false)
-const reportList = ref([])
-const selectedReports = ref([])
-const currentReport = ref(null)
+const reportList = ref<Report[]>([])
+const selectedReports = ref<Report[]>([])
+const currentReport = ref<Report | null>(null)
 
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
   category: '',
   status: '',
-  dateRange: null
+  dateRange: null as string[] | null
 })
 
 // 分页数据
@@ -258,19 +280,20 @@ const pagination = reactive({
 const loadReports = async () => {
   tableLoading.value = true
   try {
-    const params = new URLSearchParams({
-      page: pagination.page.toString(),
-      size: pagination.size.toString(),
-      ...searchForm
-    })
-    
-    if (searchForm.dateRange) {
-      params.append('startDate', searchForm.dateRange[0])
-      params.append('endDate', searchForm.dateRange[1])
+    const params: ReportListParams = {
+      page: pagination.page,
+      size: pagination.size,
+      keyword: searchForm.keyword || undefined,
+      category: searchForm.category || undefined,
+      status: searchForm.status || undefined
     }
     
-    const response = await fetch(`http://localhost:4000/api/reports?${params}`)
-    const result = await response.json()
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.startDate = searchForm.dateRange[0]
+      params.endDate = searchForm.dateRange[1]
+    }
+    
+    const result = await reportApi.getReports(params)
     
     if (result.code === 200) {
       reportList.value = result.data.list || []
@@ -278,7 +301,7 @@ const loadReports = async () => {
     } else {
       throw new Error(result.message)
     }
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error('加载报表列表失败: ' + error.message)
   } finally {
     tableLoading.value = false
@@ -305,54 +328,60 @@ const resetSearch = () => {
   handleSearch()
 }
 
-const handleSelectionChange = (selection: any[]) => {
+const handleSelectionChange = (selection: Report[]) => {
   selectedReports.value = selection
 }
 
-const editReport = (report: any) => {
-  // 跳转到报表设计器编辑页面
+const editReport = (report: Report) => {
+  // 跳转到全屏Excel风格报表设计器页面
   router.push({
-    path: '/report-designer/edit',
-    query: { id: report.id, mode: 'edit' }
+    path: '/report/design',
+    query: {
+      id: report.id,
+      name: report.name
+    }
   })
 }
 
-const previewReport = (report: any) => {
+const previewReport = (report: Report) => {
   currentReport.value = report
   showPreview.value = true
 }
 
-const exportReport = async (report: any) => {
+const exportReport = async (report: Report) => {
   try {
-    // 导出报表配置
-    const exportData = {
-      name: report.name,
-      description: report.description,
-      category: report.category,
-      config: report.config,
-      exportTime: new Date().toISOString()
+    const result = await reportApi.exportReport(report.id)
+    
+    if (result.code === 200) {
+      // 使用API返回的数据创建下载文件
+      const exportData = {
+        ...result.data,
+        exportTime: new Date().toISOString()
+      }
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+        type: 'application/json' 
+      })
+      const url = URL.createObjectURL(blob)
+      
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${report.name}_报表配置.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      ElMessage.success('报表导出成功！')
+    } else {
+      throw new Error(result.message)
     }
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-      type: 'application/json' 
-    })
-    const url = URL.createObjectURL(blob)
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${report.name}_报表配置.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    ElMessage.success('报表导出成功！')
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error('导出失败: ' + error.message)
   }
 }
 
-const handleMoreAction = async (command: string, report: any) => {
+const handleMoreAction = async (command: string, report: Report) => {
   switch (command) {
     case 'copy':
       await copyReport(report)
@@ -369,35 +398,22 @@ const handleMoreAction = async (command: string, report: any) => {
   }
 }
 
-const copyReport = async (report: any) => {
+const copyReport = async (report: Report) => {
   try {
-    const response = await fetch('http://localhost:4000/api/reports', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: `${report.name}_副本`,
-        description: report.description,
-        category: report.category,
-        config: report.config,
-        status: 'draft'
-      })
-    })
+    const result = await reportApi.copyReport(report.id, `${report.name}_副本`)
     
-    const result = await response.json()
     if (result.code === 200) {
       ElMessage.success('报表复制成功！')
       loadReports()
     } else {
       throw new Error(result.message)
     }
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error('复制失败: ' + error.message)
   }
 }
 
-const publishReport = async (report: any) => {
+const publishReport = async (report: Report) => {
   try {
     await ElMessageBox.confirm(
       `确定要发布报表"${report.name}"吗？`,
@@ -405,25 +421,22 @@ const publishReport = async (report: any) => {
       { type: 'warning' }
     )
     
-    const response = await fetch(`http://localhost:4000/api/reports/${report.id}/publish`, {
-      method: 'POST'
-    })
+    const result = await reportApi.publishReport(report.id)
     
-    const result = await response.json()
     if (result.code === 200) {
       ElMessage.success('报表发布成功！')
       loadReports()
     } else {
       throw new Error(result.message)
     }
-  } catch (error) {
-    if (error.message) {
+  } catch (error: any) {
+    if (error.message && error.message !== 'cancel') {
       ElMessage.error('发布失败: ' + error.message)
     }
   }
 }
 
-const unpublishReport = async (report: any) => {
+const unpublishReport = async (report: Report) => {
   try {
     await ElMessageBox.confirm(
       `确定要取消发布报表"${report.name}"吗？`,
@@ -431,25 +444,22 @@ const unpublishReport = async (report: any) => {
       { type: 'warning' }
     )
     
-    const response = await fetch(`http://localhost:4000/api/reports/${report.id}/unpublish`, {
-      method: 'POST'
-    })
+    const result = await reportApi.unpublishReport(report.id)
     
-    const result = await response.json()
     if (result.code === 200) {
       ElMessage.success('取消发布成功！')
       loadReports()
     } else {
       throw new Error(result.message)
     }
-  } catch (error) {
-    if (error.message) {
+  } catch (error: any) {
+    if (error.message && error.message !== 'cancel') {
       ElMessage.error('取消发布失败: ' + error.message)
     }
   }
 }
 
-const deleteReport = async (report: any) => {
+const deleteReport = async (report: Report) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除报表"${report.name}"吗？此操作不可恢复！`,
@@ -457,32 +467,36 @@ const deleteReport = async (report: any) => {
       { type: 'error' }
     )
     
-    const response = await fetch(`http://localhost:4000/api/reports/${report.id}`, {
-      method: 'DELETE'
-    })
+    const result = await reportApi.deleteReport(report.id)
     
-    const result = await response.json()
     if (result.code === 200) {
       ElMessage.success('报表删除成功！')
       loadReports()
     } else {
       throw new Error(result.message)
     }
-  } catch (error) {
-    if (error.message) {
+  } catch (error: any) {
+    if (error.message && error.message !== 'cancel') {
       ElMessage.error('删除失败: ' + error.message)
     }
   }
 }
 
+// 批量操作方法
 const batchExport = async () => {
   try {
-    const exportData = selectedReports.value.map(report => ({
-      name: report.name,
-      description: report.description,
-      category: report.category,
-      config: report.config
-    }))
+    const exportPromises = selectedReports.value.map(report => 
+      reportApi.exportReport(report.id)
+    )
+    
+    const results = await Promise.all(exportPromises)
+    
+    // 创建批量导出的ZIP文件（简化版本，这里生成单个JSON）
+    const exportData = {
+      reports: results.map(result => result.data),
+      exportTime: new Date().toISOString(),
+      total: results.length
+    }
     
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
       type: 'application/json' 
@@ -491,14 +505,14 @@ const batchExport = async () => {
     
     const a = document.createElement('a')
     a.href = url
-    a.download = `批量报表导出_${new Date().toISOString().split('T')[0]}.json`
+    a.download = `批量报表导出_${new Date().getTime()}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     
-    ElMessage.success('批量导出成功！')
-  } catch (error) {
+    ElMessage.success(`成功导出 ${selectedReports.value.length} 个报表！`)
+  } catch (error: any) {
     ElMessage.error('批量导出失败: ' + error.message)
   }
 }
@@ -506,85 +520,94 @@ const batchExport = async () => {
 const batchPublish = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要发布选中的 ${selectedReports.value.length} 个报表吗？`,
+      `确定要批量发布 ${selectedReports.value.length} 个报表吗？`,
       '确认批量发布',
       { type: 'warning' }
     )
     
-    const promises = selectedReports.value.map(report => 
-      fetch(`http://localhost:4000/api/reports/${report.id}/publish`, {
-        method: 'POST'
-      })
-    )
+    const ids = selectedReports.value.map(report => report.id)
+    const result = await reportApi.batchPublishReports(ids)
     
-    await Promise.all(promises)
-    ElMessage.success('批量发布成功！')
-    loadReports()
-  } catch (error) {
-    ElMessage.error('批量发布失败: ' + error.message)
+    if (result.code === 200) {
+      ElMessage.success('批量发布成功！')
+      loadReports()
+      selectedReports.value = []
+    } else {
+      throw new Error(result.message)
+    }
+  } catch (error: any) {
+    if (error.message && error.message !== 'cancel') {
+      ElMessage.error('批量发布失败: ' + error.message)
+    }
   }
 }
 
 const batchDelete = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedReports.value.length} 个报表吗？此操作不可恢复！`,
+      `确定要批量删除 ${selectedReports.value.length} 个报表吗？此操作不可恢复！`,
       '确认批量删除',
       { type: 'error' }
     )
     
-    const promises = selectedReports.value.map(report => 
-      fetch(`http://localhost:4000/api/reports/${report.id}`, {
-        method: 'DELETE'
-      })
-    )
+    const ids = selectedReports.value.map(report => report.id)
+    const result = await reportApi.batchDeleteReports(ids)
     
-    await Promise.all(promises)
-    ElMessage.success('批量删除成功！')
-    selectedReports.value = []
-    loadReports()
-  } catch (error) {
-    ElMessage.error('批量删除失败: ' + error.message)
+    if (result.code === 200) {
+      ElMessage.success('批量删除成功！')
+      loadReports()
+      selectedReports.value = []
+    } else {
+      throw new Error(result.message)
+    }
+  } catch (error: any) {
+    if (error.message && error.message !== 'cancel') {
+      ElMessage.error('批量删除失败: ' + error.message)
+    }
   }
+
 }
 
-const handleWizardDone = (config: any) => {
-  // 向导完成后跳转到设计器
-  router.push({
-    path: '/report-designer/edit',
-    query: { id: config.reportId, mode: 'edit' }
-  })
+const handleWizardDone = () => {
+  showWizard.value = false
+  loadReports()
 }
 
-// 工具函数
-const getCategoryText = (category: string) => {
-  const categoryMap = {
-    sales: '销售',
-    finance: '财务',
-    operation: '运营',
-    statistics: '统计',
-    other: '其他'
-  }
-  return categoryMap[category] || category
-}
-
+// 工具方法
 const getCategoryTagType = (category: string) => {
-  const typeMap = {
-    sales: 'success',
-    finance: 'warning',
-    operation: 'info',
-    statistics: 'primary',
-    other: ''
+  const typeMap: Record<string, string> = {
+    'sales': 'success',
+    'finance': 'warning', 
+    'operation': 'info',
+    'statistics': 'primary',
+    'other': 'default'
   }
-  return typeMap[category] || ''
+  return typeMap[category] || 'default'
 }
 
-const formatDate = (dateString: string) => {
-  if (!dateString) return '-'
-  return new Date(dateString).toLocaleString('zh-CN')
+const getCategoryText = (category: string) => {
+  const textMap: Record<string, string> = {
+    'sales': '销售报表',
+    'finance': '财务报表',
+    'operation': '运营报表', 
+    'statistics': '统计报表',
+    'other': '其他'
+  }
+  return textMap[category] || '未知'
 }
 
-// 生命周期
+const formatDate = (dateStr: string | object) => {
+  // 处理空对象、null、undefined或空字符串的情况
+  if (!dateStr || typeof dateStr === 'object' || dateStr === '') return '-'
+  
+  try {
+    return new Date(dateStr as string).toLocaleString('zh-CN')
+  } catch (error) {
+    return '-'
+  }
+}
+
+// 组件挂载时加载数据
 onMounted(() => {
   loadReports()
 })
@@ -685,5 +708,44 @@ onMounted(() => {
       gap: 8px;
     }
   }
+}
+</style>
+
+<style>
+/* 设计器弹窗样式 - 全局样式 */
+.designer-dialog .el-dialog {
+  margin: 0 !important;
+  height: 98vh !important;
+  max-height: 98vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.designer-dialog .el-dialog__header {
+  padding: 10px 20px !important;
+  background: #107c41 !important;
+  color: white !important;
+  margin: 0 !important;
+}
+
+.designer-dialog .el-dialog__title {
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.designer-dialog .el-dialog__body {
+  padding: 0 !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.designer-dialog .el-dialog__close {
+  color: white !important;
+}
+
+.designer-dialog .el-dialog__close:hover {
+  color: #ffd04b !important;
 }
 </style> 
