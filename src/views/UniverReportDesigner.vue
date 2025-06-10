@@ -333,6 +333,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, onUnmounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   DataAnalysis,
@@ -346,14 +347,22 @@ import {
 } from '@element-plus/icons-vue'
 import UniverSheet from '@/components/UniverSheet.vue'
 import CellComputedDialog from '@/components/data-compute/CellComputedDialog.vue'
+import { 
+  getUniverReport, 
+  createUniverReport, 
+  updateUniverReport, 
+  saveUniverReportData 
+} from '@/api/report'
 
 // 响应式数据
+const route = useRoute()
 const univerSheetRef = ref()
 const showSaveDialog = ref(false)
 const showTipsDialog = ref(false)
 const showTemplateSelector = ref(false)
 const currentTemplate = ref('patient-stats')
 const currentData = ref(null)
+const currentReportId = ref<string | null>(null)
 const lastSaved = ref<Date | null>(null)
 const univerVersion = ref('0.7.0')
 
@@ -583,26 +592,32 @@ const confirmSave = async () => {
       name: saveForm.name,
       description: saveForm.description,
       category: saveForm.category,
+      template: currentTemplate.value,
       data: sheetData,
-      createdAt: new Date().toISOString(),
-      type: 'univer',
-      template: currentTemplate.value
+      status: 'draft'
     }
 
     console.log('💾 保存报表:', reportData)
     
-    // 保存到本地存储
-    const savedReports = JSON.parse(localStorage.getItem('univer-reports') || '[]')
-    savedReports.push(reportData)
-    localStorage.setItem('univer-reports', JSON.stringify(savedReports))
+    let result
+    if (currentReportId.value) {
+      // 更新现有报表
+      result = await updateUniverReport({ ...reportData, id: currentReportId.value })
+      ElMessage.success('✅ 报表更新成功！')
+    } else {
+      // 创建新报表
+      result = await createUniverReport(reportData)
+      if (result.data) {
+        currentReportId.value = result.data.id
+        ElMessage.success('✅ 报表创建成功！')
+      }
+    }
     
     lastSaved.value = new Date()
     showSaveDialog.value = false
-    
-    ElMessage.success('✅ 报表保存成功！')
   } catch (error: any) {
     console.error('保存失败:', error)
-    ElMessage.error('❌ 保存失败')
+    ElMessage.error('❌ 保存失败: ' + (error.message || '未知错误'))
   }
 }
 
@@ -792,6 +807,39 @@ const handleResize = () => {
   isMobile.value = window.innerWidth < 768
 }
 
+// 加载报表数据
+const loadReport = async (reportId: string) => {
+  try {
+    const result = await getUniverReport(reportId)
+    if (result.data) {
+      const report = result.data
+      
+      // 设置报表信息
+      currentReportId.value = report.id
+      saveForm.name = report.name
+      saveForm.description = report.description || ''
+      saveForm.category = report.category
+      currentTemplate.value = report.template
+      
+      // 设置表格数据
+      if (report.data) {
+        currentData.value = report.data
+      } else {
+        // 如果没有数据，加载模板数据
+        loadTemplate(report.template)
+      }
+      
+      ElMessage.success('✅ 报表加载成功')
+    }
+  } catch (error: any) {
+    console.error('加载报表失败:', error)
+    ElMessage.error('❌ 加载报表失败: ' + (error.message || '未知错误'))
+    
+    // 加载失败时使用默认模板
+    loadTemplate(currentTemplate.value)
+  }
+}
+
 // 生命周期
 onMounted(() => {
   console.log('🎯 UniverReportDesigner 页面加载')
@@ -806,10 +854,17 @@ onMounted(() => {
   window.addEventListener('univer-data-source-compute', handleUniverDataSourceCompute)
   document.addEventListener('univer-data-source-compute', handleUniverDataSourceCompute)
   
-  // 设置默认模板
-  nextTick(() => {
-    loadTemplate(currentTemplate.value)
-  })
+  // 检查是否是编辑模式（通过路由参数）
+  const reportId = route.params.id as string
+  if (reportId) {
+    // 编辑模式：加载指定报表
+    loadReport(reportId)
+  } else {
+    // 新建模式：加载默认模板
+    nextTick(() => {
+      loadTemplate(currentTemplate.value)
+    })
+  }
 })
 
 onUnmounted(() => {

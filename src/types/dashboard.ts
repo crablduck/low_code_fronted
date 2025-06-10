@@ -8,6 +8,49 @@ export enum DashboardType {
   TEMPLATE = 'template'
 }
 
+// 图表数据源配置接口
+export interface ChartDataSourceConfig {
+  datasetId?: number | null
+  type: string
+  title: string
+  xField: string
+  yField: string
+  groupField?: string
+  showLegend: boolean
+  showToolbox: boolean
+  dataLimit: number
+  filters?: FilterCondition[]
+}
+
+export interface FieldMapping {
+  fieldName: string
+  displayName: string
+  fieldType: 'dimension' | 'metric'
+  aggregation?: string
+}
+
+export interface FilterCondition {
+  field: string
+  operator: string
+  value: string
+}
+
+export interface FilterConfig {
+  field: string
+  operator: string
+  value: string
+}
+
+export interface AdvancedConfig {
+  autoRefresh: boolean
+  refreshInterval: number
+  enableCache: boolean
+  cacheTime: number
+  dataLimit: number
+  sortField: string
+  sortOrder: 'asc' | 'desc'
+}
+
 // 图表配置接口
 export interface ChartConfig {
   i: string
@@ -23,6 +66,7 @@ export interface ChartConfig {
   showToolbox?: boolean
   dataLimit?: number
   datasetId?: number
+  dataSourceConfig?: ChartDataSourceConfig
 }
 
 // 布局项接口

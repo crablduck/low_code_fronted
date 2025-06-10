@@ -6,11 +6,11 @@ import type {
   TableInfo, 
   FieldInfo, 
   DataSet, 
+  DataSetField,
   DataSetCreateRequest, 
   DataSetUpdateRequest,
   DataPreviewDTO, 
-  PagedResponse,
-  ApiResponse
+  PagedResponse
 } from '@/types/dataManagement'
 
 // 测试连接请求参数类型
@@ -33,7 +33,7 @@ interface TestConnectionResponse {
 // 数据源 API
 export const dataSourceApi = {
   // 获取所有数据源
-  getAllDataSources(): Promise<ApiResponse<DataSource>> {
+  getAllDataSources(): Promise<any> {
     return get(dataSourceService, '/api/datasources')
   },
 
@@ -41,12 +41,6 @@ export const dataSourceApi = {
   getTablesBySourceId: async (sourceId: number, dataSource?: DataSource): Promise<TableInfo[]> => {
     if (!dataSource) {
       throw new Error('DataSource information is required')
-    }
-
-    interface TableResponse {
-      code: number;
-      message: string;
-      data: string[] | TableInfo[];
     }
 
     const response = await post(dataSourceService, '/api/datasources/tables', {
@@ -63,7 +57,7 @@ export const dataSourceApi = {
       const responseData = response.data;
       // 如果返回的是字符串数组，转换为TableInfo数组
       if (Array.isArray(responseData)) {
-        return responseData.map((item: string | TableInfo) => {
+        return responseData.map((item: any) => {
           if (typeof item === 'string') {
             return {
               name: item,
@@ -80,7 +74,7 @@ export const dataSourceApi = {
       return responseData as TableInfo[];
     }
     
-    throw new Error(response.data.message || 'Failed to fetch tables');
+    throw new Error((response as any).message || 'Failed to fetch tables');
   },
 
   // 获取表的字段信息
@@ -100,15 +94,15 @@ export const dataSourceApi = {
   },
 
   // 创建数据源
-  createDataSource: async (dataSource: DataSourceCreateRequest): Promise<DataSource> => {
+  createDataSource: async (dataSource: DataSourceCreateRequest): Promise<any> => {
     const response = await post(dataSourceService, '/api/datasources', dataSource)
-    return response.data
+    return (response as any).data
   },
 
   // 更新数据源
-  updateDataSource: async (id: number, updates: Partial<DataSource>): Promise<DataSource> => {
+  updateDataSource: async (id: number, updates: Partial<DataSource>): Promise<any> => {
     const response = await put(dataSourceService, `/api/datasources/${id}`, updates)
-    return response.data
+    return (response as any).data
   },
 
   // 删除数据源
@@ -117,30 +111,47 @@ export const dataSourceApi = {
   },
 
   // 测试数据源连接
-  testConnection: async (params: TestConnectionRequest): Promise<TestConnectionResponse> => {
+  testConnection: async (params: TestConnectionRequest): Promise<any> => {
     const response = await post(dataSourceService, '/api/datasources/test-connection', params)
     return response
   },
 
   // 更新数据源状态
-  updateDataSourceStatus: async (id: number, status: string): Promise<DataSource> => {
+  updateDataSourceStatus: async (id: number, status: string): Promise<any> => {
     const response = await put(dataSourceService, `/api/datasources/${id}/status`, { status })
-    return response.data
+    return (response as any).data
   }
 }
 
 // 数据集API
 export const dataSetApi = {
-  // 获取数据集列表
-  getDatasets: async (params: { page: number; pageSize: number; keyword?: string }): Promise<ApiResponse<DataSet>> => {
-    const response = await get(dataSourceService, '/api/datasets', { params })
-    return response.data
+  // 获取数据集列表 - 修改为匹配API文档
+  getDatasets: async (params?: { page?: number; pageSize?: number; keyword?: string }): Promise<PagedResponse<DataSet>> => {
+    const response = await get(dataSourceService, '/api/datasets')
+    
+    // 根据API文档，响应格式为 { code, message, data: { content, totalElements, totalPages, currentPage, pageSize } }
+    if (response.code === 200) {
+      return {
+        data: (response.data as any).content || response.data || [],
+        total: (response.data as any).totalElements || 0,
+        page: (response.data as any).currentPage || 1,
+        size: (response.data as any).pageSize || 10
+      }
+    }
+    
+    throw new Error(response.message || 'Failed to fetch datasets')
   },
 
-  // 获取单个数据集
+  // 获取单个数据集 - 需要新增API接口
   getDatasetById: async (id: number): Promise<DataSet> => {
+    // 注意：这个接口在API文档中不存在，需要后端添加
     const response = await get(dataSourceService, `/api/datasets/${id}`)
-    return response.data
+    
+    if (response.code === 200) {
+      return response.data
+    }
+    
+    throw new Error(response.message || 'Failed to fetch dataset')
   },
 
   // 测试数据源连接
@@ -171,36 +182,35 @@ export const dataSetApi = {
     await put(dataSourceService, `/api/datasets/${id}/status`, { status })
   },
 
-  // 预览数据
-  previewData: async (datasetId: number, limit: number = 100): Promise<DataPreviewDTO> => {
-    const response = await get(dataSourceService, `/api/datasets/${datasetId}/preview?limit=${limit}`)
+  // 预览数据 - 基于数据集预览
+  previewData: async (dataset: DataSet, limit: number = 100): Promise<DataPreviewDTO> => {
+    // 注意：这个接口需要后端新增，基于数据集ID预览数据
+    // 目前使用 /preview-sql 接口的变通方案
     
-    // 调试：打印完整响应
-    console.log('完整响应:', response)
-    console.log('响应数据:', response.data)
-    
-    const { columns, data: rawData, totalCount } = response.data
-    console.log('提取的数据:', { columns, rawData, totalCount })
-    console.log('rawData类型:', typeof rawData, Array.isArray(rawData))
-    
-    // 安全检查
-    if (!Array.isArray(rawData)) {
-      return { columns: columns || [], data: [], totalCount: totalCount || 0 }
+    let sql = ''
+    if (dataset.queryType === 'single' && dataset.tableName) {
+      sql = `SELECT * FROM ${dataset.tableName} LIMIT ${limit}`
+    } else if (dataset.sqlQuery) {
+      sql = dataset.sqlQuery
+    } else {
+      throw new Error('无法生成预览SQL')
     }
     
-    const transformedData = rawData.map((row: any[]) => {
-      const obj: Record<string, any> = {}
-      columns.forEach((column: string, index: number) => {
-        obj[column] = row[index]
-      })
-      return obj
-    })
+    const response = await post(dataSourceService, '/preview-sql', { sql })
     
-    return {
-      columns,
-      data: transformedData,
-      totalCount
+    // 处理返回的数据，格式化为标准格式
+    const rawData = response.data || response
+    
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      const columns = Object.keys(rawData[0])
+      return {
+        columns,
+        data: rawData,
+        totalCount: rawData.length
+      }
     }
+    
+    return { columns: [], data: [], totalCount: 0 }
   },
 
   // 验证SQL查询
@@ -213,6 +223,51 @@ export const dataSetApi = {
   previewSQL: async (dataSourceId: number, sql: string, limit: number = 100): Promise<DataPreviewDTO> => {
     const response = await post(dataSourceService, `/api/datasources/${dataSourceId}/preview-sql`, { sql, limit })
     return response.data
+  },
+
+  // 获取数据集字段信息 - 新增方法
+  getDatasetFields: async (dataset: DataSet): Promise<DataSetField[]> => {
+    // 如果数据集已经包含字段信息，直接转换返回
+    if (dataset.fields && dataset.fields.length > 0) {
+      return dataset.fields.map((field: any, index: number) => ({
+        id: index + 1,
+        datasetId: dataset.id,
+        fieldName: field.fieldName,
+        fieldType: field.fieldType?.toLowerCase() === 'varchar' || field.fieldType?.toLowerCase() === 'char' || field.fieldType?.toLowerCase() === 'date' ? 'dimension' : 'metric',
+        displayName: field.displayName || field.fieldName,
+        description: field.description || '',
+        isVisible: field.isVisible !== false,
+        sortOrder: field.sortOrder || index,
+        tableName: field.tableName || dataset.tableName,
+        physicalName: field.fieldName,
+        dataType: field.fieldType?.toLowerCase().includes('int') || field.fieldType?.toLowerCase().includes('decimal') || field.fieldType?.toLowerCase().includes('bigint') ? 'number' : 
+                  field.fieldType?.toLowerCase().includes('date') ? 'date' : 'string',
+        aggregation: field.aggregation
+      }))
+    }
+    
+    // 如果没有字段信息，通过预览数据来推断
+    try {
+      const previewData = await dataSetApi.previewData(dataset, 1)
+      
+      return previewData.columns.map((column: string, index: number) => ({
+        id: index + 1,
+        datasetId: dataset.id,
+        fieldName: column,
+        fieldType: 'dimension' as const, // 默认为维度
+        displayName: column,
+        description: '',
+        isVisible: true,
+        sortOrder: index,
+        tableName: dataset.tableName,
+        physicalName: column,
+        dataType: 'string' as const, // 默认类型
+        aggregation: undefined
+      }))
+    } catch (error) {
+      console.error('获取数据集字段失败:', error)
+      return []
+    }
   }
 }
 

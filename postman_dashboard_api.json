@@ -1,0 +1,555 @@
+{
+  "info": {
+    "name": "仪表盘管理API",
+    "description": "医疗行业仪表盘管理系统API接口集合，支持仪表盘CRUD、图表配置、数据源集成等功能",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "仪表盘管理",
+      "item": [
+        {
+          "name": "获取仪表盘列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards?page=1&pageSize=10&name=&status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "页码"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "每页数量"
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "description": "仪表盘名称（模糊查询）"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "状态：draft|published|archived"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards?page=1&pageSize=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"获取成功\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"dashboard_001\",\n        \"name\": \"医院运营仪表盘\",\n        \"description\": \"医院日常运营数据分析\",\n        \"status\": \"published\",\n        \"type\": \"custom\",\n        \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\"}]\",\n        \"createdAt\": \"2024-01-01T10:00:00Z\",\n        \"updatedAt\": \"2024-01-01T15:30:00Z\",\n        \"createdBy\": \"user_123\"\n      }\n    ],\n    \"total\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "获取仪表盘详情",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_001",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_001"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"获取成功\",\n  \"data\": {\n    \"id\": \"dashboard_001\",\n    \"name\": \"医院运营仪表盘\",\n    \"description\": \"医院日常运营数据分析\",\n    \"status\": \"published\",\n    \"type\": \"custom\",\n    \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\",\\\"chartConfig\\\":{\\\"type\\\":\\\"bar\\\",\\\"title\\\":\\\"患者统计\\\",\\\"dataSource\\\":{\\\"datasetId\\\":2,\\\"queryType\\\":\\\"single\\\",\\\"queryConfig\\\":{\\\"tableName\\\":\\\"patients\\\",\\\"dimensions\\\":[\\\"department\\\"],\\\"metrics\\\":[\\\"count\\\"]}}}}]\",\n    \"createdAt\": \"2024-01-01T10:00:00Z\",\n    \"updatedAt\": \"2024-01-01T15:30:00Z\",\n    \"createdBy\": \"user_123\",\n    \"menuId\": \"menu_001\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "创建仪表盘",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"新建医院运营仪表盘\",\n  \"description\": \"用于监控医院日常运营指标\",\n  \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\",\\\"chartConfig\\\":{\\\"i\\\":\\\"chart_1\\\",\\\"id\\\":\\\"chart_1\\\",\\\"type\\\":\\\"bar\\\",\\\"title\\\":\\\"科室患者统计\\\",\\\"xField\\\":\\\"department\\\",\\\"yField\\\":\\\"patient_count\\\",\\\"showLegend\\\":true,\\\"showToolbox\\\":false,\\\"dataLimit\\\":100,\\\"dataSource\\\":{\\\"datasetId\\\":2,\\\"datasetName\\\":\\\"患者统计数据集\\\",\\\"queryType\\\":\\\"single\\\",\\\"queryConfig\\\":{\\\"tableName\\\":\\\"patients\\\",\\\"dimensions\\\":[\\\"department\\\"],\\\"metrics\\\":[\\\"COUNT(*) as patient_count\\\"],\\\"filters\\\":[],\\\"orderBy\\\":[{\\\"field\\\":\\\"patient_count\\\",\\\"direction\\\":\\\"desc\\\"}],\\\"limit\\\":20}}}},{\\\"x\\\":6,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_2\\\",\\\"chartConfig\\\":{\\\"i\\\":\\\"chart_2\\\",\\\"id\\\":\\\"chart_2\\\",\\\"type\\\":\\\"pie\\\",\\\"title\\\":\\\"收入分布\\\",\\\"nameField\\\":\\\"department\\\",\\\"valueField\\\":\\\"total_revenue\\\",\\\"showLegend\\\":true,\\\"showToolbox\\\":false,\\\"dataLimit\\\":100,\\\"dataSource\\\":{\\\"datasetId\\\":3,\\\"datasetName\\\":\\\"收入统计数据集\\\",\\\"queryType\\\":\\\"multi\\\",\\\"queryConfig\\\":{\\\"mainTable\\\":\\\"billing\\\",\\\"joins\\\":[{\\\"table\\\":\\\"departments\\\",\\\"type\\\":\\\"LEFT\\\",\\\"condition\\\":\\\"billing.department_id = departments.id\\\"}],\\\"dimensions\\\":[\\\"departments.name as department\\\"],\\\"metrics\\\":[\\\"SUM(billing.amount) as total_revenue\\\"],\\\"groupBy\\\":[\\\"departments.name\\\"],\\\"orderBy\\\":[{\\\"field\\\":\\\"total_revenue\\\",\\\"direction\\\":\\\"desc\\\"}],\\\"limit\\\":10}}}}]\",\n  \"status\": \"draft\",\n  \"type\": \"custom\",\n  \"menuId\": \"menu_001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards"]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"新建医院运营仪表盘\",\n  \"description\": \"用于监控医院日常运营指标\",\n  \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\"}]\",\n  \"status\": \"draft\",\n  \"type\": \"custom\",\n  \"menuId\": \"menu_001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 201,\n  \"message\": \"创建成功\",\n  \"data\": {\n    \"id\": \"dashboard_002\",\n    \"name\": \"新建医院运营仪表盘\",\n    \"description\": \"用于监控医院日常运营指标\",\n    \"status\": \"draft\",\n    \"type\": \"custom\",\n    \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":6,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\"}]\",\n    \"createdAt\": \"2024-01-01T16:00:00Z\",\n    \"updatedAt\": \"2024-01-01T16:00:00Z\",\n    \"createdBy\": \"user_123\",\n    \"menuId\": \"menu_001\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "更新仪表盘",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"更新后的医院运营仪表盘\",\n  \"description\": \"更新后的描述信息\",\n  \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":12,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\",\\\"chartConfig\\\":{\\\"type\\\":\\\"line\\\",\\\"title\\\":\\\"患者趋势统计\\\",\\\"dataSource\\\":{\\\"datasetId\\\":4,\\\"queryType\\\":\\\"sql\\\",\\\"queryConfig\\\":{\\\"sql\\\":\\\"SELECT DATE(created_at) as date, COUNT(*) as patient_count FROM patients WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY DATE(created_at) ORDER BY date\\\"}}}},{}]\",\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"更新后的医院运营仪表盘\",\n  \"description\": \"更新后的描述信息\",\n  \"status\": \"published\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_002",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_002"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"更新成功\",\n  \"data\": {\n    \"id\": \"dashboard_002\",\n    \"name\": \"更新后的医院运营仪表盘\",\n    \"description\": \"更新后的描述信息\",\n    \"status\": \"published\",\n    \"type\": \"custom\",\n    \"layout\": \"[{\\\"x\\\":0,\\\"y\\\":0,\\\"w\\\":12,\\\"h\\\":8,\\\"i\\\":\\\"chart_1\\\"}]\",\n    \"createdAt\": \"2024-01-01T16:00:00Z\",\n    \"updatedAt\": \"2024-01-01T17:00:00Z\",\n    \"createdBy\": \"user_123\",\n    \"menuId\": \"menu_001\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "发布仪表盘",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}", "publish"]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_002/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_002", "publish"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"发布成功\",\n  \"data\": {\n    \"id\": \"dashboard_002\",\n    \"status\": \"published\",\n    \"publishedAt\": \"2024-01-01T17:30:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "删除仪表盘",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "成功响应",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_002",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_002"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"删除成功\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "图表数据获取",
+      "item": [
+        {
+          "name": "获取图表数据（单表查询）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chartId\": \"chart_1\",\n  \"dataSource\": {\n    \"datasetId\": 2,\n    \"queryType\": \"single\",\n    \"queryConfig\": {\n      \"tableName\": \"patients\",\n      \"dimensions\": [\"department\"],\n      \"metrics\": [\"COUNT(*) as patient_count\"],\n      \"filters\": [\n        {\n          \"field\": \"created_at\",\n          \"operator\": \">=\",\n          \"value\": \"2024-01-01\"\n        }\n      ],\n      \"orderBy\": [\n        {\n          \"field\": \"patient_count\",\n          \"direction\": \"desc\"\n        }\n      ],\n      \"limit\": 20\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}/charts/{{chartId}}/data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}", "charts", "{{chartId}}", "data"]
+            }
+          },
+          "response": [
+            {
+              "name": "单表查询成功",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chartId\": \"chart_1\",\n  \"dataSource\": {\n    \"datasetId\": 2,\n    \"queryType\": \"single\",\n    \"queryConfig\": {\n      \"tableName\": \"patients\",\n      \"dimensions\": [\"department\"],\n      \"metrics\": [\"COUNT(*) as patient_count\"]\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_001/charts/chart_1/data",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_001", "charts", "chart_1", "data"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"查询成功\",\n  \"data\": {\n    \"chartId\": \"chart_1\",\n    \"fields\": [\n      {\"name\": \"department\", \"type\": \"string\", \"title\": \"科室\"},\n      {\"name\": \"patient_count\", \"type\": \"number\", \"title\": \"患者数量\"}\n    ],\n    \"rows\": [\n      [\"心血管内科\", 45],\n      [\"神经内科\", 38],\n      [\"消化内科\", 32],\n      [\"骨科\", 28],\n      [\"妇产科\", 25]\n    ],\n    \"total\": 5,\n    \"executionTime\": 150,\n    \"cacheKey\": \"chart_1_20240101_170000\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "获取图表数据（多表关联查询）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chartId\": \"chart_2\",\n  \"dataSource\": {\n    \"datasetId\": 3,\n    \"queryType\": \"multi\",\n    \"queryConfig\": {\n      \"mainTable\": \"billing\",\n      \"joins\": [\n        {\n          \"table\": \"departments\",\n          \"type\": \"LEFT\",\n          \"condition\": \"billing.department_id = departments.id\"\n        },\n        {\n          \"table\": \"patients\",\n          \"type\": \"LEFT\",\n          \"condition\": \"billing.patient_id = patients.id\"\n        }\n      ],\n      \"dimensions\": [\n        \"departments.name as department\",\n        \"DATE_FORMAT(billing.created_at, '%Y-%m') as month\"\n      ],\n      \"metrics\": [\n        \"SUM(billing.amount) as total_revenue\",\n        \"COUNT(DISTINCT patients.id) as patient_count\",\n        \"AVG(billing.amount) as avg_revenue\"\n      ],\n      \"filters\": [\n        {\n          \"field\": \"billing.created_at\",\n          \"operator\": \">=\",\n          \"value\": \"2024-01-01\"\n        },\n        {\n          \"field\": \"billing.status\",\n          \"operator\": \"=\",\n          \"value\": \"paid\"\n        }\n      ],\n      \"groupBy\": [\"departments.name\", \"DATE_FORMAT(billing.created_at, '%Y-%m')\"],\n      \"having\": [\n        {\n          \"field\": \"SUM(billing.amount)\",\n          \"operator\": \">\",\n          \"value\": 10000\n        }\n      ],\n      \"orderBy\": [\n        {\n          \"field\": \"total_revenue\",\n          \"direction\": \"desc\"\n        }\n      ],\n      \"limit\": 50\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}/charts/{{chartId}}/data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}", "charts", "{{chartId}}", "data"]
+            }
+          },
+          "response": [
+            {
+              "name": "多表查询成功",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chartId\": \"chart_2\",\n  \"dataSource\": {\n    \"datasetId\": 3,\n    \"queryType\": \"multi\",\n    \"queryConfig\": {\n      \"mainTable\": \"billing\",\n      \"joins\": [\n        {\n          \"table\": \"departments\",\n          \"type\": \"LEFT\",\n          \"condition\": \"billing.department_id = departments.id\"\n        }\n      ],\n      \"dimensions\": [\"departments.name as department\"],\n      \"metrics\": [\"SUM(billing.amount) as total_revenue\"]\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_001/charts/chart_2/data",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_001", "charts", "chart_2", "data"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"查询成功\",\n  \"data\": {\n    \"chartId\": \"chart_2\",\n    \"fields\": [\n      {\"name\": \"department\", \"type\": \"string\", \"title\": \"科室\"},\n      {\"name\": \"month\", \"type\": \"string\", \"title\": \"月份\"},\n      {\"name\": \"total_revenue\", \"type\": \"number\", \"title\": \"总收入\"},\n      {\"name\": \"patient_count\", \"type\": \"number\", \"title\": \"患者数量\"},\n      {\"name\": \"avg_revenue\", \"type\": \"number\", \"title\": \"平均收入\"}\n    ],\n    \"rows\": [\n      [\"心血管内科\", \"2024-01\", 125600.50, 45, 2791.12],\n      [\"神经内科\", \"2024-01\", 98750.25, 38, 2598.69],\n      [\"消化内科\", \"2024-01\", 76340.80, 32, 2385.65]\n    ],\n    \"total\": 3,\n    \"executionTime\": 280,\n    \"cacheKey\": \"chart_2_20240101_170000\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "获取图表数据（SQL查询）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chartId\": \"chart_3\",\n  \"dataSource\": {\n    \"datasetId\": 4,\n    \"queryType\": \"sql\",\n    \"queryConfig\": {\n      \"sql\": \"SELECT DATE(p.created_at) as date, COUNT(p.id) as patient_count, SUM(b.amount) as daily_revenue, AVG(p.age) as avg_age FROM patients p LEFT JOIN billing b ON p.id = b.patient_id WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND b.status = 'paid' GROUP BY DATE(p.created_at) ORDER BY date DESC LIMIT 30\",\n      \"parameters\": {\n        \"days_back\": 30,\n        \"billing_status\": \"paid\"\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboards/{{dashboardId}}/charts/{{chartId}}/data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboards", "{{dashboardId}}", "charts", "{{chartId}}", "data"]
+            }
+          },
+          "response": [
+            {
+              "name": "SQL查询成功",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chartId\": \"chart_3\",\n  \"dataSource\": {\n    \"datasetId\": 4,\n    \"queryType\": \"sql\",\n    \"queryConfig\": {\n      \"sql\": \"SELECT DATE(created_at) as date, COUNT(*) as patient_count FROM patients WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY DATE(created_at) ORDER BY date\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/dashboards/dashboard_001/charts/chart_3/data",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "dashboards", "dashboard_001", "charts", "chart_3", "data"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": 200,\n  \"message\": \"查询成功\",\n  \"data\": {\n    \"chartId\": \"chart_3\",\n    \"fields\": [\n      {\"name\": \"date\", \"type\": \"date\", \"title\": \"日期\"},\n      {\"name\": \"patient_count\", \"type\": \"number\", \"title\": \"患者数量\"},\n      {\"name\": \"daily_revenue\", \"type\": \"number\", \"title\": \"日收入\"},\n      {\"name\": \"avg_age\", \"type\": \"number\", \"title\": \"平均年龄\"}\n    ],\n    \"rows\": [\n      [\"2024-01-01\", 12, 15600.50, 42.3],\n      [\"2024-01-02\", 15, 18750.25, 38.7],\n      [\"2024-01-03\", 8, 9340.80, 45.2],\n      [\"2024-01-04\", 18, 22100.75, 40.5]\n    ],\n    \"total\": 4,\n    \"executionTime\": 450,\n    \"cacheKey\": \"chart_3_20240101_170000\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:6001",
+      "type": "string",
+      "description": "API基础URL - 根据实际环境修改"
+    },
+    {
+      "key": "token",
+      "value": "your_jwt_token_here",
+      "type": "string",
+      "description": "JWT认证令牌"
+    },
+    {
+      "key": "dashboardId",
+      "value": "dashboard_001",
+      "type": "string",
+      "description": "仪表盘ID示例"
+    },
+    {
+      "key": "chartId",
+      "value": "chart_1",
+      "type": "string",
+      "description": "图表ID示例"
+    }
+  ]
+} 

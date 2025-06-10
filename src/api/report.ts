@@ -2,12 +2,13 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-01-14 10:00:00
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-06-06 10:36:48
+ * @LastEditTime: 2025-06-10 12:51:40
  * @FilePath: /workflow-system/src/api/report.ts
  * @Description: 报表管理API接口
  */
 import { get, post, put, del } from '@/utils/request'
 import { mainService } from '@/utils/request'
+import request from '@/utils/request'
 
 // 报表相关类型定义
 export interface Report {
@@ -272,6 +273,100 @@ export const reportStatsApi = {
       dailyStats: Array<{ date: string; views: number; exports: number }>
     }>(response)
   }
+}
+
+// Univer 报表接口
+export const getUniverReports = async (params: any) => {
+  return request({
+    url: '/api/univer-reports',
+    method: 'get',
+    params
+  })
+}
+
+export const getUniverReport = async (id: string) => {
+  return request({
+    url: `/api/univer-reports/${id}`,
+    method: 'get'
+  })
+}
+
+export const createUniverReport = async (data: any) => {
+  return request({
+    url: '/api/univer-reports',
+    method: 'post',
+    data
+  })
+}
+
+export const updateUniverReport = async (data: any) => {
+  return request({
+    url: `/api/univer-reports/${data.id}`,
+    method: 'put',
+    data
+  })
+}
+
+export const saveUniverReportData = async (id: string, data: any) => {
+  return request({
+    url: `/api/univer-reports/${id}/data`,
+    method: 'put',
+    data
+  })
+}
+
+export const deleteUniverReport = async (id: string) => {
+  return request({
+    url: `/api/univer-reports/${id}`,
+    method: 'delete'
+  })
+}
+
+export const copyUniverReport = async (id: string) => {
+  return request({
+    url: `/api/univer-reports/${id}/copy`,
+    method: 'post'
+  })
+}
+
+export const exportUniverReport = async (id: string) => {
+  return request({
+    url: `/api/univer-reports/${id}/export`,
+    method: 'get'
+  })
+}
+
+export const publishUniverReport = async (id: string, data: any) => {
+  return request({
+    url: `/api/univer-reports/${id}/publish`,
+    method: 'post',
+    data
+  })
+}
+
+export const getUniverReportTemplate = async (templateKey: string) => {
+  return request({
+    url: `/api/univer-report-templates/${templateKey}`,
+    method: 'get'
+  })
+}
+
+// 数据集查询接口 - 用于数据源计算
+export const queryDatasetForReport = async (datasetId: string, config: any) => {
+  return request({
+    url: `/api/datasets/${datasetId}/query`,
+    method: 'post',
+    data: config
+  })
+}
+
+// 预览数据集数据
+export const previewDatasetData = async (datasetId: string, config: any) => {
+  return request({
+    url: `/api/datasets/${datasetId}/preview`,
+    method: 'post',
+    data: config
+  })
 }
 
 export default reportApi 

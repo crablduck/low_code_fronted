@@ -166,7 +166,7 @@
                 
                 <div class="dataset-meta">
                   <div class="meta-item">
-                    <el-icon><Database /></el-icon>
+                    <el-icon><DataBoard /></el-icon>
                     <span>{{ dataset.dataSourceName }}</span>
                   </div>
                   <div class="meta-item">
