@@ -6,21 +6,55 @@
         仪表盘设计器
       </div>
       <div class="toolbar-actions">
-        <el-button-group v-if="!isMobile">
-          <el-button type="primary" @click="updateSelectedChart" :disabled="!selectedChart">更新当前图表</el-button>
-          <el-button @click="showDataEditor = true">编辑数据</el-button>
-          <el-button type="success" @click="showSaveDialog = true">保存仪表盘</el-button>
+        <el-button-group v-if="!isMobile" size="small">
+          <!-- 预览模式 -->
+          <el-button @click="togglePreview" :type="isPreview ? 'primary' : 'default'">
+            <el-icon><View /></el-icon>
+            {{ isPreview ? '编辑' : '预览' }}
+          </el-button>
+          
+          <!-- 网格辅助 -->
+          <el-button @click="toggleGridHelper" :type="showGridHelper ? 'primary' : 'default'">
+            <el-icon><Grid /></el-icon>
+            网格
+          </el-button>
+          
+          <!-- 导出配置 -->
+          <el-button @click="exportDashboard">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+          
+          <!-- 保存 -->
+          <el-button type="success" @click="showSaveDialog = true">
+            <el-icon><Document /></el-icon>
+            保存
+          </el-button>
         </el-button-group>
+        
         <!-- 移动端工具栏下拉菜单 -->
         <el-dropdown v-else trigger="click">
-          <el-button type="primary">
-            操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          <el-button type="primary" size="small">
+            工具<el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="updateSelectedChart" :disabled="!selectedChart">更新当前图表</el-dropdown-item>
-              <el-dropdown-item @click="showDataEditor = true">编辑数据</el-dropdown-item>
-              <el-dropdown-item @click="showSaveDialog = true">保存仪表盘</el-dropdown-item>
+              <el-dropdown-item @click="togglePreview">
+                <el-icon><View /></el-icon>
+                {{ isPreview ? '编辑模式' : '预览模式' }}
+              </el-dropdown-item>
+              <el-dropdown-item @click="toggleGridHelper">
+                <el-icon><Grid /></el-icon>
+                {{ showGridHelper ? '隐藏网格' : '显示网格' }}
+              </el-dropdown-item>
+              <el-dropdown-item @click="exportDashboard">
+                <el-icon><Download /></el-icon>
+                导出配置
+              </el-dropdown-item>
+              <el-dropdown-item @click="showSaveDialog = true">
+                <el-icon><Document /></el-icon>
+                保存仪表盘
+              </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -154,12 +188,24 @@
            :class="{ 'mobile-panels': isMobile }"
            :style="{ width: rightPanelsWidth + 'px' }">
         <div class="panels-container">
-          <!-- 无选中图表时的提示 -->
+                    <!-- 无选中图表时的提示 -->
           <div v-if="!selectedChart" class="no-chart-selected">
             <div class="no-chart-content">
-              <el-icon class="hint-icon"><DataBoard /></el-icon>
-              <h4>请选择图表</h4>
-              <p>点击画布中的图表来配置其属性</p>
+              <div class="hint-icon-wrapper">
+                <el-icon class="hint-icon"><DataBoard /></el-icon>
+              </div>
+              <h4>请选择一个图表</h4>
+              <p>点击画布中的图表来配置其数据源和样式属性</p>
+              <div class="hint-steps">
+                <div class="step-item">
+                  <span class="step-number">1</span>
+                  <span>从左侧拖拽图表类型到画布</span>
+                </div>
+                <div class="step-item">
+                  <span class="step-number">2</span>
+                  <span>点击图表进行配置</span>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -173,9 +219,15 @@
             </div>
 
             <!-- 配置标签页 -->
-            <el-tabs v-model="activeConfigTab" class="config-tabs">
+            <el-tabs v-model="activeConfigTab" class="config-tabs" type="card">
               <!-- 数据集配置标签页 -->
-              <el-tab-pane label="数据源" name="dataset">
+              <el-tab-pane name="dataset">
+                <template #label>
+                  <div class="tab-label">
+                    <el-icon><DataAnalysis /></el-icon>
+                    <span>数据源</span>
+                  </div>
+                </template>
                 <DatasetConfigPanel
                   :chart-type="selectedChart.type"
                   :initial-config="{
@@ -185,268 +237,179 @@
                   @config-change="handleDatasetConfigChange"
                 />
                 
-                <!-- 字段展示区域 -->
+                                <!-- 字段展示区域 -->
                 <div v-if="selectedDataset" class="fields-display-section">
                   <div class="section-header">
                     <el-icon><Grid /></el-icon>
                     <span>字段信息</span>
-                    <span class="field-count">(共 {{ selectedDataset.fields?.length || 0 }} 个字段)</span>
+                    <el-tag size="small" type="info" class="field-count">
+                      共 {{ selectedDataset.fields?.length || 0 }} 个字段
+                    </el-tag>
                   </div>
                   
-                  <!-- 维度字段 -->
-                  <div class="field-group">
-                    <div class="field-group-header">
-                      <el-icon><Menu /></el-icon>
-                      <span>维度字段</span>
-                      <el-tag size="small" type="primary">{{ getDimensionFields().length }}</el-tag>
-                    </div>
-                    <div class="field-list">
-                      <div 
-                        v-for="field in getDimensionFields()" 
-                        :key="field.fieldName"
-                        class="field-item dimension-field"
-                      >
-                        <el-icon class="field-icon"><CircleFilled /></el-icon>
-                        <span class="field-name">{{ field.displayName || field.fieldName }}</span>
-                        <el-tag size="small" type="info">{{ field.fieldType }}</el-tag>
+                  <div class="fields-container">
+                    <!-- 维度字段 -->
+                    <div class="field-group">
+                      <div class="field-group-header">
+                        <el-icon><Menu /></el-icon>
+                        <span>维度字段</span>
+                        <el-tag size="small" type="primary">{{ getDimensionFields().length }}</el-tag>
                       </div>
-                      <div v-if="getDimensionFields().length === 0" class="empty-fields">
-                        暂无维度字段
+                      <div class="field-list">
+                        <div 
+                          v-for="field in getDimensionFields()" 
+                          :key="field.fieldName"
+                          class="field-item dimension-field"
+                        >
+                          <el-icon class="field-icon"><CirclePlus /></el-icon>
+                          <span class="field-name">{{ field.displayName || field.fieldName }}</span>
+                          <el-tag size="small" type="info">{{ field.fieldType }}</el-tag>
+                        </div>
+                        <div v-if="getDimensionFields().length === 0" class="empty-fields">
+                          <el-icon><InfoFilled /></el-icon>
+                          <span>暂无维度字段</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <!-- 指标字段 -->
-                  <div class="field-group">
-                    <div class="field-group-header">
-                      <el-icon><DataAnalysis /></el-icon>
-                      <span>指标字段</span>
-                      <el-tag size="small" type="success">{{ getMetricFields().length }}</el-tag>
-                    </div>
-                    <div class="field-list">
-                      <div 
-                        v-for="field in getMetricFields()" 
-                        :key="field.fieldName || field.field"
-                        class="field-item metric-field"
-                      >
-                        <el-icon class="field-icon"><TrendCharts /></el-icon>
-                        <span class="field-name">{{ field.displayName || field.alias || field.fieldName || field.field }}</span>
-                        <el-tag size="small" type="success">{{ field.aggregation || '指标' }}</el-tag>
+                    
+                    <!-- 指标字段 -->
+                    <div class="field-group">
+                      <div class="field-group-header">
+                        <el-icon><DataAnalysis /></el-icon>
+                        <span>指标字段</span>
+                        <el-tag size="small" type="success">{{ getMetricFields().length }}</el-tag>
                       </div>
-                      <div v-if="getMetricFields().length === 0" class="empty-fields">
-                        暂无指标字段
+                      <div class="field-list">
+                        <div 
+                          v-for="field in getMetricFields()" 
+                          :key="field.fieldName || field.field"
+                          class="field-item metric-field"
+                        >
+                          <el-icon class="field-icon"><TrendCharts /></el-icon>
+                          <span class="field-name">{{ field.displayName || field.alias || field.fieldName || field.field }}</span>
+                          <el-tag size="small" type="success">{{ field.aggregation || '指标' }}</el-tag>
+                        </div>
+                        <div v-if="getMetricFields().length === 0" class="empty-fields">
+                          <el-icon><InfoFilled /></el-icon>
+                          <span>暂无指标字段</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </el-tab-pane>
 
-              <!-- 图表样式配置标签页 -->
-              <el-tab-pane label="样式" name="style">
-            <el-form label-width="80px" class="config-form" size="small">
-              <el-form-item label="图表类型">
-                <el-select v-model="selectedChart.type" @change="updateSelectedChart" size="small">
-                  <el-option label="柱状图" value="bar" />
-                  <el-option label="折线图" value="line" />
-                  <el-option label="饼图" value="pie" />
-                  <el-option label="表格" value="table" />
-                </el-select>
-              </el-form-item>
-
-              <!-- 数据字段配置区域 -->
-              <el-divider content-position="left">字段配置</el-divider>
-              
-              <!-- 字段配置 -->
-              <template v-if="selectedChart.type === 'bar' || selectedChart.type === 'line'">
-                <el-form-item label="X轴字段">
-                  <div 
-                    class="field-drop-zone"
-                    @dragover.prevent
-                    @drop="handleFieldDrop($event, 'x')"
-                    @dragenter="handleDragEnter($event, 'dimension')"
-                    @dragleave="handleDragLeave"
-                    :class="{ 
-                      'has-field': selectedChart.xField,
-                      'drag-over': isDragOver && dragFieldType === 'dimension'
-                    }"
-                    data-field-type="x"
-                  >
-                    <div class="field-content" v-if="selectedChart.xField">
-                      <el-icon><Grid /></el-icon>
-                      <span class="field-name">{{ getFieldDisplayName(selectedChart.xField) }}</span>
-                      <el-icon class="remove-field" @click.stop="removeField('x')"><Close /></el-icon>
-                    </div>
-                    <div class="drop-hint" v-else>
-                      <el-icon><Grid /></el-icon>
-                      <span class="hint-text">拖拽维度字段</span>
-                      <div class="hint-animation">
-                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
-                      </div>
-                    </div>
+                            <!-- 图表样式配置标签页 -->
+              <el-tab-pane name="style">
+                <template #label>
+                  <div class="tab-label">
+                    <el-icon><Setting /></el-icon>
+                    <span>样式配置</span>
                   </div>
-                </el-form-item>
-                <el-form-item label="Y轴字段">
-                  <div 
-                    class="field-drop-zone"
-                    @dragover.prevent
-                    @drop="handleFieldDrop($event, 'y')"
-                    @dragenter="handleDragEnter($event, 'metric')"
-                    @dragleave="handleDragLeave"
-                    :class="{ 
-                      'has-field': selectedChart.yField,
-                      'drag-over': isDragOver && dragFieldType === 'metric'
-                    }"
-                    data-field-type="y"
-                  >
-                    <div class="field-content" v-if="selectedChart.yField">
+                </template>
+                <div class="style-config-container">
+                  <!-- 基础配置组 -->
+                  <div class="config-group basic-config">
+                    <div class="group-header">
                       <el-icon><TrendCharts /></el-icon>
-                      <span class="field-name">{{ getFieldDisplayName(selectedChart.yField) }}</span>
-                      <el-icon class="remove-field" @click.stop="removeField('y')"><Close /></el-icon>
+                      <span class="group-title">基础配置</span>
                     </div>
-                    <div class="drop-hint" v-else>
-                      <el-icon><TrendCharts /></el-icon>
-                      <span class="hint-text">拖拽指标字段</span>
-                      <div class="hint-animation">
-                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
-                      </div>
+                    <div class="group-content">
+                      <el-form label-width="80px" size="small">
+                        <el-form-item label="图表类型">
+                          <el-select v-model="selectedChart.type" @change="updateSelectedChart" style="width: 100%">
+                            <el-option label="柱状图" value="bar" />
+                            <el-option label="折线图" value="line" />
+                            <el-option label="饼图" value="pie" />
+                            <el-option label="表格" value="table" />
+                            <el-option label="区域图" value="area" />
+                            <el-option label="散点图" value="scatter" />
+                            <el-option label="雷达图" value="radar" />
+                            <el-option label="仪表盘" value="gauge" />
+                            <el-option label="漏斗图" value="funnel" />
+                            <el-option label="热力图" value="heatmap" />
+                            <el-option label="树图" value="treemap" />
+                            <el-option label="水球图" value="liquidfill" />
+                          </el-select>
+                        </el-form-item>
+                        
+                        <el-form-item label="图表标题">
+                          <el-input 
+                            v-model="selectedChart.title" 
+                            @input="updateSelectedChart"
+                            placeholder="请输入图表标题"
+                            class="styled-input"
+                          />
+                        </el-form-item>
+                      </el-form>
                     </div>
                   </div>
-                </el-form-item>
-              </template>
 
-              <!-- 饼图字段配置 -->
-              <template v-if="selectedChart.type === 'pie'">
-                <el-form-item label="名称字段">
-                  <div 
-                    class="field-drop-zone"
-                    @dragover.prevent
-                    @drop="handleFieldDrop($event, 'name')"
-                    @dragenter="handleDragEnter($event, 'dimension')"
-                    @dragleave="handleDragLeave"
-                    :class="{ 
-                      'has-field': selectedChart.nameField,
-                      'drag-over': isDragOver && dragFieldType === 'dimension'
-                    }"
-                    data-field-type="name"
-                  >
-                    <div class="field-content" v-if="selectedChart.nameField">
+                  <!-- 显示配置组 -->
+                  <div class="config-group display-config">
+                    <div class="group-header">
+                      <el-icon><View /></el-icon>
+                      <span class="group-title">显示配置</span>
+                    </div>
+                    <div class="group-content">
+                      <el-form label-width="80px" size="small">
+                        <el-form-item label="显示图例">
+                          <el-switch 
+                            v-model="selectedChart.showLegend" 
+                            @change="updateSelectedChart"
+                            active-color="#409eff"
+                          />
+                        </el-form-item>
+
+                        <el-form-item label="显示工具栏">
+                          <el-switch 
+                            v-model="selectedChart.showToolbox" 
+                            @change="updateSelectedChart"
+                            active-color="#409eff"
+                          />
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                  </div>
+
+                  <!-- 数据配置组 -->
+                  <div class="config-group data-config">
+                    <div class="group-header">
                       <el-icon><Grid /></el-icon>
-                      <span class="field-name">{{ getFieldDisplayName(selectedChart.nameField) }}</span>
-                      <el-icon class="remove-field" @click.stop="removeField('name')"><Close /></el-icon>
+                      <span class="group-title">数据配置</span>
                     </div>
-                    <div class="drop-hint" v-else>
-                      <el-icon><Grid /></el-icon>
-                      <span class="hint-text">拖拽维度字段</span>
-                      <div class="hint-animation">
-                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
-                      </div>
-                    </div>
-                  </div>
-                </el-form-item>
-                <el-form-item label="数值字段">
-                  <div 
-                    class="field-drop-zone"
-                    @dragover.prevent
-                    @drop="handleFieldDrop($event, 'value')"
-                    @dragenter="handleDragEnter($event, 'metric')"
-                    @dragleave="handleDragLeave"
-                    :class="{ 
-                      'has-field': selectedChart.valueField,
-                      'drag-over': isDragOver && dragFieldType === 'metric'
-                    }"
-                    data-field-type="value"
-                  >
-                    <div class="field-content" v-if="selectedChart.valueField">
-                      <el-icon><TrendCharts /></el-icon>
-                      <span class="field-name">{{ getFieldDisplayName(selectedChart.valueField) }}</span>
-                      <el-icon class="remove-field" @click.stop="removeField('value')"><Close /></el-icon>
-                    </div>
-                    <div class="drop-hint" v-else>
-                      <el-icon><TrendCharts /></el-icon>
-                      <span class="hint-text">拖拽指标字段</span>
-                      <div class="hint-animation">
-                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
-                      </div>
+                    <div class="group-content">
+                      <el-form label-width="80px" size="small">
+                        <el-form-item label="数据限制">
+                          <el-input-number 
+                            v-model="selectedChart.dataLimit" 
+                            @change="updateSelectedChart"
+                            :min="10"
+                            :max="1000"
+                            :step="10"
+                            placeholder="数据条数"
+                            style="width: 100%"
+                            class="styled-input-number"
+                          />
+                        </el-form-item>
+                      </el-form>
                     </div>
                   </div>
-                </el-form-item>
-              </template>
 
-              <!-- 表格字段配置 -->
-              <template v-if="selectedChart.type === 'table'">
-                <el-form-item label="显示字段">
-                  <div 
-                    class="field-drop-zone table-fields"
-                    @dragover.prevent
-                    @drop="handleTableFieldDrop"
-                    :class="{ 'has-field': selectedChart.tableFields?.length }"
-                    data-field-type="table"
-                  >
-                    <div class="field-list" v-if="selectedChart.tableFields?.length">
-                      <div v-for="field in selectedChart.tableFields" 
-                           :key="field" 
-                           class="field-tag">
-                        <el-icon><Grid /></el-icon>
-                        <span>{{ getFieldDisplayName(field) }}</span>
-                        <el-icon class="remove-btn" @click="removeTableField(field)">
-                          <Close />
-                        </el-icon>
-                      </div>
+                  <!-- 操作配置组 -->
+                  <div class="config-group actions-config">
+                    <div class="group-header">
+                      <el-icon><Setting /></el-icon>
+                      <span class="group-title">操作</span>
                     </div>
-                    <div class="drop-hint" v-else>
-                      <el-icon><Grid /></el-icon>
-                      拖拽字段到此处
+                    <div class="group-content">
+                      <el-button type="danger" @click="removeSelectedChart" class="danger-button">
+                        <el-icon><Delete /></el-icon>
+                        删除图表
+                      </el-button>
                     </div>
                   </div>
-                </el-form-item>
-              </template>
-
-              <!-- 图表样式配置 -->
-              <el-divider content-position="left">样式配置</el-divider>
-              
-              <el-form-item label="图表标题">
-                <el-input 
-                  v-model="selectedChart.title" 
-                  @input="updateSelectedChart"
-                  placeholder="请输入图表标题"
-                  size="small"
-                  class="chart-title-input"
-                />
-              </el-form-item>
-
-              <el-form-item label="显示图例">
-                <el-switch 
-                  v-model="selectedChart.showLegend" 
-                  @change="updateSelectedChart"
-                  size="small"
-                />
-              </el-form-item>
-
-              <el-form-item label="显示工具栏">
-                <el-switch 
-                  v-model="selectedChart.showToolbox" 
-                  @change="updateSelectedChart"
-                  size="small"
-                />
-              </el-form-item>
-
-              <el-form-item label="数据限制">
-                <el-input-number 
-                  v-model="selectedChart.dataLimit" 
-                  @change="updateSelectedChart"
-                  :min="10"
-                  :max="1000"
-                  :step="10"
-                  placeholder="数据条数"
-                  size="small"
-                  style="width: 100%"
-                />
-              </el-form-item>
-
-                  <el-form-item>
-                    <el-button type="danger" size="small" @click="removeSelectedChart">删除图表</el-button>
-                  </el-form-item>
-                </el-form>
+                </div>
               </el-tab-pane>
             </el-tabs>
           </div>
@@ -676,7 +639,7 @@ import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, ElTable, ElTableColumn } from 'element-plus'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
-import { Rank, TrendCharts, ArrowDown, ArrowUp, ArrowDownBold, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection } from '@element-plus/icons-vue'
+import { Rank, TrendCharts, ArrowDown, ArrowUp, ArrowDownBold, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection, Menu, CirclePlus, DataAnalysis, Sort, RefreshLeft, RefreshRight, Upload, Document } from '@element-plus/icons-vue'
 import ChartDataSourceConfig from '@/components/chart/ChartDataSourceConfig.vue'
 import DatasetSelector from '@/components/dataset/DatasetSelector.vue'
 import DatasetConfigPanel from '@/components/dashboard/DatasetConfigPanel.vue'
@@ -703,7 +666,15 @@ const chartTypes = [
   { label: '柱状图', value: 'bar', icon: 'TrendCharts' },
   { label: '折线图', value: 'line', icon: 'TrendCharts' },
   { label: '饼图', value: 'pie', icon: 'TrendCharts' },
-  { label: '表格', value: 'table', icon: 'Grid' }
+  { label: '表格', value: 'table', icon: 'Grid' },
+  { label: '区域图', value: 'area', icon: 'TrendCharts' },
+  { label: '散点图', value: 'scatter', icon: 'TrendCharts' },
+  { label: '雷达图', value: 'radar', icon: 'TrendCharts' },
+  { label: '仪表盘', value: 'gauge', icon: 'DataBoard' },
+  { label: '漏斗图', value: 'funnel', icon: 'Sort' },
+  { label: '热力图', value: 'heatmap', icon: 'Grid' },
+  { label: '树图', value: 'treemap', icon: 'Menu' },
+  { label: '水球图', value: 'liquidfill', icon: 'TrendCharts' }
 ]
 
 // 状态管理
@@ -847,6 +818,10 @@ const chartDragState = ref({
   dragStartPos: { x: 0, y: 0 },
   initialGridPos: { x: 0, y: 0 }
 })
+
+// 新增工具栏状态
+const isPreview = ref(false)
+const showGridHelper = ref(true)
 
 // 方法定义
 const handleDragStart = (event: DragEvent, chart: any) => {
@@ -1742,7 +1717,15 @@ const getChartTitle = (type: ChartConfig['type']) => {
     bar: '柱状图',
     line: '折线图',
     pie: '饼图',
-    table: '表格'
+    table: '表格',
+    area: '区域图',
+    scatter: '散点图',
+    radar: '雷达图',
+    gauge: '仪表盘',
+    funnel: '漏斗图',
+    heatmap: '热力图',
+    treemap: '树图',
+    liquidfill: '水球图'
   }
   return titles[type] || '图表'
 }
@@ -1753,7 +1736,15 @@ const getDefaultChartWidth = (type: ChartConfig['type']) => {
     bar: 6,
     line: 6,
     pie: 6,
-    table: 8
+    table: 8,
+    area: 6,
+    scatter: 6,
+    radar: 6,
+    gauge: 4,
+    funnel: 5,
+    heatmap: 8,
+    treemap: 6,
+    liquidfill: 4
   }
   return widths[type] || 6
 }
@@ -1764,7 +1755,15 @@ const getDefaultChartHeight = (type: ChartConfig['type']) => {
     bar: 7,
     line: 7,
     pie: 7,
-    table: 8
+    table: 8,
+    area: 7,
+    scatter: 7,
+    radar: 7,
+    gauge: 6,
+    funnel: 8,
+    heatmap: 8,
+    treemap: 7,
+    liquidfill: 6
   }
   return heights[type] || 7
 }
@@ -2141,6 +2140,19 @@ const getChartOption = (config: ChartConfig) => {
           data: []
         }]
       }
+    case 'area':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        xAxis: { type: 'category' },
+        yAxis: { type: 'value' },
+        series: [{
+          type: 'line',
+          areaStyle: {},
+          data: []
+        }]
+      }
     case 'pie':
       return {
         title: { text: config.title },
@@ -2151,8 +2163,111 @@ const getChartOption = (config: ChartConfig) => {
           data: []
         }]
       }
+    case 'scatter':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        xAxis: { type: 'value' },
+        yAxis: { type: 'value' },
+        series: [{
+          type: 'scatter',
+          data: []
+        }]
+      }
+    case 'radar':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        radar: {
+          indicator: []
+        },
+        series: [{
+          type: 'radar',
+          data: []
+        }]
+      }
+    case 'gauge':
+      return {
+        title: { text: config.title },
+        tooltip: { formatter: '{a} <br/>{b} : {c}%' },
+        series: [{
+          type: 'gauge',
+          data: [{ value: 0, name: '指标' }]
+        }]
+      }
+    case 'funnel':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        legend: { show: config.showLegend },
+        series: [{
+          type: 'funnel',
+          data: []
+        }]
+      }
+    case 'heatmap':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        visualMap: {
+          min: 0,
+          max: 10,
+          calculable: true,
+          inRange: {
+            color: ['#50a3ba', '#eac736', '#d94e5d']
+          }
+        },
+        xAxis: { type: 'category' },
+        yAxis: { type: 'category' },
+        series: [{
+          type: 'heatmap',
+          data: []
+        }]
+      }
+    case 'treemap':
+      return {
+        title: { text: config.title },
+        tooltip: {},
+        series: [{
+          type: 'treemap',
+          data: []
+        }]
+      }
+    case 'liquidfill':
+      return {
+        title: { text: config.title },
+        series: [{
+          type: 'liquidFill',
+          data: [0.6],
+          color: ['#409EFF'],
+          itemStyle: {
+            opacity: 0.6
+          },
+          emphasis: {
+            itemStyle: {
+              opacity: 0.9
+            }
+          }
+        }]
+      }
     default:
-      return {}
+      return {
+        title: { text: config.title || '图表' },
+        graphic: {
+          elements: [{
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂不支持此图表类型',
+              fontSize: 14,
+              fill: '#999'
+            }
+          }]
+        }
+      }
   }
 }
 
@@ -2446,6 +2561,25 @@ const disableChartDrag = () => {
   
   chartDragState.value.isDragging = false
   chartDragState.value.dragChartId = null
+}
+
+// 新增工具栏方法
+const togglePreview = () => {
+  isPreview.value = !isPreview.value
+  if (isPreview.value) {
+    ElMessage.success('已进入预览模式')
+  } else {
+    ElMessage.info('已退出预览模式')
+  }
+}
+
+const toggleGridHelper = () => {
+  showGridHelper.value = !showGridHelper.value
+  if (showGridHelper.value) {
+    ElMessage.success('已显示网格辅助线')
+  } else {
+    ElMessage.info('已隐藏网格辅助线')
+  }
 }
 
 // 获取维度字段
@@ -4648,28 +4782,56 @@ const getMetricFields = () => {
   }
 }
 
-// 图表标题输入框无边框样式
+// 配置表单容器样式
+.config-form-container {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.config-form {
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+    
+    .el-form-item__label {
+      font-weight: 500;
+      color: #606266;
+      line-height: 32px;
+    }
+    
+    .el-form-item__content {
+      line-height: 32px;
+    }
+  }
+  
+  :deep(.el-divider) {
+    margin: 20px 0;
+    
+    .divider-text {
+      color: #909399;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+}
+
+// 图表标题输入框样式
 .chart-title-input {
   :deep(.el-input__wrapper) {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-  
-  :deep(.el-input__inner) {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-  
-  :deep(.el-input__wrapper:hover) {
-    border: none !important;
-    box-shadow: none !important;
-  }
-  
-  :deep(.el-input__wrapper.is-focus) {
-    border: none !important;
-    box-shadow: none !important;
+    border: 1px solid #dcdcdc !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+    transition: all 0.2s ease !important;
+    
+    &:hover {
+      border-color: #409eff !important;
+    }
+    
+    &.is-focus {
+      border-color: #409eff !important;
+      box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1) !important;
+    }
   }
 }
 
@@ -4811,20 +4973,22 @@ const getMetricFields = () => {
   }
 }
 
-// 字段展示区域样式
+// 字段展示区域样式优化
 .fields-display-section {
   margin: 16px 0;
-  padding: 16px;
+  padding: 0;
   border: 1px solid #e4e7ed;
   border-radius: 8px;
-  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: white;
+  overflow: hidden;
   
   .section-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f5f7fa;
+    border-bottom: 1px solid #e4e7ed;
     font-weight: 600;
     color: #303133;
     font-size: 14px;
@@ -4836,14 +5000,15 @@ const getMetricFields = () => {
     
     .field-count {
       margin-left: auto;
-      color: #909399;
-      font-weight: normal;
-      font-size: 12px;
     }
   }
   
+  .fields-container {
+    padding: 16px;
+  }
+  
   .field-group {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     
     &:last-child {
       margin-bottom: 0;
@@ -4853,13 +5018,13 @@ const getMetricFields = () => {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       font-weight: 500;
       color: #606266;
       font-size: 13px;
-      padding: 6px 8px;
-      background: #ebeef5;
-      border-radius: 4px;
+      padding: 8px 12px;
+      background: #f0f2f5;
+      border-radius: 6px;
       
       .el-icon {
         font-size: 16px;
@@ -4871,26 +5036,25 @@ const getMetricFields = () => {
     }
     
     .field-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      display: grid;
+      gap: 8px;
     }
     
     .field-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: white;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #fafafa;
       border: 1px solid #e4e7ed;
       border-radius: 6px;
       font-size: 12px;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
       
       &:hover {
-        border-color: #c0c4cc;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
+        background: white;
+        border-color: #409eff;
+        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
       }
       
       &.dimension-field {
@@ -4921,74 +5085,101 @@ const getMetricFields = () => {
     }
     
     .empty-fields {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       text-align: center;
       color: #c0c4cc;
       font-size: 12px;
-      padding: 20px;
-      background: white;
+      padding: 24px;
+      background: #fafafa;
       border: 1px dashed #e4e7ed;
       border-radius: 6px;
+      
+      .el-icon {
+        font-size: 16px;
+      }
     }
   }
 }
 
+// 无图表选中状态优化
 .no-chart-selected {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
-  border: 1px dashed #e4e7ed;
+  background: #f9f9f9;
   border-radius: 12px;
   margin: 16px;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: #409eff;
-    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
-  }
+  min-height: 400px;
   
   .no-chart-content {
     text-align: center;
-    padding: 40px;
-    color: #909399;
+    padding: 60px 40px;
     
-    .hint-icon {
-      font-size: 64px;
-      color: #c0c4cc;
-      margin-bottom: 20px;
-      transition: all 0.3s ease;
+    .hint-icon-wrapper {
+      margin-bottom: 24px;
+      
+      .hint-icon {
+        font-size: 80px;
+        color: #d3d3d3;
+        transition: all 0.3s ease;
+      }
     }
     
     h4 {
       margin: 0 0 12px 0;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 600;
       color: #606266;
-      transition: all 0.3s ease;
     }
     
     p {
-      margin: 0;
+      margin: 0 0 24px 0;
       font-size: 14px;
       color: #909399;
       line-height: 1.6;
-      transition: all 0.3s ease;
+    }
+    
+    .hint-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      
+      .step-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: white;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #606266;
+        
+        .step-number {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          background: #409eff;
+          color: white;
+          border-radius: 50%;
+          font-size: 12px;
+          font-weight: 600;
+          flex-shrink: 0;
+        }
+      }
     }
   }
   
   &:hover .no-chart-content {
-    .hint-icon {
+    .hint-icon-wrapper .hint-icon {
       color: #409eff;
-      transform: scale(1.1);
-    }
-    
-    h4 {
-      color: #409eff;
-    }
-    
-    p {
-      color: #606266;
+      transform: scale(1.05);
     }
   }
 }

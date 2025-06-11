@@ -65,7 +65,7 @@ export interface ChartFieldMapping {
 export interface ChartConfig {
   i: string
   id: string
-  type: 'bar' | 'line' | 'pie' | 'table'
+  type: 'bar' | 'line' | 'pie' | 'table' | 'area' | 'scatter' | 'radar' | 'gauge' | 'funnel' | 'heatmap' | 'treemap' | 'liquidfill'
   title?: string
   xField?: string
   yField?: string

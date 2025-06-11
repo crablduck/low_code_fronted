@@ -21,6 +21,12 @@
       <span>表单设计器</span>
     </el-menu-item>
     
+    <!-- 固定的流程设计器菜单 -->
+    <el-menu-item index="/workflow-designer" class="menu-item-workflow">
+      <el-icon><Share /></el-icon>
+      <span>流程设计器</span>
+    </el-menu-item>
+    
     <!-- 固定的打印设计器菜单 -->
     <el-menu-item index="/print-designer" class="menu-item-print">
       <el-icon><Printer /></el-icon>
@@ -158,7 +164,8 @@ import {
   EditPen,
   Link,
   Tickets,
-  Platform
+  Platform,
+  Share
 } from '@element-plus/icons-vue'
 import request from '@/utils/request'  // 导入封装的请求实例
 import { getMenuList, buildMenuTree } from '@/api/menu'
@@ -437,6 +444,10 @@ onUnmounted(() => {
 
 .menu-item-designer:hover {
   background: linear-gradient(135deg, rgba(64, 158, 255, 0.3), rgba(64, 158, 255, 0.2)) !important;
+}
+
+.menu-item-workflow:hover {
+  background: linear-gradient(135deg, rgba(103, 58, 183, 0.3), rgba(103, 58, 183, 0.2)) !important;
 }
 
 .menu-item-print:hover {

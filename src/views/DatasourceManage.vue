@@ -5,13 +5,13 @@
       <div class="header-content">
         <div class="header-left">
           <h1 class="page-title">
-            <el-icon><DataAnalysis /></el-icon>
+            <el-icon class="icon-database"><DataBoard /></el-icon>
             数据源管理
           </h1>
-          <p class="page-description">管理和配置数据源连接</p>
+          <p class="page-description">管理和配置系统中的数据源连接</p>
         </div>
         <div class="header-actions">
-          <el-button type="primary" size="large" @click="showAddDataSource = true">
+          <el-button type="primary" size="large" @click="showCreateDialog = true">
             <el-icon><Plus /></el-icon>
             创建数据源
           </el-button>
@@ -21,7 +21,7 @@
 
     <!-- 主要内容区域 -->
     <div class="main-container">
-      <!-- 左侧：数据源列表和统计 -->
+      <!-- 左侧：数据源列表 -->
       <div class="left-panel">
         <!-- 搜索和筛选区域 -->
         <div class="search-section">
@@ -31,35 +31,43 @@
               placeholder="搜索数据源名称..."
               prefix-icon="Search"
               clearable
-              @clear="handleSearch"
-              @keyup.enter="handleSearch"
+              @clear="loadDataSources"
+              @keyup.enter="loadDataSources"
             >
               <template #append>
-                <el-button @click="handleSearch" type="primary">搜索</el-button>
+                <el-button @click="loadDataSources" type="primary">搜索</el-button>
               </template>
             </el-input>
           </div>
           
           <div class="filter-bar">
-            <div class="sort-controls">
-              <span class="sort-label">排序：</span>
+            <div class="filter-controls">
+              <el-select v-model="selectedTypeFilter" placeholder="选择类型" clearable @change="clearTypeFilter" style="width: 140px;" size="small">
+                <el-option 
+                  v-for="(count, type) in dataSourceTypeCount" 
+                  :key="type"
+                  :label="`${getTypeLabel(type)} (${count})`"
+                  :value="type"
+                />
+              </el-select>
+              
               <el-button-group size="small">
                 <el-button 
-                  :type="sortType === 'name' ? 'primary' : ''" 
-                  @click="sortBy('name')"
+                  :type="sortBy === 'name' ? 'primary' : ''" 
+                  @click="sortDataSources('name')"
                 >
                   名称
-                  <el-icon v-if="sortType === 'name'">
+                  <el-icon v-if="sortBy === 'name'">
                     <SortUp v-if="sortOrder === 'asc'" />
                     <SortDown v-else />
                   </el-icon>
                 </el-button>
                 <el-button 
-                  :type="sortType === 'time' ? 'primary' : ''" 
-                  @click="sortBy('time')"
+                  :type="sortBy === 'id' ? 'primary' : ''" 
+                  @click="sortDataSources('id')"
                 >
                   时间
-                  <el-icon v-if="sortType === 'time'">
+                  <el-icon v-if="sortBy === 'id'">
                     <SortUp v-if="sortOrder === 'asc'" />
                     <SortDown v-else />
                   </el-icon>
@@ -68,160 +76,79 @@
             </div>
           </div>
           
-          <!-- 过滤状态显示 -->
-          <div v-if="selectedTypeFilter" class="filter-status">
-            <el-tag 
-              type="info" 
-              closable 
-              @close="clearTypeFilter"
-              size="small"
-            >
-              类型：{{ selectedTypeFilter }}
-            </el-tag>
+          <!-- 统计信息 -->
+          <div class="stats-bar">
+            <div class="stat-item">
+              <span class="stat-label">总计：</span>
+              <span class="stat-value">{{ totalCount }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">在线：</span>
+              <span class="stat-value success">{{ onlineCount }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">离线：</span>
+              <span class="stat-value danger">{{ filteredDataSources.length - onlineCount }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- 统计卡片 -->
-        <div class="stats-section">
-          <div class="stats-cards">
-            <div class="stat-card total">
-              <div class="stat-icon">
-                <el-icon><DataAnalysis /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ filteredDataSources.length }}</div>
-                <div class="stat-label">总数量</div>
-              </div>
-            </div>
-            
-            <div class="stat-card active">
-              <div class="stat-icon">
-                <el-icon><CircleCheck /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ onlineCount }}</div>
-                <div class="stat-label">在线</div>
-              </div>
-            </div>
-            
-            <div class="stat-card inactive">
-              <div class="stat-icon">
-                <el-icon><CircleClose /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ offlineCount }}</div>
-                <div class="stat-label">离线</div>
-              </div>
-            </div>
-          </div>
-        </div>
-          
-        <!-- 数据源类型分布 -->
-        <div class="datasource-section">
-          <h3 class="section-title">类型分布</h3>
-          <div class="datasource-list">
-            <div 
-              v-for="(count, type) in dataSourceTypeCount" 
-              :key="type" 
-              class="datasource-item"
-              :class="{ active: selectedTypeFilter === type }"
-              @click="filterByType(type)"
-            >
-              <div class="datasource-info">
-                <el-tag size="small" type="info">{{ type }}</el-tag>
-                <span class="datasource-count">{{ count }} 个</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
         <!-- 数据源列表 -->
         <div class="datasource-list-section">
-          <div class="section-header">
+          <div class="list-header">
             <h3 class="section-title">数据源列表</h3>
-            <div class="list-controls">
-              <el-select 
-                v-model="pageSize" 
-                size="small" 
-                style="width: 100px"
-                @change="handlePageSizeChange"
-              >
-                <el-option label="10" :value="10" />
-                <el-option label="20" :value="20" />
-                <el-option label="50" :value="50" />
-                <el-option label="全部" :value="0" />
-              </el-select>
-              <span class="total-count">共 {{ filteredDataSources.length }} 项</span>
-            </div>
+            <el-text type="info" size="small">{{ filteredDataSources.length }} 个数据源</el-text>
           </div>
           
-          <div 
-            class="datasource-grid" 
-            v-loading="loading"
-            :style="{ height: listContainerHeight }"
-          >
+          <div class="datasource-list" v-loading="loading">
             <div 
-              v-for="datasource in paginatedDataSources" 
-              :key="datasource?.id || Math.random()"
-              class="datasource-card"
-              :class="{ active: selectedDataSource?.id === datasource?.id }"
-              @click.stop="selectDataSource(datasource)"
+              v-for="dataSource in filteredDataSources" 
+              :key="dataSource.id"
+              class="datasource-item"
+              :class="{ active: selectedDataSource?.id === dataSource.id }"
+              @click="selectDataSource(dataSource)"
             >
-              <div class="datasource-header">
-                <div class="datasource-icon">
-                  <el-icon><DataAnalysis /></el-icon>
+              <div class="datasource-info">
+                <div class="datasource-header">
+                  <div class="datasource-icon">
+                    <el-icon>
+                      <component :is="getTypeIcon(dataSource.type)" />
+                    </el-icon>
+                  </div>
+                  <div class="datasource-main">
+                    <h4 class="datasource-name">{{ dataSource.name }}</h4>
+                    <p class="datasource-description">{{ getConnectionString(dataSource) }}</p>
+                  </div>
+                  <div class="datasource-status">
+                    <el-tag 
+                      :type="getConnectionStatus(dataSource) === 'online' ? 'success' : 'danger'" 
+                      size="small"
+                    >
+                      {{ getConnectionStatus(dataSource) === 'online' ? '在线' : '离线' }}
+                    </el-tag>
+                  </div>
                 </div>
-                <div class="datasource-status">
-                  <el-tag 
-                    :type="datasource?.status === 'online' ? 'success' : 'danger'" 
-                    size="small"
-                  >
-                    {{ datasource?.status === 'online' ? '在线' : '离线' }}
-                  </el-tag>
-                </div>
-              </div>
-                  
-              <div class="datasource-content">
-                <h4 class="datasource-name">{{ datasource?.name || '' }}</h4>
-                <p class="datasource-description">{{ datasource?.type || '' }} 数据库</p>
                 
                 <div class="datasource-meta">
                   <div class="meta-item">
-                    <el-icon><Monitor /></el-icon>
-                    <span>{{ datasource?.host }}:{{ datasource?.port }}</span>
+                    <el-tag size="small" :type="getTypeTagType(dataSource.type)">
+                      {{ getTypeLabel(dataSource.type) }}
+                    </el-tag>
                   </div>
                   <div class="meta-item">
-                    <el-icon><Calendar /></el-icon>
-                    <span>{{ formatDate(datasource?.createdAt) }}</span>
+                    <el-icon><Link /></el-icon>
+                    <span>{{ dataSource.database }}</span>
                   </div>
-                </div>
-                
-                <div class="datasource-type">
-                  <el-tag 
-                    :type="getTypeTag(datasource?.type)" 
-                    size="small"
-                  >
-                    {{ datasource?.type || '' }}
-                  </el-tag>
+                  <div class="meta-item">
+                    <el-icon><User /></el-icon>
+                    <span>{{ dataSource.username }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <!-- 分页控件 -->
-          <div v-if="pageSize > 0 && filteredDataSources.length > pageSize" class="pagination-container">
-            <el-pagination
-              v-model:current-page="currentPage"
-              :page-size="pageSize"
-              :total="filteredDataSources.length"
-              layout="prev, pager, next, jumper"
-              small
-              @current-change="handleCurrentPageChange"
-            />
-          </div>
-          
-          <el-empty v-if="!loading && filteredDataSources.length === 0" description="暂无数据源">
-          </el-empty>
+          <el-empty v-if="!loading && filteredDataSources.length === 0" description="暂无数据源" />
         </div>
       </div>
 
@@ -231,21 +158,22 @@
         <div class="detail-tabs-header">
           <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="detail-tabs-nav">
             <el-tab-pane label="基本信息" name="details"></el-tab-pane>
-            <el-tab-pane label="数据表列表" name="tables"></el-tab-pane>
+            <el-tab-pane label="数据字段" name="fields"></el-tab-pane>
+            <el-tab-pane label="数据预览" name="preview"></el-tab-pane>
           </el-tabs>
         </div>
 
         <!-- Tab内容区域 -->
         <div class="detail-content-wrapper">
-          <!-- 基本信息内容 -->
+          <!-- 基本信息 -->
           <div v-if="activeTab === 'details'" class="tab-content">
             <div class="detail-header">
               <div class="detail-title">
-                <h2>{{ selectedDataSource?.name }}</h2>
+                <h2>{{ selectedDataSource.name }}</h2>
                 <el-tag 
-                  :type="selectedDataSource?.status === 'online' ? 'success' : 'danger'"
+                  :type="getConnectionStatus(selectedDataSource) === 'online' ? 'success' : 'danger'"
                 >
-                  {{ selectedDataSource?.status === 'online' ? '在线' : '离线' }}
+                  {{ getConnectionStatus(selectedDataSource) === 'online' ? '在线' : '离线' }}
                 </el-tag>
               </div>
               
@@ -254,7 +182,7 @@
                   <el-icon><Edit /></el-icon>
                   编辑
                 </el-button>
-                <el-button size="small" type="success" @click="testConnection(selectedDataSource)">
+                <el-button size="small" type="info" @click="testConnection(selectedDataSource)" :loading="testing">
                   <el-icon><Connection /></el-icon>
                   测试连接
                 </el-button>
@@ -265,13 +193,13 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item 
-                        :command="`toggle-${selectedDataSource?.id}`"
-                        :icon="selectedDataSource?.status === 'online' ? 'CircleClose' : 'CircleCheck'"
+                        :command="`duplicate-${selectedDataSource.id}`"
+                        :icon="'CopyDocument'"
                       >
-                        {{ selectedDataSource?.status === 'online' ? '设为离线' : '设为在线' }}
+                        复制
                       </el-dropdown-item>
                       <el-dropdown-item 
-                        :command="`delete-${selectedDataSource?.id}`"
+                        :command="`delete-${selectedDataSource.id}`"
                         :icon="'Delete'"
                         divided
                       >
@@ -282,472 +210,429 @@
                 </el-dropdown>
               </div>
             </div>
-                
+            
             <div class="detail-content">
               <el-descriptions :column="1" border>
-                <el-descriptions-item label="数据源ID">
-                  {{ selectedDataSource?.id }}
-                </el-descriptions-item>
                 <el-descriptions-item label="数据源名称">
-                  {{ selectedDataSource?.name }}
+                  {{ selectedDataSource.name }}
                 </el-descriptions-item>
                 <el-descriptions-item label="数据源类型">
-                  <el-tag :type="getTypeTag(selectedDataSource?.type)">{{ selectedDataSource?.type }}</el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item label="主机地址">
-                  {{ getDisplayValue(selectedDataSource, 'host') }}
-                </el-descriptions-item>
-                <el-descriptions-item label="端口">
-                  {{ getDisplayValue(selectedDataSource, 'port') }}
-                </el-descriptions-item>
-                <el-descriptions-item label="数据库名称">
-                  {{ getDisplayValue(selectedDataSource, 'databaseName') }}
-                </el-descriptions-item>
-                <el-descriptions-item label="用户名">
-                  {{ getDisplayValue(selectedDataSource, 'username') }}
-                </el-descriptions-item>
-                <el-descriptions-item label="创建时间">
-                  {{ formatDate(selectedDataSource?.createdAt) }}
-                </el-descriptions-item>
-                <el-descriptions-item label="状态">
-                  <el-tag :type="selectedDataSource?.status === 'online' ? 'success' : 'danger'">
-                    {{ selectedDataSource?.status === 'online' ? '在线' : '离线' }}
+                  <el-tag :type="getTypeTagType(selectedDataSource.type)">
+                    {{ getTypeLabel(selectedDataSource.type) }}
                   </el-tag>
                 </el-descriptions-item>
+                <el-descriptions-item label="连接状态">
+                  <el-tag :type="getConnectionStatus(selectedDataSource) === 'online' ? 'success' : 'danger'">
+                    {{ getConnectionStatus(selectedDataSource) === 'online' ? '在线' : '离线' }}
+                  </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="主机地址">
+                  {{ selectedDataSource.url }}:{{ selectedDataSource.port }}
+                </el-descriptions-item>
+                <el-descriptions-item label="数据库">
+                  {{ selectedDataSource.database }}
+                </el-descriptions-item>
+                <el-descriptions-item label="用户名">
+                  {{ selectedDataSource.username }}
+                </el-descriptions-item>
               </el-descriptions>
+
+              <!-- 连接测试结果 -->
+              <div v-if="testResult" class="test-result" :class="testResult.success ? 'success' : 'error'">
+                <div class="result-icon">
+                  <el-icon>
+                    <CircleCheck v-if="testResult.success" />
+                    <CircleClose v-else />
+                  </el-icon>
+                </div>
+                <div class="result-content">
+                  <h4>{{ testResult.success ? '连接成功' : '连接失败' }}</h4>
+                  <p>{{ testResult.message }}</p>
+                  <small>{{ formatDate(testResult.timestamp) }}</small>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <!-- 数据表列表内容 -->
-          <div v-if="activeTab === 'tables'" class="tab-content">
+
+          <!-- 数据字段 -->
+          <div v-if="activeTab === 'fields'" class="tab-content">
             <div class="detail-content">
-              <div class="table-search-container">
-                <el-input
-                  v-model="tableSearchKeyword"
-                  placeholder="搜索表名..."
-                  prefix-icon="Search"
-                  clearable
-                  style="max-width: 300px; margin-bottom: 15px;"
-                />
+              <div class="fields-header">
+                <h4>表结构</h4>
+                <el-button size="small" @click="loadTables" :loading="loadingTables">
+                  <el-icon><Refresh /></el-icon>
+                  刷新
+                </el-button>
+              </div>
+              
+              <div class="tables-section" v-loading="loadingTables">
+                <div v-if="tables.length > 0" class="tables-list">
+                  <el-collapse v-model="activeTableName">
+                    <el-collapse-item 
+                      v-for="table in tables" 
+                      :key="table.name"
+                      :title="table.name"
+                      :name="table.name"
+                    >
+                      <template #title>
+                        <div class="table-header">
+                          <el-icon><Grid /></el-icon>
+                          <span>{{ table.name }}</span>
+                          <el-tag size="small" type="info">表</el-tag>
+                        </div>
+                      </template>
+                      
+                      <div class="table-fields" v-loading="loadingFields[table.name]">
+                        <el-button 
+                          size="small" 
+                          @click="loadTableFields(table.name)"
+                          v-if="!tableFields[table.name]"
+                        >
+                          加载字段信息
+                        </el-button>
+                        
+                        <div v-if="tableFields[table.name]" class="fields-table-container">
+                          <el-table 
+                            :data="tableFields[table.name]"
+                            size="small"
+                            class="fields-table"
+                            :header-cell-style="{ 
+                              background: '#f8fafc', 
+                              color: '#374151',
+                              fontWeight: '600',
+                              fontSize: '13px'
+                            }"
+                          >
+                            <el-table-column prop="columnName" label="字段名" min-width="140">
+                              <template #default="{ row }">
+                                <div class="field-name">
+                                  <el-icon v-if="row.isPrimaryKey" class="primary-key-icon">
+                                    <Key />
+                                  </el-icon>
+                                  <span>{{ row.columnName }}</span>
+                                </div>
+                              </template>
+                            </el-table-column>
+                            <el-table-column prop="columnType" label="数据类型" min-width="100">
+                              <template #default="{ row }">
+                                <el-tag 
+                                  :type="getColumnTypeTag(row.columnType)" 
+                                  size="small"
+                                  effect="light"
+                                >
+                                  {{ row.columnType }}
+                                </el-tag>
+                              </template>
+                            </el-table-column>
+                            <el-table-column prop="isPrimaryKey" label="主键" width="80" align="center">
+                              <template #default="{ row }">
+                                <el-tag 
+                                  v-if="row.isPrimaryKey" 
+                                  type="danger" 
+                                  size="small"
+                                  effect="light"
+                                >
+                                  主键
+                                </el-tag>
+                                <span v-else class="no-primary">-</span>
+                              </template>
+                            </el-table-column>
+                            <el-table-column prop="columnComment" label="备注" min-width="150">
+                              <template #default="{ row }">
+                                <span class="column-comment">
+                                  {{ row.columnComment || '无备注' }}
+                                </span>
+                              </template>
+                            </el-table-column>
+                          </el-table>
+                        </div>
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
+                
+                <el-empty v-else-if="!loadingTables" description="暂无表信息" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据预览 -->
+          <div v-if="activeTab === 'preview'" class="tab-content">
+            <div class="detail-content">
+              <div class="preview-header">
+                <h4>数据预览</h4>
+                <div class="preview-controls">
+                  <el-select v-model="selectedTable" placeholder="选择表" style="width: 200px;" @change="loadPreviewData">
+                    <el-option
+                      v-for="table in tables"
+                      :key="table.name"
+                      :label="table.name"
+                      :value="table.name"
+                    />
+                  </el-select>
+                  <el-button size="small" @click="loadPreviewData" :loading="loadingPreview">
+                    <el-icon><Refresh /></el-icon>
+                    刷新
+                  </el-button>
+                </div>
               </div>
               
               <el-table
-                :data="filteredTables"
+                :data="previewData.data"
                 style="width: 100%"
-                v-loading="loadingTables"
+                v-loading="loadingPreview"
+                max-height="400"
                 size="small"
               >
-                <el-table-column prop="name" label="表名" />
-                <el-table-column prop="description" label="描述" />
-                <el-table-column label="操作" width="200">
-                  <template #default="{ row }">
-                    <el-button size="small" @click="viewTableFields(row)">
-                      <el-icon><View /></el-icon>
-                      查看字段
-                    </el-button>
-                    <el-button size="small" type="primary" @click="createDataSetFromTable(row)">
-                      <el-icon><Plus /></el-icon>
-                      创建数据集
-                    </el-button>
-                  </template>
-                </el-table-column>
+                <el-table-column
+                  v-for="column in previewData.columns"
+                  :key="column"
+                  :prop="column"
+                  :label="column"
+                  show-overflow-tooltip
+                  width="120"
+                />
               </el-table>
+              
+              <div class="preview-footer">
+                <el-text type="info">共 {{ previewData.totalCount }} 条记录，显示前 100 条</el-text>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧空状态 -->
+      <!-- 无选中数据源时的提示 -->
       <div class="right-panel-empty" v-else>
-        <el-empty description="请选择一个数据源查看详情">
-          <el-button type="primary" @click="showAddDataSource = true">创建新数据源</el-button>
-        </el-empty>
+        <div class="empty-content">
+          <div class="empty-icon">
+            <el-icon><DataBoard /></el-icon>
+          </div>
+          <h3 class="empty-title">选择数据源</h3>
+          <p class="empty-description">从左侧列表中选择一个数据源来查看详细信息，包括基本信息、数据字段和数据预览。</p>
+          <div class="empty-actions">
+            <el-button type="primary" size="large" @click="showCreateDialog = true">
+              <el-icon><Plus /></el-icon>
+              创建新数据源
+            </el-button>
+          </div>
+          
+          <div class="quick-features">
+            <div class="feature-item">
+              <el-icon><Edit /></el-icon>
+              <span>管理数据源配置</span>
+            </div>
+            <div class="feature-item">
+              <el-icon><Connection /></el-icon>
+              <span>测试连接状态</span>
+            </div>
+            <div class="feature-item">
+              <el-icon><Grid /></el-icon>
+              <span>浏览数据字段</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 字段查看对话框 -->
-    <el-dialog
-      v-model="showFieldsDialog"
-      :title="`表 ${selectedTable?.name || ''} 的字段信息`"
-      width="70%"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="true"
-      destroy-on-close
-    >
-      <div v-loading="loadingFields">
-        <div v-if="selectedTable?.description" class="table-description" style="margin-bottom: 15px;">
-          <el-text type="info">{{ selectedTable.description }}</el-text>
-        </div>
-        
-        <el-table
-          :data="fields"
-          style="width: 100%"
-          border
-          stripe
-          highlight-current-row
-          height="400"
-        >
-          <el-table-column prop="name" label="字段名" width="180" />
-          <el-table-column prop="dataType" label="数据类型" width="120" />
-          <el-table-column prop="isPrimary" label="主键" width="80" align="center">
-            <template #default="{ row }">
-              <el-tag v-if="row.isPrimary" type="danger" size="small">是</el-tag>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        </el-table>
-      </div>
-      
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="showFieldsDialog = false">关闭</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 新建数据源对话框 -->
+    <!-- 创建/编辑数据源对话框 -->
     <DataSourceForm
-      v-model="showAddDataSource"
-      :data-source="editingDataSource"
-      @success="handleDataSourceSuccess"
+      v-model="showCreateDialog"
+      :data-source="currentDataSource"
+      @success="handleDialogSuccess"
     />
-
-    <!-- 创建文件夹对话框 -->
-    <el-dialog v-model="showCreateFolderDialog" title="创建文件夹" width="400px">
-      <el-form :model="folderForm" label-width="80px">
-        <el-form-item label="文件夹名">
-          <el-input v-model="folderForm.name" placeholder="请输入文件夹名称" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCreateFolderDialog = false">取消</el-button>
-        <el-button type="primary" @click="createFolder">确定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { DataSource, TableInfo, FieldInfo } from '@/types/dataManagement'
-import { dataSourceApi } from '@/api/dataSource'
-import DataSourceForm from '@/components/datasource/DataSourceForm.vue'
-import {
-  Search,
-  SortUp,
-  SortDown,
-  Edit,
-  View,
-  ArrowDown,
-  Connection,
-  DataAnalysis,
-  CircleCheck,
-  CircleClose,
-  Monitor,
-  Calendar,
-  Plus
+import { 
+  DataBoard, Plus, Search, Edit, Delete, Connection, Refresh, 
+  CircleCheck, CircleClose, SortUp, SortDown, Link, User,
+  CopyDocument, Grid, Key, ArrowDown
 } from '@element-plus/icons-vue'
+import DataSourceForm from '@/components/datasource/DataSourceForm.vue'
+import { dataSourceApi } from '@/api/dataSource'
+import { useDatasourceStore } from '@/stores/datasource'
+import type { DataSource, TableInfo, FieldInfo } from '@/types/dataManagement'
+
+// 使用数据源 store
+const datasourceStore = useDatasourceStore()
 
 // 响应式数据
-const dataSources = ref<DataSource[]>([])
-const selectedDataSource = ref<DataSource | null>(null)
-const selectedTable = ref<TableInfo | null>(null)
-const tables = ref<TableInfo[]>([])
-const fields = ref<FieldInfo[]>([])
-
-// 搜索和排序
-const searchKeyword = ref('')
-const tableSearchKeyword = ref('')
-const sortType = ref<'name' | 'time'>('name')
-const sortOrder = ref<'asc' | 'desc'>('desc')
-const selectedTypeFilter = ref<string | null>(null)
-
-// 加载状态
 const loading = ref(false)
-const loadingTables = ref(false)
-const loadingFields = ref(false)
-
-// 对话框状态
-const showAddDataSource = ref(false)
-const showCreateFolderDialog = ref(false)
-const showFieldsDialog = ref(false)
-const editingDataSource = ref<DataSource | null>(null)
-
-// 表单数据
-const folderForm = reactive({
-  name: ''
-})
-
-// 当前激活的标签页
+const searchKeyword = ref('')
+const selectedTypeFilter = ref('')
+const sortBy = ref('name')
+const sortOrder = ref<'asc' | 'desc'>('asc')
+const showCreateDialog = ref(false)
+const currentDataSource = ref<DataSource | null>(null)
+const selectedDataSource = ref<DataSource | null>(null)
 const activeTab = ref('details')
 
-// 分页相关
+// 分页数据
+const totalCount = ref(0)
+const currentPage = ref(0)
 const pageSize = ref(10)
-const currentPage = ref(1)
 
-// 动态计算列表容器高度
-const listContainerHeight = computed(() => {
-  const dataLength = filteredDataSources.value.length
-  const itemHeight = 120 // 每个卡片约120px高度
-  const maxHeight = 400 // 最大高度400px
-  const minHeight = 200 // 最小高度200px
-  
-  if (pageSize.value === 0) {
-    // 显示全部时，根据数据量动态调整
-    const calculatedHeight = Math.min(dataLength * itemHeight + 40, maxHeight)
-    return `${Math.max(calculatedHeight, minHeight)}px`
-  } else {
-    // 分页模式时，根据每页显示数量调整
-    const calculatedHeight = Math.min(pageSize.value * itemHeight + 40, maxHeight)
-    return `${Math.max(calculatedHeight, minHeight)}px`
-  }
+// 测试连接相关
+const testing = ref(false)
+const testResult = ref<any>(null)
+
+// 表结构相关
+const loadingTables = ref(false)
+const tables = ref<TableInfo[]>([])
+const activeTableName = ref<string[]>([])
+const loadingFields = ref<Record<string, boolean>>({})
+const tableFields = ref<Record<string, FieldInfo[]>>({})
+
+// 数据预览相关
+const loadingPreview = ref(false)
+const selectedTable = ref('')
+const previewData = ref<{
+  columns: string[]
+  data: any[]
+  totalCount: number
+}>({
+  columns: [],
+  data: [],
+  totalCount: 0
 })
 
-const paginatedDataSources = computed(() => {
-  const sources = Array.isArray(filteredDataSources.value) ? filteredDataSources.value : []
-  
-  // 如果 pageSize 为 0，显示全部数据
-  if (pageSize.value === 0) {
-    return sources
-  }
-  
-  // 分页显示
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return sources.slice(start, end)
-})
-
-// 计算属性 - 过滤后的数据源
+// 计算属性
 const filteredDataSources = computed(() => {
-  const sources = Array.isArray(dataSources.value) ? dataSources.value : []
-  let result = sources
+  // 确保数据源列表是数组
+  let filtered = Array.isArray(datasourceStore.dataSources) ? datasourceStore.dataSources : []
 
-  // 按类型过滤
-  if (selectedTypeFilter.value) {
-    result = result.filter(ds => ds && ds.type === selectedTypeFilter.value)
-  }
-
-  // 按关键词过滤
+  // 关键词搜索
   if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(ds => 
-      ds && (
-        ds.name?.toLowerCase().includes(keyword) ||
-        ds.description?.toLowerCase().includes(keyword) ||
-        ds.type?.toLowerCase().includes(keyword)
-      )
+    filtered = filtered.filter(ds => 
+      ds.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+      (ds.url && ds.url.includes(searchKeyword.value)) ||
+      (ds.database && ds.database.toLowerCase().includes(searchKeyword.value.toLowerCase()))
     )
   }
 
-  return result
+  // 类型筛选
+  if (selectedTypeFilter.value) {
+    filtered = filtered.filter(ds => ds.type === selectedTypeFilter.value)
+  }
+
+  // 排序
+  filtered = [...filtered].sort((a, b) => {
+    let aValue: any, bValue: any
+    
+    if (sortBy.value === 'name') {
+      aValue = a.name.toLowerCase()
+      bValue = b.name.toLowerCase()
+    } else if (sortBy.value === 'id') {
+      aValue = a.id
+      bValue = b.id
+    } else {
+      return 0
+    }
+
+    if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
+    return 0
+  })
+
+  return filtered
 })
 
 const onlineCount = computed(() => {
-  const sources = Array.isArray(filteredDataSources.value) ? filteredDataSources.value : []
-  return sources.filter(ds => ds && ds.status === 'online').length
-})
-
-const offlineCount = computed(() => {
-  const sources = Array.isArray(filteredDataSources.value) ? filteredDataSources.value : []
-  return sources.filter(ds => ds && ds.status === 'offline').length
+  const dataSources = Array.isArray(datasourceStore.dataSources) ? datasourceStore.dataSources : []
+  return dataSources.filter(ds => getConnectionStatus(ds) === 'online').length
 })
 
 const dataSourceTypeCount = computed(() => {
-  if (!dataSources.value) return {}
-  
-  const counts: Record<string, number> = {}
-  dataSources.value.forEach(ds => {
-    if (ds && ds.type) {
-      counts[ds.type] = (counts[ds.type] || 0) + 1
-    }
+  const count: Record<string, number> = {}
+  const dataSources = Array.isArray(datasourceStore.dataSources) ? datasourceStore.dataSources : []
+  dataSources.forEach(ds => {
+    count[ds.type] = (count[ds.type] || 0) + 1
   })
-  return counts
+  return count
 })
-
-const filteredTables = computed(() => {
-  if (!tables.value) return []
-  
-  let result = tables.value
-  if (tableSearchKeyword.value) {
-    const keyword = tableSearchKeyword.value.toLowerCase()
-    result = result.filter(table => 
-      table && (
-        table.name?.toLowerCase().includes(keyword) ||
-        table.description?.toLowerCase().includes(keyword)
-      )
-    )
-  }
-  
-  return result
-})
-
-// 类型过滤方法
-const filterByType = (type: string) => {
-  if (selectedTypeFilter.value === type) {
-    selectedTypeFilter.value = null
-  } else {
-    selectedTypeFilter.value = type
-  }
-  resetPagination() // 过滤时重置分页
-}
-
-const clearTypeFilter = () => {
-  selectedTypeFilter.value = null
-  resetPagination() // 清除过滤时重置分页
-}
-
-// 搜索处理
-const handleSearch = () => {
-  resetPagination() // 搜索时重置分页
-  loadDataSources()
-}
 
 // 方法
 const loadDataSources = async () => {
   loading.value = true
   try {
-    const result = await dataSourceApi.getAllDataSources()
-    console.log('Loaded data sources:', result)
-    
-    // 正确处理分页数据结构
-    if (result && result.code === 200 && result.data?.content) {
-      dataSources.value = result.data.content.map(ds => ({
-        ...ds,
-        id: ds.id || Math.random(),
-        host: ds.url,
-        databaseName: ds.database,
-        status: ds.status || 'offline' // 默认状态
-      })).filter(ds => ds && typeof ds === 'object')
-      
-      console.log(`成功加载 ${dataSources.value.length} 个数据源`)
-    } else {
-      console.error('数据源API返回的数据结构不正确:', result)
-      dataSources.value = []
-      ElMessage.error('加载数据源失败: ' + (result?.message || '数据格式错误'))
+    const response = await dataSourceApi.getAllDataSources()
+    if (response.code === 200) {
+      // 根据实际API返回的数据结构设置数据
+      const data = response.data
+      datasourceStore.setDataSources(data.content || [])
+      totalCount.value = data.totalElements || 0
+      currentPage.value = data.currentPage || 0
+      pageSize.value = data.pageSize || 10
     }
-    
-    resetPagination() // 重新加载数据时重置分页
   } catch (error) {
     console.error('加载数据源失败:', error)
-    ElMessage.error('加载数据源失败: ' + (error as Error).message)
-    dataSources.value = []
+    ElMessage.error('加载数据源失败')
   } finally {
     loading.value = false
   }
 }
 
-const sortBy = (type: 'name' | 'time') => {
-  if (sortType.value === type) {
+const sortDataSources = (field: string) => {
+  if (sortBy.value === field) {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   } else {
-    sortType.value = type
+    sortBy.value = field
     sortOrder.value = 'asc'
   }
-  
-  dataSources.value.sort((a, b) => {
-    let comparison = 0
-    if (type === 'name') {
-      comparison = (a?.name || '').localeCompare(b?.name || '')
-    } else {
-      const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0
-      const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0
-      comparison = dateA - dateB
-    }
-    return sortOrder.value === 'asc' ? comparison : -comparison
-  })
 }
 
-const selectDataSource = (datasource: DataSource | null) => {
-  if (!datasource) return
-  selectedDataSource.value = datasource
-  selectedTable.value = null
-  loadTables(datasource.id)
-  if (activeTab.value !== 'details' && activeTab.value !== 'tables') {
-    activeTab.value = 'details'
+const filterByType = (type: string) => {
+  if (selectedTypeFilter.value === type) {
+    selectedTypeFilter.value = ''
+  } else {
+    selectedTypeFilter.value = type
   }
 }
 
-const loadTables = async (sourceId: number) => {
-  try {
-    loadingTables.value = true
-    const dataSource = dataSources.value.find(ds => ds?.id === sourceId)
-    if (!dataSource) {
-      ElMessage.error('数据源未找到')
-      return
-    }
-    
-    const tablesData = await dataSourceApi.getTablesBySourceId(sourceId, dataSource)
-    tables.value = tablesData
-    ElMessage.success('获取表列表成功')
-  } catch (error) {
-    console.error('获取表列表错误:', error)
-    ElMessage.error('获取表列表失败：' + (error as Error).message)
-  } finally {
-    loadingTables.value = false
+const clearTypeFilter = () => {
+  selectedTypeFilter.value = ''
+}
+
+const selectDataSource = (dataSource: DataSource) => {
+  selectedDataSource.value = dataSource
+  datasourceStore.selectDataSource(dataSource.id)
+  activeTab.value = 'details'
+  
+  // 清空之前的数据
+  tables.value = []
+  tableFields.value = {}
+  previewData.value = { columns: [], data: [], totalCount: 0 }
+  selectedTable.value = ''
+  testResult.value = null
+}
+
+const handleTabChange = (tabName: string) => {
+  if (tabName === 'fields' && selectedDataSource.value) {
+    loadTables()
   }
 }
 
-const viewTableFields = async (table: TableInfo) => {
-  if (!selectedDataSource.value) return
-  
-  selectedTable.value = table
-  showFieldsDialog.value = true
-  loadingFields.value = true
-  
-  try {
-    const response = await dataSourceApi.getFieldsByTable(
-      selectedDataSource.value.id, 
-      table.name,
-      selectedDataSource.value
-    )
-    
-    // 处理API返回的数据格式：response.data 是数组格式
-    if (response && Array.isArray(response.data)) {
-      fields.value = response.data.map((column: any) => ({
-        name: column.columnName,
-        dataType: column.columnType,
-        isPrimary: column.isPrimaryKey,
-        isNullable: true, // API未返回此信息，默认为true
-        description: column.columnComment || '-',
-        tableName: table.name
-      }))
-    } else {
-      fields.value = []
-    }
-  } catch (error) {
-    ElMessage.error('加载字段信息失败')
-    console.error('Failed to load table fields:', error)
-    fields.value = []
-  } finally {
-    loadingFields.value = false
-  }
-}
-
-const createDataSetFromTable = (table: TableInfo) => {
-  ElMessage.info(`将为表 ${table.name} 创建数据集`)
-}
-
-const editDataSource = (dataSource: DataSource | null) => {
-  if (!dataSource) return
-  editingDataSource.value = dataSource
-  showAddDataSource.value = true
-}
-
-const testConnection = async (dataSource: DataSource | null) => {
-  if (!dataSource) return
-  
+const testConnection = async (dataSource: DataSource) => {
+  testing.value = true
   try {
     const result = await dataSourceApi.testConnection({
-      url: dataSource.url,
-      username: dataSource.username,
-      password: dataSource.password,
-      port: dataSource.port,
-      database: dataSource.database,
-      type: dataSource.type as 'mysql' | 'postgresql' | 'sqlite' | 'oracle' | 'sqlserver'
+      url: dataSource.url || '',
+      username: dataSource.username || '',
+      password: dataSource.password || '',
+      port: Number(dataSource.port) || 3306,
+      database: dataSource.database || '',
+      type: dataSource.type as any
     })
+    
+    testResult.value = {
+      success: result.code === 200,
+      message: result.message || (result.code === 200 ? '连接成功' : '连接失败'),
+      timestamp: new Date().toISOString()
+    }
     
     if (result.code === 200) {
       ElMessage.success('连接测试成功')
@@ -755,138 +640,214 @@ const testConnection = async (dataSource: DataSource | null) => {
       ElMessage.error('连接测试失败')
     }
   } catch (error) {
+    console.error('连接测试失败:', error)
+    testResult.value = {
+      success: false,
+      message: '连接测试异常',
+      timestamp: new Date().toISOString()
+    }
     ElMessage.error('连接测试失败')
-    console.error(error)
+  } finally {
+    testing.value = false
   }
 }
 
-const toggleDataSourceStatus = async (dataSource: DataSource | null) => {
-  if (!dataSource) return
+const loadTables = async () => {
+  if (!selectedDataSource.value) return
   
+  loadingTables.value = true
   try {
-    const newStatus = dataSource.status === 'online' ? 'offline' : 'online'
-    await dataSourceApi.updateDataSourceStatus(dataSource.id, newStatus)
-    dataSource.status = newStatus
-    ElMessage.success(`数据源已设为${newStatus === 'online' ? '在线' : '离线'}`)
+    const tableList = await dataSourceApi.getTablesBySourceId(
+      selectedDataSource.value.id, 
+      selectedDataSource.value
+    )
+    tables.value = tableList
   } catch (error) {
-    ElMessage.error('状态更新失败')
-    console.error(error)
+    console.error('加载表列表失败:', error)
+    ElMessage.error('加载表列表失败')
+  } finally {
+    loadingTables.value = false
   }
 }
 
-const confirmDelete = async (id: number) => {
+const loadTableFields = async (tableName: string) => {
+  if (!selectedDataSource.value) return
+  
+  loadingFields.value[tableName] = true
   try {
-    await ElMessageBox.confirm('确定要删除这个数据源吗？', '确认删除', {
-      type: 'warning'
-    })
+    const response = await dataSourceApi.getFieldsByTable(
+      selectedDataSource.value.id, 
+      tableName, 
+      selectedDataSource.value
+    )
     
-    await dataSourceApi.deleteDataSource(id)
-    ElMessage.success('删除成功')
-    loadDataSources()
-    
-    if (selectedDataSource.value?.id === id) {
-      selectedDataSource.value = null
-      selectedTable.value = null
+    if (response.code === 200) {
+      tableFields.value[tableName] = response.data || []
+    } else {
+      ElMessage.error('加载字段信息失败')
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-      console.error(error)
+    console.error('加载字段信息失败:', error)
+    ElMessage.error('加载字段信息失败')
+  } finally {
+    loadingFields.value[tableName] = false
+  }
+}
+
+const loadPreviewData = async () => {
+  if (!selectedDataSource.value || !selectedTable.value) return
+  
+  loadingPreview.value = true
+  try {
+    // 构造简单的SQL查询
+    const sql = `SELECT * FROM ${selectedTable.value} LIMIT 100`
+    
+    // 这里需要调用数据预览API，暂时模拟数据
+    const mockData = {
+      columns: ['id', 'name', 'type', 'create_time'],
+      data: [
+        { id: 1, name: '示例数据1', type: 'A', create_time: '2024-01-01' },
+        { id: 2, name: '示例数据2', type: 'B', create_time: '2024-01-02' },
+      ],
+      totalCount: 2
     }
+    
+    previewData.value = mockData
+  } catch (error) {
+    console.error('加载预览数据失败:', error)
+    ElMessage.error('加载预览数据失败')
+  } finally {
+    loadingPreview.value = false
   }
 }
 
-const handleDataSourceSuccess = () => {
-  showAddDataSource.value = false
-  editingDataSource.value = null
-  loadDataSources()
-}
-
-const createFolder = () => {
-  ElMessage.info('文件夹功能待实现')
-  showCreateFolderDialog.value = false
-  folderForm.name = ''
-}
-
-const formatDate = (dateString?: string) => {
-  if (!dateString) return '-'
-  return new Date(dateString).toLocaleString()
-}
-
-const getDisplayValue = (datasource: DataSource | null, key: string) => {
-  if (!datasource) return '-'
-  
-  if (key === 'database') return datasource.database || '-'
-  if (key === 'url') return datasource.url || '-'
-  if (key === 'host') return datasource.host || '-'
-  if (key === 'port') return datasource.port || '-'
-  if (key === 'databaseName') return datasource.databaseName || '-'
-  if (key === 'username') return datasource.username || '-'
-  
-  if (datasource.url) {
-    try {
-      const urlParts = datasource.url.split(':')
-      if (key === 'host') return urlParts[1]?.split('//')[1] || '-'
-      if (key === 'port') return Number(urlParts[2]?.split('/')[0]) || '-'
-    } catch (error) {
-      console.error('解析URL失败:', error)
-    }
-  }
-  
-  return '-'
-}
-
-const handleTabChange = (tab: string) => {
-  if (tab === 'tables' && selectedDataSource.value) {
-    loadTables(selectedDataSource.value.id)
-  }
-}
-
-const getTypeTag = (type: string | undefined | null) => {
-  if (!type) return 'info'
-  switch (type.toLowerCase()) {
-    case 'mysql':
-      return 'success'
-    case 'postgresql':
-      return 'primary'
-    case 'oracle':
-      return 'warning'
-    case 'sqlserver':
-      return 'info'
-    default:
-      return 'info'
-  }
+const editDataSource = (dataSource: DataSource) => {
+  currentDataSource.value = dataSource
+  showCreateDialog.value = true
 }
 
 const handleCommand = (command: string) => {
   const [action, id] = command.split('-')
-  const dataSourceId = Number(id)
   
-  switch (action) {
-    case 'toggle':
-      toggleDataSourceStatus(selectedDataSource.value)
-      break
-    case 'delete':
-      confirmDelete(dataSourceId)
-      break
+  if (action === 'duplicate') {
+    duplicateDataSource(selectedDataSource.value!)
+  } else if (action === 'delete') {
+    deleteDataSource(selectedDataSource.value!)
   }
 }
 
-const handlePageSizeChange = () => {
-  currentPage.value = 1
-  // 如果切换到显示全部模式，确保没有分页限制
-  if (pageSize.value === 0) {
-    currentPage.value = 1
+const duplicateDataSource = async (dataSource: DataSource) => {
+  try {
+    const newDataSource = {
+      ...dataSource,
+      name: `${dataSource.name} (副本)`,
+      id: undefined
+    } as any
+    
+    await dataSourceApi.createDataSource(newDataSource)
+    ElMessage.success('数据源复制成功')
+    loadDataSources()
+  } catch (error) {
+    console.error('复制数据源失败:', error)
+    ElMessage.error('复制数据源失败')
   }
 }
 
-const handleCurrentPageChange = (newPage: number) => {
-  currentPage.value = newPage
+const deleteDataSource = async (dataSource: DataSource) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除数据源 "${dataSource.name}" 吗？此操作不可撤销。`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+    
+    await dataSourceApi.deleteDataSource(dataSource.id)
+    datasourceStore.removeDataSource(dataSource.id)
+    
+    if (selectedDataSource.value?.id === dataSource.id) {
+      selectedDataSource.value = null
+    }
+    
+    ElMessage.success('数据源删除成功')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除数据源失败:', error)
+      ElMessage.error('删除数据源失败')
+    }
+  }
 }
 
-// 搜索时重置分页
-const resetPagination = () => {
-  currentPage.value = 1
+const handleDialogSuccess = () => {
+  showCreateDialog.value = false
+  currentDataSource.value = null
+  loadDataSources()
+}
+
+// 辅助方法
+const getTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    mysql: 'MySQL',
+    postgresql: 'PostgreSQL',
+    oracle: 'Oracle',
+    sqlserver: 'SQL Server',
+    clickhouse: 'ClickHouse',
+    sqlite: 'SQLite',
+    mongodb: 'MongoDB',
+    rest_api: 'REST API'
+  }
+  return labels[type] || type.toUpperCase()
+}
+
+const getTypeTagType = (type: string) => {
+  const types: Record<string, string> = {
+    mysql: 'primary',
+    postgresql: 'success',
+    oracle: 'warning',
+    sqlserver: 'info',
+    clickhouse: 'danger',
+    sqlite: 'default',
+    mongodb: 'success',
+    rest_api: 'info'
+  }
+  return types[type] || 'default'
+}
+
+const getTypeIcon = (type: string) => {
+  // 返回图标组件名，这里统一使用 DataBoard
+  return 'DataBoard'
+}
+
+const getConnectionString = (dataSource: DataSource) => {
+  return `${dataSource.url}:${dataSource.port}`
+}
+
+const getConnectionStatus = (dataSource: DataSource) => {
+  // 模拟连接状态，实际应该根据最后一次连接测试结果
+  return Math.random() > 0.3 ? 'online' : 'offline'
+}
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleString('zh-CN')
+}
+
+const getColumnTypeTag = (columnType: string) => {
+  const type = columnType?.toUpperCase() || ''
+  if (type.includes('INT') || type.includes('DECIMAL') || type.includes('FLOAT') || type.includes('DOUBLE')) {
+    return 'warning'
+  } else if (type.includes('VARCHAR') || type.includes('CHAR') || type.includes('TEXT')) {
+    return 'primary'
+  } else if (type.includes('DATE') || type.includes('TIME')) {
+    return 'success'
+  } else if (type.includes('BLOB') || type.includes('BINARY')) {
+    return 'info'
+  }
+  return ''
 }
 
 // 生命周期
@@ -895,1123 +856,675 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
+/* 页面基础样式 - 确保左右布局 */
 .datasource-manage {
+  padding: 20px;
+  background: #f8fafc;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  overflow: hidden;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    opacity: 0.1;
-    z-index: 0;
-  }
-}
-
-/* 页面头部 - 现代化设计 */
-.page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 50%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    transform: rotate(15deg);
-  }
-  
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 32px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .header-left {
-    .page-title {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      color: white;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      
-      .el-icon {
-        font-size: 32px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-      }
-    }
-    
-    .page-description {
-      margin: 0;
-      font-size: 16px;
-      opacity: 0.9;
-      font-weight: 400;
-      color: rgba(255,255,255,0.9);
-    }
-  }
-
-  .header-actions {
-    .el-button {
-      background: rgba(255, 255, 255, 0.15);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      backdrop-filter: blur(10px);
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      &:hover {
-        background: rgba(255, 255, 255, 0.25);
-        border-color: rgba(255, 255, 255, 0.4);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-      }
-      
-      .el-icon {
-        margin-right: 8px;
-      }
-    }
-  }
-}
-
-/* 主容器 - 优化布局 */
-.main-container {
-  display: flex;
-  min-height: calc(100vh - 120px);
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
-  gap: 24px;
-  padding: 24px 32px;
-  position: relative;
-  z-index: 1;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
-/* 左侧面板 - 卡片化设计 */
-.left-panel {
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* 搜索区域 - 现代化输入框 */
-.search-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-  }
-  
-  .search-bar {
-    margin-bottom: 16px;
-    
-    :deep(.el-input) {
-      .el-input__wrapper {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e4e7ed;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          border-color: #409eff;
-          box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
-        }
-        
-        &.is-focus {
-          border-color: #409eff;
-          box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-        }
-      }
-      
-      .el-input-group__append {
-        .el-button {
-          border-radius: 0 12px 12px 0;
-          background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-          border: none;
-          font-weight: 600;
-          
-          &:hover {
-            background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
-            transform: translateY(-1px);
-          }
-        }
-      }
-    }
-  }
-  
-  .filter-bar {
-    .sort-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .sort-label {
-        font-size: 14px;
-        color: #606266;
-        font-weight: 600;
-      }
-      
-      :deep(.el-button-group) {
-        .el-button {
-          padding: 8px 16px;
-          font-size: 13px;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          
-          &:first-child {
-            border-radius: 8px 0 0 8px;
-          }
-          
-          &:last-child {
-            border-radius: 0 8px 8px 0;
-          }
-          
-          &.is-active {
-            background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-            border-color: #409eff;
-            color: white;
-            box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
-          }
-          
-          .el-icon {
-            margin-left: 6px;
-            font-size: 12px;
-          }
-        }
-      }
-    }
-  }
-  
-  .filter-status {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #f0f0f0;
-    
-    .el-tag {
-      margin-right: 8px;
-      border-radius: 20px;
-      padding: 4px 12px;
-    }
-  }
-}
-
-/* 统计卡片 - 3D效果 */
-.stats-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  }
-}
-
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.stat-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+/* 页面头部样式 */
+.page-header {
+  margin-bottom: 24px;
+  padding: 24px;
+  background: #ffffff;
   border-radius: 12px;
-  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.page-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.5), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-  }
-  
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-    
-    &::before {
-      transform: translateX(100%);
-    }
-  }
-  
-  .stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 12px;
-      padding: 2px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask-composite: xor;
-    }
-    
-    .el-icon {
-      font-size: 20px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-    }
-  }
-  
-  .stat-content {
-    flex: 1;
-    
-    .stat-value {
-      font-size: 20px;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 4px;
-      background: linear-gradient(135deg, #333 0%, #666 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .stat-label {
-      font-size: 12px;
-      color: #666;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-  }
-  
-  &.total {
-    .stat-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .stat-value {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-  }
-  
-  &.active {
-    .stat-icon {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-    }
-    .stat-value {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-  }
-  
-  &.inactive {
-    .stat-icon {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      color: white;
-    }
-    .stat-value {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-  }
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: #409EFF;
 }
 
-/* 数据源分布 - 交互式卡片 */
-.datasource-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  }
-  
-  .section-title {
-    margin: 0 0 16px 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #303133;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    
-    &::before {
-      content: '';
-      width: 4px;
-      height: 16px;
-      background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-      border-radius: 2px;
-    }
-  }
-
-  .datasource-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .datasource-item {
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 10px;
-    
-    &:hover {
-      transform: translateX(4px);
-    }
-
-    &.active {
-      .datasource-info {
-        background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
-        border: 1px solid #409eff;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
-      }
-    }
-
-    .datasource-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-      border-radius: 10px;
-      border: 1px solid #e4e7ed;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        border-color: #409eff;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
-        transform: translateY(-1px);
-      }
-      
-      .el-tag {
-        border-radius: 6px;
-        font-weight: 600;
-      }
-      
-      .datasource-count {
-        font-size: 13px;
-        color: #666;
-        font-weight: 600;
-        background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-    }
-  }
+.icon-database {
+  font-size: 32px;
 }
 
-/* 数据源列表 - 高级卡片设计 */
-.datasource-list-section {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.page-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 主容器样式 - 左右布局 */
+.main-container {
+  display: flex;
+  gap: 20px;
+  min-height: calc(100vh - 200px);
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* 左侧面板 - 固定宽度 */
+.left-panel {
+  flex: 0 0 450px;
+  width: 450px;
+  min-width: 450px;
+  max-width: 450px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  }
-  
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #f0f0f0;
-    
-    .section-title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: #303133;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      
-      &::before {
-        content: '';
-        width: 4px;
-        height: 18px;
-        background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-        border-radius: 2px;
-      }
-    }
-    
-    .list-controls {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      
-      :deep(.el-select) {
-        .el-input__wrapper {
-          border-radius: 8px;
-          border: 1px solid #dcdfe6;
-          transition: all 0.3s ease;
-          
-          &:hover {
-            border-color: #409eff;
-          }
-        }
-      }
-      
-      .total-count {
-        font-size: 13px;
-        color: #666;
-        font-weight: 600;
-        padding: 6px 12px;
-        background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
-        border-radius: 16px;
-        white-space: nowrap;
-      }
-    }
-  }
-  
-  .datasource-grid {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding-right: 4px;
-    
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, #c1c1c1 0%, #a8a8a8 100%);
-      border-radius: 3px;
-      transition: background 0.3s ease;
-      
-      &:hover {
-        background: linear-gradient(135deg, #a8a8a8 0%, #909090 100%);
-      }
-    }
-  }
-  
-  .pagination-container {
-    margin-top: 16px;
-    display: flex;
-    justify-content: center;
-    border-top: 2px solid #f0f0f0;
-    padding-top: 16px;
-    
-    :deep(.el-pagination) {
-      .el-pager li {
-        min-width: 28px;
-        height: 28px;
-        line-height: 28px;
-        font-size: 13px;
-        border-radius: 6px;
-        margin: 0 2px;
-        transition: all 0.3s ease;
-        
-        &.is-active {
-          background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-          border-color: #409eff;
-        }
-      }
-      
-      .btn-prev, .btn-next {
-        width: 28px;
-        height: 28px;
-        line-height: 28px;
-        border-radius: 6px;
-        margin: 0 4px;
-      }
-    }
-  }
+  gap: 16px;
+  height: fit-content;
 }
 
-/* 数据源卡片 - 专业级设计 */
-.datasource-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border: 1px solid #e4e7ed;
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #409eff, #1890ff, #409eff);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-  }
-  
-  &:hover {
-    border-color: #409eff;
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 32px rgba(64, 158, 255, 0.2);
-    
-    &::before {
-      transform: translateX(100%);
-    }
-    
-    .datasource-icon {
-      transform: scale(1.1) rotate(5deg);
-    }
-    
-    .datasource-name {
-      color: #409eff;
-    }
-  }
-  
-  &.active {
-    border-color: #409eff;
-    background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
-    box-shadow: 0 8px 25px rgba(64, 158, 255, 0.25);
-    
-    &::before {
-      transform: translateX(0);
-    }
-    
-    .datasource-name {
-      color: #409eff;
-    }
-  }
-  
-  .datasource-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    
-    .datasource-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      .el-icon {
-        font-size: 16px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-      }
-    }
-    
-    .datasource-status {
-      .el-tag {
-        border-radius: 12px;
-        font-weight: 600;
-        padding: 4px 10px;
-        font-size: 11px;
-        border: none;
-        
-        &.el-tag--success {
-          background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
-          color: white;
-        }
-        
-        &.el-tag--danger {
-          background: linear-gradient(135deg, #f56c6c 0%, #f78989 100%);
-          color: white;
-        }
-      }
-    }
-  }
-  
-  .datasource-content {
-    .datasource-name {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #303133;
-      line-height: 1.4;
-      transition: all 0.3s ease;
-    }
-
-    .datasource-description {
-      margin: 0 0 12px 0;
-      font-size: 13px;
-      color: #666;
-      line-height: 1.4;
-      font-weight: 500;
-    }
-
-    .datasource-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      
-      .meta-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: #666;
-        
-        .el-icon {
-          font-size: 14px;
-          color: #999;
-        }
-      }
-    }
-
-    .datasource-type {
-      display: flex;
-      justify-content: flex-end;
-      
-      .el-tag {
-        border-radius: 8px;
-        font-weight: 600;
-        border: none;
-        
-        &.el-tag--success {
-          background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
-          color: white;
-        }
-        
-        &.el-tag--primary {
-          background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
-          color: white;
-        }
-        
-        &.el-tag--warning {
-          background: linear-gradient(135deg, #e6a23c 0%, #f0a020 100%);
-          color: white;
-        }
-        
-        &.el-tag--info {
-          background: linear-gradient(135deg, #909399 0%, #a6a9ad 100%);
-          color: white;
-        }
-      }
-    }
-  }
-}
-
-/* 右侧面板 - 高端设计 */
+/* 右侧面板 - 自适应宽度 */
 .right-panel {
   flex: 1;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 600px;
+  width: calc(100% - 470px);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  }
-  
-  .detail-tabs-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border-radius: 16px 16px 0 0;
-    border-bottom: 2px solid #f0f0f0;
-    
-    :deep(.detail-tabs-nav) {
-      .el-tabs__header {
-        margin: 0;
-        padding: 0 24px;
-        background: transparent;
-        border-bottom: none;
-      }
-      
-      .el-tabs__nav-wrap {
-        padding: 16px 0;
-      }
-      
-      .el-tabs__item {
-        font-weight: 600;
-        color: #606266;
-        font-size: 15px;
-        padding: 0 24px;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          color: #409eff;
-        }
-        
-        &.is-active {
-          color: #409eff;
-          font-weight: 700;
-        }
-      }
-      
-      .el-tabs__active-bar {
-        background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-        height: 3px;
-        border-radius: 2px;
-      }
-    }
-  }
-  
-  .detail-content-wrapper {
-    flex: 1;
-    overflow: hidden;
-
-    .tab-content {
-      height: 100%;
-      overflow-y: auto;
-      
-      &::-webkit-scrollbar {
-        width: 6px;
-      }
-      
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-      }
-      
-      &::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #c1c1c1 0%, #a8a8a8 100%);
-        border-radius: 3px;
-        
-        &:hover {
-          background: linear-gradient(135deg, #a8a8a8 0%, #909090 100%);
-        }
-      }
-    }
-  }
-  
-  .detail-header {
-    padding: 24px 24px 20px 24px;
-    border-bottom: 2px solid #f0f0f0;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-
-    .detail-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      
-      h2 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 700;
-        color: #303133;
-        background: linear-gradient(135deg, #303133 0%, #606266 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      
-      .el-tag {
-        border-radius: 12px;
-        font-weight: 600;
-        padding: 6px 12px;
-        border: none;
-      }
-    }
-    
-    .detail-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      
-      .el-button {
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          transform: translateY(-2px);
-        }
-        
-        &.el-button--primary {
-          background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-          border: none;
-        }
-        
-        &.el-button--success {
-          background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
-          border: none;
-        }
-      }
-    }
-  }
-  
-  .detail-content {
-    padding: 24px;
-    
-    :deep(.el-descriptions) {
-      .el-descriptions__header {
-        margin-bottom: 20px;
-      }
-      
-      .el-descriptions__table {
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      
-      .el-descriptions__cell {
-        border-color: #f0f0f0;
-      }
-      
-      .el-descriptions__label {
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        font-weight: 600;
-        color: #303133;
-      }
-    }
-    
-    :deep(.el-table) {
-      border-radius: 8px;
-      overflow: hidden;
-      
-      .el-table__header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        
-        th {
-          background: transparent;
-          border-color: #f0f0f0;
-          font-weight: 600;
-        }
-      }
-      
-      .el-table__body {
-        tr:hover {
-          background: #f5f7fa;
-        }
-        
-        td {
-          border-color: #f0f0f0;
-        }
-      }
-    }
-  }
+  min-height: 600px;
 }
 
+/* 右侧空状态面板 */
 .right-panel-empty {
   flex: 1;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 600px;
+  width: calc(100% - 470px);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  }
-  
-  :deep(.el-empty) {
-    .el-empty__description {
-      font-weight: 600;
-      color: #666;
-    }
-    
-    .el-button {
-      background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(64, 158, 255, 0.3);
-      }
-    }
-  }
+  padding: 60px 40px;
+  min-height: 600px;
 }
 
-/* 对话框优化 */
-:deep(.el-dialog) {
-  border-radius: 16px;
-  overflow: hidden;
-  
-  .el-dialog__header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    padding: 20px 24px;
-    border-bottom: 2px solid #f0f0f0;
-    
-    .el-dialog__title {
-      font-weight: 700;
-      font-size: 18px;
-      color: #303133;
-    }
-  }
-  
-  .el-dialog__body {
-    padding: 24px;
-  }
-  
-  .el-dialog__footer {
-    padding: 16px 24px;
-    border-top: 2px solid #f0f0f0;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  }
+.empty-content {
+  text-align: center;
+  max-width: 400px;
 }
 
-/* 响应式设计优化 */
-@media (max-width: 1200px) {
-  .main-container {
-    padding: 20px 24px;
-    gap: 20px;
-  }
-  
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #409EFF, #66b3ff);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 40px;
+  color: white;
+}
+
+.empty-title {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.empty-description {
+  margin: 0 0 32px 0;
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.empty-actions {
+  margin-bottom: 40px;
+}
+
+.quick-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.feature-item .el-icon {
+  color: #409EFF;
+  font-size: 18px;
+}
+
+/* 响应式样式 */
+@media (max-width: 1400px) {
   .left-panel {
-    width: 380px;
-  }
-  
-  .page-header .header-content {
-    padding: 24px;
-  }
-}
-
-@media (max-width: 768px) {
-  .main-container {
-    flex-direction: column;
-    padding: 16px 20px;
-  }
-  
-  .left-panel {
-    width: 100%;
-    order: 2;
+    flex: 0 0 400px;
+    width: 400px;
+    min-width: 400px;
+    max-width: 400px;
   }
   
   .right-panel,
   .right-panel-empty {
-    order: 1;
-    margin-bottom: 20px;
-  }
-  
-  .page-header .header-content {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-    padding: 20px;
-  }
-  
-  .stats-cards {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .datasource-card {
-    margin-bottom: 12px;
+    min-width: 500px;
+    width: calc(100% - 420px);
   }
 }
 
-@media (max-width: 480px) {
-  .page-header .header-content {
+@media (max-width: 1200px) {
+  .main-container {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .left-panel {
+    flex: none;
+    width: 100%;
+    min-width: auto;
+    max-width: none;
+    order: 1;
+  }
+  
+  .right-panel,
+  .right-panel-empty {
+    flex: none;
+    width: 100%;
+    min-width: auto;
+    min-height: 500px;
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .datasource-manage {
     padding: 16px;
   }
   
   .main-container {
-    padding: 12px 16px;
+    gap: 12px;
+  }
+}
+
+/* 搜索筛选样式 */
+.search-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.search-bar {
+  margin-bottom: 16px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 统计信息栏 */
+.stats-bar {
+  display: flex;
+  gap: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.stat-value.success {
+  color: #67c23a;
+}
+
+.stat-value.danger {
+  color: #f56c6c;
+}
+
+/* 数据源列表样式 */
+.datasource-list-section {
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.datasource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.datasource-item {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.datasource-item:hover {
+  border-color: #409EFF;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+}
+
+.datasource-item.active {
+  border-color: #409EFF;
+  background: #e1f5fe;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
+}
+
+.datasource-info {
+  width: 100%;
+}
+
+.datasource-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.datasource-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #409EFF, #66b3ff);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.datasource-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.datasource-name {
+  margin: 0 0 2px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datasource-description {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datasource-status {
+  flex-shrink: 0;
+}
+
+.datasource-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.meta-item:first-child {
+  margin-right: 8px;
+}
+
+/* 详情面板样式 */
+.detail-tabs-header {
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.detail-tabs-nav {
+  padding: 0 20px;
+}
+
+.detail-content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tab-content {
+  padding: 24px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.detail-content {
+  flex: 1;
+}
+
+/* 测试结果样式 */
+.test-result {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.test-result.success {
+  background: #f0f9ff;
+  border: 1px solid #67c23a;
+}
+
+.test-result.error {
+  background: #fef2f2;
+  border: 1px solid #f56c6c;
+}
+
+.result-icon {
+  font-size: 32px;
+}
+
+.test-result.success .result-icon {
+  color: #67c23a;
+}
+
+.test-result.error .result-icon {
+  color: #f56c6c;
+}
+
+.result-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.result-content p {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.result-content small {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 字段和预览样式 */
+.fields-header, .preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.preview-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tables-section {
+  min-height: 300px;
+}
+
+.tables-list {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-fields {
+  padding: 16px 0;
+}
+
+.preview-footer {
+  margin-top: 16px;
+  text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .main-container {
+    flex-direction: column;
   }
   
-  .section-header {
+  .right-panel, .right-panel-empty {
+    width: 100%;
+  }
+  
+  .stats-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
     flex-direction: column;
-    gap: 12px;
-    align-items: flex-start !important;
+    gap: 16px;
+  }
+  
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .datasource-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* 加载动画优化 */
-:deep(.el-loading-mask) {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
+/* Element Plus 样式覆盖 */
+:deep(.el-tabs__nav-wrap::after) {
+  display: none;
 }
 
-/* 动画效果 */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+:deep(.el-tabs__item) {
+  font-weight: 500;
 }
 
-.datasource-card,
-.stat-card,
-.search-section,
-.stats-section,
-.datasource-section,
-.datasource-list-section {
-  animation: slideInUp 0.6s ease-out;
+:deep(.el-tabs__item.is-active) {
+  color: #409EFF;
 }
 
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-</style> 
+:deep(.el-collapse-item__header) {
+  padding-left: 0;
+}
+
+:deep(.el-descriptions__label) {
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 数据字段表格优化样式 */
+.fields-table-container {
+  margin-top: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fields-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.fields-table .el-table__header) {
+  background: #f8fafc;
+}
+
+:deep(.fields-table .el-table__row) {
+  transition: background-color 0.2s ease;
+}
+
+:deep(.fields-table .el-table__row:hover) {
+  background: #f9fafb;
+}
+
+.field-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.primary-key-icon {
+  color: #f56c6c;
+  font-size: 14px;
+}
+
+.column-comment {
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.no-primary {
+  color: #d1d5db;
+  font-size: 12px;
+}
+
+/* 表格单元格内的标签优化 */
+:deep(.fields-table .el-tag) {
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+:deep(.fields-table .el-tag--small) {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+/* 字段类型标签颜色优化 */
+:deep(.fields-table .el-tag--warning.is-light) {
+  background: #fef3e2;
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+:deep(.fields-table .el-tag--primary.is-light) {
+  background: #e1f5fe;
+  border-color: #409EFF;
+  color: #409EFF;
+}
+
+:deep(.fields-table .el-tag--success.is-light) {
+  background: #f0f9ff;
+  border-color: #67c23a;
+  color: #67c23a;
+}
+
+:deep(.fields-table .el-tag--info.is-light) {
+  background: #f3f4f6;
+  border-color: #909399;
+  color: #909399;
+}
+
+:deep(.fields-table .el-tag--danger.is-light) {
+  background: #fef2f2;
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+</style>

@@ -842,16 +842,17 @@ const handleCommand = (command: string) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: #ffffff;
   overflow: hidden;
 }
 
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #ffffff;
+  color: #333333;
   padding: 20px 32px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #e5e7eb;
   
   .header-content {
   display: flex;
@@ -868,31 +869,32 @@ const handleCommand = (command: string) => {
       gap: 8px;
       margin: 0;
       font-size: 20px;
+      color: #409EFF;
+      font-weight: 600;
       
       .icon-database {
         font-size: 20px;
-        color: #fff;
+        color: #409EFF;
       }
     }
     
     .page-description {
       margin: 0;
       font-size: 14px;
-      opacity: 0.9;
-      font-weight: 300;
+      color: #666666;
+      font-weight: 400;
     }
 }
 
   .header-actions {
     .el-button {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: #409EFF;
+      border: 1px solid #409EFF;
       color: white;
-      backdrop-filter: blur(10px);
       
       &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
+        background: #66b3ff;
+        border-color: #66b3ff;
       }
     }
   }
