@@ -164,7 +164,6 @@ export const dataSetApi = {
   // 创建数据集
   createDataset: async (dataset: DataSetCreateRequest): Promise<DataSet> => {
     const response = await post(dataSourceService, '/api/datasets', dataset)
-    debugger
     return response.data
   },
 

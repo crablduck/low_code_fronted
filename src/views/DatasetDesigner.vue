@@ -658,13 +658,23 @@ const initFieldConfigs = () => {
   }))
 }
 
-const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' => {
+const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' | 'date' => {
   const type = dataType.toLowerCase()
-  if (type.includes('int') || type.includes('decimal') || type.includes('float') || type.includes('double')) {
+  
+  // 数值类型 → 指标
+  if (type.includes('int') || type.includes('decimal') || type.includes('float') || 
+      type.includes('double') || type.includes('number') || type.includes('bigint') ||
+      type.includes('money') || type.includes('currency')) {
     return 'metric'
-  } else {
-    return 'dimension'
   }
+  
+  // 日期时间类型 → 日期
+  if (type.includes('date') || type.includes('time') || type.includes('timestamp')) {
+    return 'date'
+  }
+  
+  // 其他类型 → 维度
+  return 'dimension'
 }
 
 const selectAllFields = () => {
@@ -845,6 +855,20 @@ const saveDataset = async () => {
       return
     }
     
+    // 验证字段配置的完整性
+    const validatedFields = fieldConfigs.value.map((field, index) => ({
+      fieldName: field.fieldName,
+      tableName: field.tableName,
+      displayName: field.displayName || field.fieldName,
+      fieldType: field.fieldType || 'dimension', // 确保有fieldType
+      isVisible: field.isVisible !== false, // 默认可见
+      description: field.description || '',
+      sortOrder: field.sortOrder || index,
+      aggregation: field.fieldType === 'metric' ? (field.aggregation || 'sum') : undefined,
+      isCalculated: field.isCalculated || false,
+      expression: field.expression || undefined
+    }))
+    
     const submitData = {
       name: form.name,
       description: form.description,
@@ -854,11 +878,17 @@ const saveDataset = async () => {
       tables: form.tables,
       relations: form.relations,
       sqlQuery: form.sqlQuery,
-      fields: fieldConfigs.value
+      fields: validatedFields
     }
     
     console.log('📝 提交数据:', submitData)
     console.log('🔍 dataSourceIds:', submitData.dataSourceIds)
+    console.log('📊 字段配置详情:', validatedFields.map(f => ({
+      fieldName: f.fieldName,
+      fieldType: f.fieldType,
+      aggregation: f.aggregation,
+      isVisible: f.isVisible
+    })))
     
     if (isEdit.value) {
       await dataSetApi.updateDataset(Number(route.params.id), submitData)

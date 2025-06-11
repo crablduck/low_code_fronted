@@ -123,6 +123,12 @@
                     <span>指标</span>
                   </div>
                 </el-option>
+                <el-option label="日期" value="date">
+                  <div class="option-content">
+                    <el-icon><Calendar /></el-icon>
+                    <span>日期</span>
+                  </div>
+                </el-option>
               </el-select>
             </template>
           </el-table-column>
@@ -134,6 +140,7 @@
                 size="small"
                 :disabled="row.fieldType !== 'metric'"
                 placeholder="选择聚合"
+                clearable
                 @change="updateFieldConfig($index, 'aggregation', row.aggregation)"
               >
                 <el-option label="求和" value="sum" />
@@ -213,6 +220,21 @@
               </el-tag>
             </div>
           </div>
+          
+          <div class="type-item">
+            <div class="type-header">
+              <el-icon><Calendar /></el-icon>
+              <span>日期字段</span>
+            </div>
+            <div class="type-desc">
+              时间相关的字段，用于时间序列分析和按时间分组
+            </div>
+            <div class="type-examples">
+              <el-tag size="small" v-for="example in dateExamples" :key="example">
+                {{ example }}
+              </el-tag>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -222,7 +244,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Key, Grid, TrendCharts, Delete } from '@element-plus/icons-vue'
+import { Key, Grid, TrendCharts, Delete, Calendar } from '@element-plus/icons-vue'
 import type { FieldInfo, DataSetFieldConfig } from '@/types/dataManagement'
 
 // Props
@@ -249,8 +271,9 @@ const showFieldTypes = ref(false)
 const selectedFieldKeys = ref<Set<string>>(new Set())
 
 // 示例数据
-const dimensionExamples = ['患者姓名', '科室名称', '医生职称', '日期', '性别', '地区']
+const dimensionExamples = ['患者姓名', '科室名称', '医生职称', '性别', '地区', '状态']
 const metricExamples = ['费用金额', '患者数量', '检查次数', '药品用量', '评分', '时长']
+const dateExamples = ['创建时间', '就诊日期', '出院日期', '更新时间', '生日', '预约时间']
 
 // 计算属性
 const fieldConfigs = computed({
@@ -308,14 +331,23 @@ const toggleField = (field: FieldInfo) => {
   }
 }
 
-const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' => {
+const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' | 'date' => {
   const type = dataType.toLowerCase()
+  
+  // 数值类型 → 指标
   if (type.includes('int') || type.includes('decimal') || type.includes('float') || 
-      type.includes('double') || type.includes('number')) {
+      type.includes('double') || type.includes('number') || type.includes('bigint') ||
+      type.includes('money') || type.includes('currency')) {
     return 'metric'
-  } else {
-    return 'dimension'
   }
+  
+  // 日期时间类型 → 日期
+  if (type.includes('date') || type.includes('time') || type.includes('timestamp')) {
+    return 'date'
+  }
+  
+  // 其他类型 → 维度
+  return 'dimension'
 }
 
 const getDataTypeColor = (dataType: string) => {
@@ -339,13 +371,15 @@ const updateFieldConfig = (index: number, key: keyof DataSetFieldConfig, value: 
   if (fieldConfigs.value[index]) {
     (fieldConfigs.value[index] as any)[key] = value
     
-    // 如果字段类型改为维度，清除聚合方式
-    if (key === 'fieldType' && value === 'dimension') {
-      fieldConfigs.value[index].aggregation = undefined
-    }
-    // 如果字段类型改为指标且没有聚合方式，设置默认聚合方式
-    else if (key === 'fieldType' && value === 'metric' && !fieldConfigs.value[index].aggregation) {
-      fieldConfigs.value[index].aggregation = 'sum'
+    // 根据字段类型处理聚合方式
+    if (key === 'fieldType') {
+      if (value === 'dimension' || value === 'date') {
+        // 维度和日期字段不需要聚合
+        fieldConfigs.value[index].aggregation = undefined
+      } else if (value === 'metric' && !fieldConfigs.value[index].aggregation) {
+        // 指标字段设置默认聚合方式
+        fieldConfigs.value[index].aggregation = 'sum'
+      }
     }
   }
 }
