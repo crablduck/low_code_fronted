@@ -167,7 +167,7 @@
                 <div class="dataset-meta">
                   <div class="meta-item">
                     <el-icon><DataBoard /></el-icon>
-                    <span>{{ dataset.dataSourceName }}</span>
+                    <span>{{ getDataSourceName(dataset.dataSourceId) }}</span>
                   </div>
                   <div class="meta-item">
                     <el-icon><Calendar /></el-icon>
@@ -256,7 +256,7 @@
                       {{ selectedDataset.name }}
                     </el-descriptions-item>
                     <el-descriptions-item label="数据源">
-                  <el-tag type="info">{{ selectedDataset.dataSourceName }}</el-tag>
+                  <el-tag type="info">{{ getDataSourceName(selectedDataset.dataSourceId) }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="查询类型">
                       <el-tag :type="getQueryTypeTag(selectedDataset.queryType)">
@@ -413,6 +413,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, SortUp, SortDown, Folder, Document, Plus, Edit, View, ArrowDown, Refresh, DataBoard, CircleCheck, CircleClose, Calendar, Grid } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { dataSetApi, dataSourceApi } from '@/api/dataSource'
+import { previewDatasetData } from '@/api/report'
 import DatasetForm from '@/components/dataset/DatasetForm.vue'
 import type { DataSet, DataSource, DataPreviewDTO, TreeNode } from '@/types/dataManagement'
 
@@ -496,24 +497,21 @@ const clearDataSourceFilter = () => {
 const loadDatasets = async () => {
   loading.value = true;
   try {
-    const params = {
-      page: 1,
-      pageSize: 100,
-      keyword: searchKeyword.value
-    };
+    const response = await dataSetApi.getDatasets();
+    console.log('数据集API响应:', response);
     
-    const response = await dataSetApi.getDatasets(params);
-    
-    // PagedResponse结构：{ data: T[], total: number, page: number, size: number }
-    if (response && response.content) {
-      datasets.value = response.content;
+    // API返回格式：PagedResponse<DataSet>，其中 data.content 是数组
+    if (response && response.data && Array.isArray(response.data)) {
+      datasets.value = response.data;
+      console.log(`成功加载 ${datasets.value.length} 个数据集`);
     } else {
+      console.error('API响应格式不正确:', response);
       datasets.value = [];
-      ElMessage.error('获取数据集列表失败');
+      ElMessage.error('数据集响应格式错误');
     }
   } catch (error) {
     console.error('加载数据集列表失败:', error);
-    ElMessage.error('加载数据集列表失败');
+    ElMessage.error('加载数据集列表失败: ' + (error?.message || '未知错误'));
     datasets.value = [];
   } finally {
     loading.value = false;
@@ -523,10 +521,19 @@ const loadDatasets = async () => {
 const loadDataSources = async () => {
   try {
     const result = await dataSourceApi.getAllDataSources()
-    if (result.code === 200 && result.data?.content) {
-      dataSources.value = result.data.content
+    console.log('数据源API返回结果:', result)
+    if (result.code === 200) {
+      // 检查 result.data 的结构
+      if (result.data?.content) {
+        dataSources.value = result.data.content
+      } else if (Array.isArray(result.data)) {
+        dataSources.value = result.data
+      } else {
+        console.error('数据源API返回的数据结构不正确:', result)
+        dataSources.value = []
+      }
     } else {
-      console.error('数据源API返回的数据结构不正确:', result)
+      console.error('数据源API返回错误:', result)
       dataSources.value = []
     }
   } catch (error) {
@@ -563,22 +570,71 @@ const sortDatasets = (type: 'name' | 'createTime' | 'updateTime') => {
 
 const handleNodeClick = (data: TreeNode) => {
   if (data.type === 'dataset') {
+    const previousDataset = selectedDataset.value
     selectedDataset.value = data.dataset
-    loadPreviewData(data.dataset.id)
+    
+    // 如果当前正在显示预览标签页，且选择了不同的数据集，则刷新预览数据
+    if (activeTab.value === 'preview' && data.dataset && 
+        (!previousDataset || previousDataset.id !== data.dataset.id)) {
+      console.log('树节点数据集切换，刷新预览数据:', data.dataset.name)
+      loadPreviewData(data.dataset.id)
+    }
   }
 }
 
 const loadPreviewData = async (datasetId: number) => {
-  if (activeTab.value === 'preview') {
-    loadingPreview.value = true
-    try {
-      previewData.value = await dataSetApi.previewData(datasetId, 100)
-    } catch (error) {
-      ElMessage.error('加载预览数据失败')
-      console.error(error)
-    } finally {
-      loadingPreview.value = false
+  loadingPreview.value = true
+  try {
+    // 使用新的 GET 接口直接预览数据集
+    const response = await previewDatasetData(datasetId.toString())
+    
+    // 处理返回的数据结构 - 数据已经通过适配器处理
+    console.log('完整的响应数据:', response)
+    
+    if (response.code === 200 && response.data) {
+      const { columns, data, totalCount } = response.data
+      
+      console.log('预览数据原始返回:', { columns, data, totalCount })
+      
+      // 检查 data 是否存在且为数组
+      if (!Array.isArray(data)) {
+        console.error('数据格式错误，data 不是数组:', data)
+        throw new Error('返回的数据格式不正确')
+      }
+      
+      if (!Array.isArray(columns)) {
+        console.error('列格式错误，columns 不是数组:', columns)
+        throw new Error('返回的列格式不正确')
+      }
+      
+      // 将二维数组转换为对象数组，以适配 el-table
+      const transformedData = data.map((row: any[]) => {
+        const rowObj: Record<string, any> = {}
+        columns.forEach((column: string, index: number) => {
+          rowObj[column] = row[index]
+        })
+        return rowObj
+      })
+      
+      console.log('转换后的数据:', transformedData)
+      
+      previewData.value = {
+        columns: columns || [],
+        data: transformedData || [],
+        totalCount: totalCount || 0
+      }
+      
+      console.log('设置的 previewData:', previewData.value)
+    } else {
+      console.error('响应格式错误:', response)
+      throw new Error(response.message || '预览数据失败')
     }
+  } catch (error) {
+    ElMessage.error('加载预览数据失败')
+    console.error(error)
+    previewData.value = { columns: [], data: [], totalCount: 0 }
+  } finally {
+    loadingPreview.value = false
   }
 }
 
@@ -593,6 +649,7 @@ const editDataset = (dataset: DataSet) => {
 }
 
 const previewDataset = (datasetId: number) => {
+  console.log('主动预览数据集:', datasetId)
   activeTab.value = 'preview'
   loadPreviewData(datasetId)
 }
@@ -650,6 +707,7 @@ const formatDate = (dateString?: string) => {
 
 // 监听标签页切换
 const handleTabChange = (tabName: string) => {
+  console.log('切换到标签页:', tabName, '选中的数据集:', selectedDataset.value)
   if (tabName === 'preview' && selectedDataset.value) {
     loadPreviewData(selectedDataset.value.id)
   }
@@ -747,10 +805,19 @@ const goToDesigner = (id?: number) => {
 
 // 选择数据集
 const selectDataset = (dataset: any) => {
+  const previousDataset = selectedDataset.value
   selectedDataset.value = dataset
+  
   // 如果选中了数据集，默认显示详情标签页
   if (activeTab.value !== 'details' && activeTab.value !== 'fields' && activeTab.value !== 'preview') {
     activeTab.value = 'details'
+  }
+  
+  // 如果当前正在显示预览标签页，且选择了不同的数据集，则刷新预览数据
+  if (activeTab.value === 'preview' && dataset && 
+      (!previousDataset || previousDataset.id !== dataset.id)) {
+    console.log('数据集切换，刷新预览数据:', dataset.name)
+    loadPreviewData(dataset.id)
   }
 }
 

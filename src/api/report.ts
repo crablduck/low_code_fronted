@@ -2,11 +2,11 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-01-14 10:00:00
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-06-10 12:51:40
+ * @LastEditTime: 2025-06-11 09:32:51
  * @FilePath: /workflow-system/src/api/report.ts
  * @Description: 报表管理API接口
  */
-import { get, post, put, del } from '@/utils/request'
+import { get, post, put, del, dataSourceService } from '@/utils/request'
 import { mainService } from '@/utils/request'
 import request from '@/utils/request'
 
@@ -237,7 +237,7 @@ export const reportDataSourceApi = {
 
   // 执行SQL查询预览
   previewSqlQuery: async (sql: string, dataSourceId?: number, limit: number = 10): Promise<StandardApiResponse<any[]>> => {
-    const response = await post(mainService, '/api/preview-sql', { sql, dataSourceId, limit })
+    const response = await post(dataSourceService, '/api/preview-sql', { sql, dataSourceId, limit })
     return adaptStandardResponse<any[]>(response)
   }
 }
@@ -360,13 +360,27 @@ export const queryDatasetForReport = async (datasetId: string, config: any) => {
   })
 }
 
-// 预览数据集数据
-export const previewDatasetData = async (datasetId: string, config: any) => {
-  return request({
-    url: `/api/datasets/${datasetId}/preview`,
-    method: 'post',
-    data: config
+// 预览数据集数据 - 使用 GET 请求
+export const previewDatasetData = async (datasetId: string): Promise<StandardApiResponse<{
+  columns: string[]
+  data: any[]
+  totalCount: number
+}>> => {
+  // 获取用户ID
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+  const userId = userInfo.id || userInfo.userId || '1' // 默认值为 '1'
+  
+  const response = await dataSourceService.get(`/api/datasets/${datasetId}/preview`, {
+    headers: {
+      'X-User-ID': userId.toString()
+    }
   })
+  
+  console.log('previewDatasetData 原始响应:', response)
+  
+  // 响应拦截器已经处理了数据，直接返回
+  // response 已经是后端返回的数据格式 { code, message, data }
+  return response as any
 }
 
 export default reportApi 
