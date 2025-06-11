@@ -89,7 +89,7 @@ export interface DataSet {
 export interface DataSetCreateRequest {
   name: string
   description?: string
-  dataSourceId: number
+  dataSourceIds: number[]  // 改为数组格式
   queryType: 'single' | 'multi' | 'sql'
   // 单表模式
   tableName?: string

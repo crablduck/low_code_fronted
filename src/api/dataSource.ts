@@ -129,17 +129,18 @@ export const dataSetApi = {
   getDatasets: async (params?: { page?: number; pageSize?: number; keyword?: string }): Promise<PagedResponse<DataSet>> => {
     const response = await get(dataSourceService, '/api/datasets')
     
-    // 根据API文档，响应格式为 { code, message, data: { content, totalElements, totalPages, currentPage, pageSize } }
-    if (response.code === 200) {
+    // response 经过拦截器处理后是完整的 API 响应 { code, message, data: { content, ... } }
+    if (response.code === 200 && response.data) {
+      const apiData = response.data as any
       return {
-        data: (response.data as any).content || response.data || [],
-        total: (response.data as any).totalElements || 0,
-        page: (response.data as any).currentPage || 1,
-        size: (response.data as any).pageSize || 10
+        data: apiData.content || [],
+        total: apiData.totalElements || 0,
+        page: apiData.currentPage || 1,
+        size: apiData.pageSize || 10
       }
     }
     
-    throw new Error(response.message || 'Failed to fetch datasets')
+    throw new Error((response as any).message || 'Failed to fetch datasets')
   },
 
   // 获取单个数据集 - 需要新增API接口
@@ -163,6 +164,7 @@ export const dataSetApi = {
   // 创建数据集
   createDataset: async (dataset: DataSetCreateRequest): Promise<DataSet> => {
     const response = await post(dataSourceService, '/api/datasets', dataset)
+    debugger
     return response.data
   },
 

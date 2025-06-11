@@ -336,9 +336,11 @@ const form = reactive<DataSetCreateRequest & {
   category?: string
   refreshRate?: string
   enableCache?: boolean
+  dataSourceId?: number  // 临时保留用于UI绑定
 }>({
   name: '',
-  dataSourceId: 0,
+  dataSourceId: 0,  // UI绑定用
+  dataSourceIds: [], // 实际提交用
   queryType: 'single',
   tableName: '',
   tables: [],
@@ -399,6 +401,20 @@ const rules: FormRules = {
   ],
   dataSourceId: [
     { required: true, message: '请选择数据源', trigger: 'change' }
+  ],
+  dataSourceIds: [
+    { 
+      validator: (rule, value, callback) => {
+        if (!value || value.length === 0) {
+          callback(new Error('请选择数据源'))
+        } else if (value.some((id: any) => !Number.isInteger(id))) {
+          callback(new Error('数据源ID格式错误'))
+        } else {
+          callback()
+        }
+      }, 
+      trigger: 'change' 
+    }
   ]
 }
 
@@ -420,12 +436,22 @@ const loadDataSources = async () => {
     console.log('数据源API返回结果:', result)
     
     if (result.code === 200 && result.data?.content) {
-      dataSources.value = result.data.content.map(ds => ({
+      // 过滤掉没有有效ID的数据源，彻底避免随机数问题
+      const validDataSources = result.data.content.filter(ds => {
+        const hasValidId = ds && ds.id && typeof ds.id === 'number' && Number.isInteger(ds.id)
+        if (!hasValidId) {
+          console.warn('⚠️ 跳过无效数据源:', ds)
+        }
+        return hasValidId
+      })
+      
+      dataSources.value = validDataSources.map(ds => ({
         ...ds,
-        id: ds.id || Math.random(),
         host: ds.url,
         databaseName: ds.database
       }))
+      
+      console.log('✅ 成功加载有效数据源:', dataSources.value.map(ds => ({ id: ds.id, name: ds.name })))
       
       if (dataSources.value.length === 0) {
         ElMessage.warning('暂无可用的数据源，请先创建数据源')
@@ -453,23 +479,35 @@ const handleDataSourceChange = async (dataSourceId: number) => {
     form.tableName = ''
     form.tables = []
     form.relations = []
+    form.dataSourceIds = [] // 清空数组
     allFields.value = {}
     fieldConfigs.value = []
     return
   }
   
-  console.log('数据源变更，ID:', dataSourceId)
+  // 验证ID是否为整数
+  if (!Number.isInteger(dataSourceId)) {
+    console.error('❌ 数据源ID不是整数:', dataSourceId)
+    ElMessage.error('数据源ID格式错误，请联系管理员')
+    return
+  }
+  
+  console.log('✅ 数据源变更，ID:', dataSourceId)
+  
+  // 更新数组格式的dataSourceIds
+  form.dataSourceIds = [dataSourceId]
+  console.log('📝 已更新 dataSourceIds:', form.dataSourceIds)
   
   // 找到选中的数据源对象
   const selectedDataSource = dataSources.value.find(ds => ds.id === dataSourceId)
   if (!selectedDataSource) {
-    console.error('在数据源列表中未找到ID为', dataSourceId, '的数据源')
+    console.error('❌ 在数据源列表中未找到ID为', dataSourceId, '的数据源')
     console.log('当前数据源列表:', dataSources.value)
     ElMessage.error('数据源未找到')
     return
   }
   
-  console.log('选中的数据源:', selectedDataSource)
+  console.log('✅ 选中的数据源:', selectedDataSource)
   
   try {
     console.log('开始加载数据表列表...')
@@ -789,10 +827,38 @@ const saveDataset = async () => {
   try {
     saving.value = true
     
+    // 确保dataSourceIds有值
+    if (!form.dataSourceIds || form.dataSourceIds.length === 0) {
+      if (form.dataSourceId) {
+        form.dataSourceIds = [form.dataSourceId]
+      } else {
+        ElMessage.error('请选择数据源')
+        return
+      }
+    }
+    
+    // 验证dataSourceIds中的ID都是整数
+    const invalidIds = form.dataSourceIds.filter(id => !Number.isInteger(id))
+    if (invalidIds.length > 0) {
+      console.error('❌ 发现无效的数据源ID:', invalidIds)
+      ElMessage.error('数据源ID格式错误，请重新选择数据源')
+      return
+    }
+    
     const submitData = {
-      ...form,
+      name: form.name,
+      description: form.description,
+      dataSourceIds: form.dataSourceIds, // 使用数组格式
+      queryType: form.queryType,
+      tableName: form.tableName,
+      tables: form.tables,
+      relations: form.relations,
+      sqlQuery: form.sqlQuery,
       fields: fieldConfigs.value
     }
+    
+    console.log('📝 提交数据:', submitData)
+    console.log('🔍 dataSourceIds:', submitData.dataSourceIds)
     
     if (isEdit.value) {
       await dataSetApi.updateDataset(Number(route.params.id), submitData)
