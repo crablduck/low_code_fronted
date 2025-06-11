@@ -90,6 +90,7 @@
           :margin="[10, 10]"
           @update:layout="onLayoutUpdated"
           @contextmenu="handleCanvasContextMenu($event)"
+          @click="deselectChart"
         >
           <grid-item
             v-for="item in layout"
@@ -103,7 +104,7 @@
             @resized="onResized"
             @move="onMove"
             @moved="onMoved"
-            @click="selectChart(item.i)"
+            @click.stop="selectChart(item.i)"
             @contextmenu="handleChartContextMenu($event, item)"
             :drag-allow-from="'.chart-drag-handler'"
             :drag-ignore-from="'.chart-actions'"
@@ -153,6 +154,15 @@
            :class="{ 'mobile-panels': isMobile }"
            :style="{ width: rightPanelsWidth + 'px' }">
         <div class="panels-container">
+          <!-- 无选中图表时的提示 -->
+          <div v-if="!selectedChart" class="no-chart-selected">
+            <div class="no-chart-content">
+              <el-icon class="hint-icon"><DataBoard /></el-icon>
+              <h4>请选择图表</h4>
+              <p>点击画布中的图表来配置其属性</p>
+            </div>
+          </div>
+          
           <!-- 图表配置面板 -->
           <div class="config-panel" v-if="selectedChart">
             <div class="panel-header">
@@ -1226,6 +1236,10 @@ const selectChart = (id: string) => {
   }
 }
 
+const deselectChart = () => {
+  selectedChart.value = null
+}
+
 const removeSelectedChart = () => {
   if (!selectedChart.value) return
   
@@ -1392,29 +1406,7 @@ const refreshData = async () => {
   }
 }
 
-const showPreview = async () => {
-  if (!selectedDataset.value) {
-    ElMessage.warning('请先选择数据集')
-    return
-  }
-  
-  // 如果还没有预览数据，先加载
-  if (previewDataList.value.length === 0) {
-    try {
-      const response = await previewDatasetData(selectedDataset.value.id)
-      const previewData = processPreviewData(response)
-      
-      previewDataList.value = previewData
-      console.log('预览数据加载成功:', previewData.length, '行数据')
-    } catch (error) {
-      console.error('加载预览数据失败:', error)
-      ElMessage.error('加载预览数据失败: ' + (error.message || '未知错误'))
-      return
-    }
-  }
-  
-  showDatasetPreview.value = true
-}
+// showPreview函数已在其他地方定义，删除重复声明
 
 // 刷新预览数据
 const refreshPreviewData = async () => {
@@ -2489,23 +2481,26 @@ const getDimensionFields = () => {
 const getMetricFields = () => {
   if (!selectedDataset.value) return []
   
+  // 使用类型安全的方式访问属性
+  const dataset = selectedDataset.value as any
+  
   // 从effectiveMetricFields获取
-  if (selectedDataset.value.effectiveMetricFields?.length) {
-    return selectedDataset.value.effectiveMetricFields
+  if (dataset.effectiveMetricFields?.length) {
+    return dataset.effectiveMetricFields
   }
   
   // 从autoMetricFields获取
-  if (selectedDataset.value.autoMetricFields?.length) {
-    return selectedDataset.value.autoMetricFields
+  if (dataset.autoMetricFields?.length) {
+    return dataset.autoMetricFields
   }
   
   // 从metricFields获取
-  if (selectedDataset.value.metricFields?.length) {
-    return selectedDataset.value.metricFields
+  if (dataset.metricFields?.length) {
+    return dataset.metricFields
   }
   
   // 根据businessType从fields中获取
-  return selectedDataset.value.fields?.filter(field => 
+  return dataset.fields?.filter((field: any) => 
     field.businessType === 'METRIC' || 
     field.fieldType === 'metric'
   ) || []
@@ -2517,35 +2512,39 @@ const getMetricFields = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8f2ff 100%);
   overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .toolbar {
   height: 60px;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-bottom: 1px solid #e4e7ed;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   z-index: 100;
   flex-shrink: 0;
+  backdrop-filter: blur(10px);
 }
 
 .toolbar-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.5px;
 }
 
 .toolbar-icon {
-  font-size: 24px;
+  font-size: 26px;
   color: #409eff;
+  filter: drop-shadow(0 2px 4px rgba(64, 158, 255, 0.3));
 }
 
 .main-content {
@@ -4929,6 +4928,67 @@ const getMetricFields = () => {
       background: white;
       border: 1px dashed #e4e7ed;
       border-radius: 6px;
+    }
+  }
+}
+
+.no-chart-selected {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  border: 1px dashed #e4e7ed;
+  border-radius: 12px;
+  margin: 16px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: #409eff;
+    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
+  }
+  
+  .no-chart-content {
+    text-align: center;
+    padding: 40px;
+    color: #909399;
+    
+    .hint-icon {
+      font-size: 64px;
+      color: #c0c4cc;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #606266;
+      transition: all 0.3s ease;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #909399;
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+  }
+  
+  &:hover .no-chart-content {
+    .hint-icon {
+      color: #409eff;
+      transform: scale(1.1);
+    }
+    
+    h4 {
+      color: #409eff;
+    }
+    
+    p {
+      color: #606266;
     }
   }
 }
