@@ -234,7 +234,7 @@ export const dataSetApi = {
         id: index + 1,
         datasetId: dataset.id,
         fieldName: field.fieldName,
-        fieldType: field.fieldType?.toLowerCase() === 'varchar' || field.fieldType?.toLowerCase() === 'char' || field.fieldType?.toLowerCase() === 'date' ? 'dimension' : 'metric',
+        fieldType: getEffectiveFieldType(field),
         displayName: field.displayName || field.fieldName,
         description: field.description || '',
         isVisible: field.isVisible !== false,
@@ -302,4 +302,45 @@ export const dashboardApi = {
   deleteDashboard: async (id: string): Promise<void> => {
     await del(dataSourceService, `/api/dashboards/${id}`)
   }
+}
+
+// 获取有效的字段类型（优先使用业务类型）
+const getEffectiveFieldType = (field: any): 'dimension' | 'metric' | 'date' => {
+  // 1. 优先使用 businessType (DIMENSION/METRIC 转换为小写)
+  if (field.businessType) {
+    const businessType = field.businessType.toLowerCase()
+    if (businessType === 'dimension') return 'dimension'
+    if (businessType === 'metric') return 'metric'
+    if (businessType === 'date') return 'date'
+  }
+  
+  // 2. 如果 fieldType 已经是业务类型，直接使用
+  if (field.fieldType === 'dimension' || field.fieldType === 'metric' || field.fieldType === 'date') {
+    return field.fieldType
+  }
+  
+  // 3. 最后根据数据库字段类型推断
+  return getFieldTypeFromDataType(field.fieldType)
+}
+
+// 添加辅助函数来判断字段类型
+const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' | 'date' => {
+  if (!dataType) return 'dimension'
+  
+  const type = dataType.toLowerCase()
+  
+  // 数值类型 → 指标
+  if (type.includes('int') || type.includes('decimal') || type.includes('float') || 
+      type.includes('double') || type.includes('number') || type.includes('bigint') ||
+      type.includes('money') || type.includes('currency') || type.includes('numeric')) {
+    return 'metric'
+  }
+  
+  // 日期时间类型 → 日期
+  if (type.includes('date') || type.includes('time') || type.includes('timestamp')) {
+    return 'date'
+  }
+  
+  // 其他类型（字符串、布尔值等）→ 维度
+  return 'dimension'
 }

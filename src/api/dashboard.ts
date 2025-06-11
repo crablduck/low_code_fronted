@@ -7,10 +7,13 @@
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import type { DashboardForm, DashboardQuery, DashboardResponse, DashboardListResponse, DashboardItem } from '@/types/dashboard'
-import request from '@/utils/request'
+import { mainService as request } from '@/utils/request'
 
 // 获取仪表盘列表
 export const getDashboardList = async (query: DashboardQuery): Promise<DashboardListResponse> => {
+  console.log('=== 获取仪表盘列表 ===')
+  console.log('使用真实API: localhost:6001')
+  
   const response: any = await request({
     url: '/dashboards',
     method: 'get',
@@ -22,79 +25,103 @@ export const getDashboardList = async (query: DashboardQuery): Promise<Dashboard
     }
   })
 
-  // 适配返回的数据结构
+  console.log('仪表盘列表响应:', response)
+
+  // 真实API的数据结构
   return {
-    code: response.code,
-    message: response.message,
+    code: response.code || 200,
+    message: response.message || 'success',
     data: {
-      list: response.data.items.map((item: any) => ({
+      list: (response.data?.items || response.data || []).map((item: any) => ({
         ...item,
         createTime: item.createdAt,
         updateTime: item.updatedAt
       })),
-      total: response.data.total
+      total: response.data?.total || 0
     }
   }
 }
 
 // 获取仪表盘详情
 export const getDashboardDetail = async (id: string): Promise<DashboardResponse> => {
+  console.log('=== 获取仪表盘详情 ===')
+  console.log('仪表盘ID:', id)
+  console.log('使用真实API: localhost:6001')
+  
   const response: any = await request({
     url: `/dashboards/${id}`,
     method: 'get'
   })
   
-  console.log('=== 获取仪表盘详情 ===')
-  console.log('仪表盘ID:', id)
   console.log('API返回数据:', response)
   
+  // 真实API的数据处理逻辑
   const dashboardData = response.data
   
-  // 关键：重新组装布局和图表配置
+  console.log('原始仪表盘数据:', dashboardData)
+  
+  // 根据您提供的真实API数据结构，API同时返回了顶层的layout和charts，以及config内的相同数据
+  // 优先使用config字段中的数据（如果存在），否则使用顶层的数据
   let layoutData = []
   let chartsData = []
   
-  // 解析layout和charts字段
-  try {
-    layoutData = typeof dashboardData.layout === 'string' 
-      ? JSON.parse(dashboardData.layout) 
-      : (dashboardData.layout || [])
-  } catch (error) {
-    console.error('解析layout失败:', error)
-    layoutData = []
+  // 优先使用config字段中的数据
+  if (dashboardData.config && (dashboardData.config.layout || dashboardData.config.charts)) {
+    console.log('使用config字段中的数据')
+    layoutData = dashboardData.config.layout || []
+    chartsData = dashboardData.config.charts || []
+  } else {
+    // 使用顶层的layout和charts数据
+    console.log('使用顶层的layout和charts数据')
+    layoutData = dashboardData.layout || []
+    chartsData = dashboardData.charts || []
   }
   
-  try {
-    chartsData = typeof dashboardData.charts === 'string' 
-      ? JSON.parse(dashboardData.charts) 
-      : (dashboardData.charts || [])
-  } catch (error) {
-    console.error('解析charts失败:', error)
-    chartsData = []
+  // 如果是字符串格式需要解析
+  if (typeof layoutData === 'string') {
+    try {
+      layoutData = JSON.parse(layoutData)
+    } catch (error) {
+      console.error('解析layout失败:', error)
+      layoutData = []
+    }
   }
   
-  console.log('数据库中的layout字段:', layoutData)
-  console.log('数据库中的charts字段:', chartsData)
+  if (typeof chartsData === 'string') {
+    try {
+      chartsData = JSON.parse(chartsData)
+    } catch (error) {
+      console.error('解析charts失败:', error)
+      chartsData = []
+    }
+  }
   
-  // 重新组装：将图表配置合并到布局中
-  const combinedLayout = layoutData.map((layoutItem: any) => {
-    // 查找对应的图表配置
-    const chartConfig = chartsData.find((chart: any) => chart.id === layoutItem.i)
-    
+  console.log('解析后的layout:', layoutData)
+  console.log('解析后的charts:', chartsData)
+  
+  // 将图表配置合并到布局中
+  const mergedLayout = layoutData.map((layoutItem: any) => {
+    const chartConfig = chartsData.find((chart: any) => chart.id === layoutItem.i || chart.i === layoutItem.i)
     return {
       ...layoutItem,
-      chartConfig: chartConfig || null
+      chartConfig: chartConfig || {
+        id: layoutItem.i,
+        i: layoutItem.i,
+        type: 'bar',
+        title: '未配置图表'
+      }
     }
   })
   
-  console.log('重新组装的layout:', combinedLayout)
+  console.log('合并后的layout:', mergedLayout)
   
   return {
-    code: response.code,
-    message: response.message,
+    code: response.code || 200,
+    message: response.message || 'success',
     data: {
       ...dashboardData,
-      layout: JSON.stringify(combinedLayout)
+      layout: mergedLayout,
+      charts: chartsData
     }
   }
 }
@@ -104,10 +131,13 @@ export const createDashboard = async (data: DashboardForm): Promise<DashboardRes
   try {
     console.log('=== 创建仪表盘 ===')
     console.log('原始数据:', data)
+    console.log('使用真实API: localhost:6001')
+    
+    // 真实API的数据处理逻辑
     console.log('原始layout类型:', typeof data.layout)
     console.log('原始layout内容:', data.layout)
     
-    // 关键：构建符合后端数据库结构的数据格式，分离布局和图表配置
+    // 构建符合后端数据库结构的数据格式，分离布局和图表配置
     let layoutData: any = data.layout
     
     // 如果layout是字符串，尝试解析为数组
@@ -148,14 +178,14 @@ export const createDashboard = async (data: DashboardForm): Promise<DashboardRes
       description: data.description,
       status: data.status,
       type: data.type,
-      layout: JSON.stringify(pureLayout), // 🔥 纯布局信息
-      charts: JSON.stringify(chartsConfig) // 🔥 图表配置信息
+      layout: JSON.stringify(pureLayout), // 纯布局信息
+      charts: JSON.stringify(chartsConfig) // 图表配置信息
     }
     
-         console.log('处理后的layout数据:', layoutData)
-     console.log('分离后的纯布局:', pureLayout)
-     console.log('分离后的图表配置:', chartsConfig)
-     console.log('发送到API的数据:', requestData)
+    console.log('处理后的layout数据:', layoutData)
+    console.log('分离后的纯布局:', pureLayout)
+    console.log('分离后的图表配置:', chartsConfig)
+    console.log('发送到API的数据:', requestData)
     
     const response: any = await request({
       url: '/dashboards',
@@ -183,7 +213,9 @@ export const updateDashboard = async (id: string, data: Partial<DashboardForm>):
   console.log('=== 更新仪表盘 ===')
   console.log('仪表盘ID:', id)
   console.log('原始数据:', data)
+  console.log('使用真实API: localhost:6001')
   
+  // 以下是真实API的数据处理逻辑
   // 关键：构建符合API文档的数据结构
   let requestData: any = {
     name: data.name,

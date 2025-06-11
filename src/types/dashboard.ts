@@ -166,19 +166,20 @@ export interface DashboardDetail {
   id: string
   name: string
   description?: string
-  layout: string
+  layout: string | LayoutItem[]
+  charts?: string | ChartConfig[]
   status: DashboardStatus
   type: DashboardType
   menuId?: string
-  createdAt: string
-  updatedAt: string
+  createdAt: string | object
+  updatedAt: string | object
   createdBy?: string
-  config: {
-    charts: Array<{
-      id: string
-      type: string
-      config: ChartConfig
-      datasetId: number
-    }>
+  creator?: string
+  tenantId?: string | null
+  config?: {
+    layout?: LayoutItem[]
+    charts?: ChartConfig[]
+    renderState?: boolean
+    autoRender?: boolean
   }
 }

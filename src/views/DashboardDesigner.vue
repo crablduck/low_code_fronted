@@ -174,6 +174,61 @@
                   }"
                   @config-change="handleDatasetConfigChange"
                 />
+                
+                <!-- 字段展示区域 -->
+                <div v-if="selectedDataset" class="fields-display-section">
+                  <div class="section-header">
+                    <el-icon><Grid /></el-icon>
+                    <span>字段信息</span>
+                    <span class="field-count">(共 {{ selectedDataset.fields?.length || 0 }} 个字段)</span>
+                  </div>
+                  
+                  <!-- 维度字段 -->
+                  <div class="field-group">
+                    <div class="field-group-header">
+                      <el-icon><Menu /></el-icon>
+                      <span>维度字段</span>
+                      <el-tag size="small" type="primary">{{ getDimensionFields().length }}</el-tag>
+                    </div>
+                    <div class="field-list">
+                      <div 
+                        v-for="field in getDimensionFields()" 
+                        :key="field.fieldName"
+                        class="field-item dimension-field"
+                      >
+                        <el-icon class="field-icon"><CircleFilled /></el-icon>
+                        <span class="field-name">{{ field.displayName || field.fieldName }}</span>
+                        <el-tag size="small" type="info">{{ field.fieldType }}</el-tag>
+                      </div>
+                      <div v-if="getDimensionFields().length === 0" class="empty-fields">
+                        暂无维度字段
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 指标字段 -->
+                  <div class="field-group">
+                    <div class="field-group-header">
+                      <el-icon><DataAnalysis /></el-icon>
+                      <span>指标字段</span>
+                      <el-tag size="small" type="success">{{ getMetricFields().length }}</el-tag>
+                    </div>
+                    <div class="field-list">
+                      <div 
+                        v-for="field in getMetricFields()" 
+                        :key="field.fieldName || field.field"
+                        class="field-item metric-field"
+                      >
+                        <el-icon class="field-icon"><TrendCharts /></el-icon>
+                        <span class="field-name">{{ field.displayName || field.alias || field.fieldName || field.field }}</span>
+                        <el-tag size="small" type="success">{{ field.aggregation || '指标' }}</el-tag>
+                      </div>
+                      <div v-if="getMetricFields().length === 0" class="empty-fields">
+                        暂无指标字段
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </el-tab-pane>
 
               <!-- 图表样式配置标签页 -->
@@ -848,7 +903,7 @@ const handleDrop = (e: DragEvent) => {
   }
   
   // 应用智能推荐字段配置
-  if (selectedDatasetId.value && selectedDataset.value) {
+  if (selectedDataset.value) {
     autoConfigureChartFields(chartConfig)
   }
   
@@ -1205,7 +1260,7 @@ const loadDatasets = async () => {
     console.log('加载到的数据集:', datasets.value.length, '个')
     
     // 如果没有选中数据集且有数据集可用，选中第一个
-    if (!selectedDatasetId.value && datasets.value.length > 0) {
+    if (!selectedDataset.value && datasets.value.length > 0) {
       await handleDatasetChange(datasets.value[0])
     }
   } catch (error) {
@@ -1317,7 +1372,7 @@ const loadDatasetData = async () => {
 }
 
 const refreshData = async () => {
-  if (!selectedDatasetId.value) {
+  if (!selectedDataset.value) {
     ElMessage.warning('请先选择数据集')
     return
   }
@@ -1921,7 +1976,11 @@ const restoreChartWithData = async (chartId: string, chartConfig: ChartConfig) =
     // 2. 如果有数据源配置，设置当前数据集
     if (chartConfig.datasetId) {
       console.log('恢复图表数据源:', chartConfig.datasetId)
-      selectedDatasetId.value = chartConfig.datasetId
+      // 通过 datasetId 查找并设置选中的数据集
+      const dataset = datasets.value.find(d => d.id === chartConfig.datasetId)
+      if (dataset) {
+        selectedDataset.value = dataset
+      }
       
       // 如果选中了该图表，可以自动更新图表数据
       if (selectedChart.value?.i === chartId) {
@@ -2395,6 +2454,61 @@ const disableChartDrag = () => {
   
   chartDragState.value.isDragging = false
   chartDragState.value.dragChartId = null
+}
+
+// 获取维度字段
+const getDimensionFields = () => {
+  if (!selectedDataset.value) return []
+  
+  // 使用类型安全的方式访问属性
+  const dataset = selectedDataset.value as any
+  
+  // 从effectiveDimensionFields获取
+  if (dataset.effectiveDimensionFields?.length) {
+    return dataset.fields?.filter((field: any) => 
+      dataset.effectiveDimensionFields.includes(field.fieldName)
+    ) || []
+  }
+  
+  // 从autoDimensionFields获取
+  if (dataset.autoDimensionFields?.length) {
+    return dataset.fields?.filter((field: any) => 
+      dataset.autoDimensionFields.includes(field.fieldName)
+    ) || []
+  }
+  
+  // 根据businessType或fieldType判断
+  return dataset.fields?.filter((field: any) => 
+    field.businessType === 'DIMENSION' || 
+    field.fieldType === 'dimension' ||
+    (field.allowGroupBy && field.fieldType !== 'metric')
+  ) || []
+}
+
+// 获取指标字段
+const getMetricFields = () => {
+  if (!selectedDataset.value) return []
+  
+  // 从effectiveMetricFields获取
+  if (selectedDataset.value.effectiveMetricFields?.length) {
+    return selectedDataset.value.effectiveMetricFields
+  }
+  
+  // 从autoMetricFields获取
+  if (selectedDataset.value.autoMetricFields?.length) {
+    return selectedDataset.value.autoMetricFields
+  }
+  
+  // 从metricFields获取
+  if (selectedDataset.value.metricFields?.length) {
+    return selectedDataset.value.metricFields
+  }
+  
+  // 根据businessType从fields中获取
+  return selectedDataset.value.fields?.filter(field => 
+    field.businessType === 'METRIC' || 
+    field.fieldType === 'metric'
+  ) || []
 }
 </script>
 
@@ -4697,4 +4811,126 @@ const disableChartDrag = () => {
     }
   }
 }
+
+// 字段展示区域样式
+.fields-display-section {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: #303133;
+    font-size: 14px;
+    
+    .el-icon {
+      color: #409eff;
+      font-size: 16px;
+    }
+    
+    .field-count {
+      margin-left: auto;
+      color: #909399;
+      font-weight: normal;
+      font-size: 12px;
+    }
+  }
+  
+  .field-group {
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .field-group-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #606266;
+      font-size: 13px;
+      padding: 6px 8px;
+      background: #ebeef5;
+      border-radius: 4px;
+      
+      .el-icon {
+        font-size: 16px;
+      }
+      
+      .el-tag {
+        margin-left: auto;
+      }
+    }
+    
+    .field-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .field-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #e4e7ed;
+      border-radius: 6px;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        border-color: #c0c4cc;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
+      
+      &.dimension-field {
+        border-left: 3px solid #409eff;
+        
+        .field-icon {
+          color: #409eff;
+        }
+      }
+      
+      &.metric-field {
+        border-left: 3px solid #67c23a;
+        
+        .field-icon {
+          color: #67c23a;
+        }
+      }
+      
+      .field-name {
+        flex: 1;
+        color: #303133;
+        font-weight: 500;
+      }
+      
+      .el-tag {
+        font-size: 10px;
+      }
+    }
+    
+    .empty-fields {
+      text-align: center;
+      color: #c0c4cc;
+      font-size: 12px;
+      padding: 20px;
+      background: white;
+      border: 1px dashed #e4e7ed;
+      border-radius: 6px;
+    }
+  }
+}
+
 </style> 

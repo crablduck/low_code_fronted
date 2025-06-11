@@ -155,54 +155,7 @@
         </div>
       </div>
 
-      <!-- 预览区域 -->
-      <div v-if="selectedDataset" class="config-section">
-        <div class="section-header">
-          <h4>数据预览</h4>
-          <el-button 
-            size="small" 
-            type="primary" 
-            link 
-            @click="refreshPreview"
-            :loading="previewLoading"
-          >
-            刷新
-          </el-button>
-        </div>
-        
-        <div class="preview-area" v-loading="previewLoading">
-          <el-table 
-            :data="previewData.slice(0, 5)" 
-            border 
-            size="small" 
-            max-height="200"
-          >
-            <el-table-column
-              v-for="column in availableFields"
-              :key="column"
-              :prop="column"
-              :label="column"
-              min-width="100"
-              show-overflow-tooltip
-            />
-          </el-table>
-          <div class="preview-info">
-            显示前5条数据，共 {{ previewData.length }} 条
-          </div>
-        </div>
-      </div>
 
-      <!-- 操作按钮 -->
-      <div class="config-actions">
-        <el-button 
-          type="primary" 
-          @click="applyConfig"
-          :disabled="!isConfigValid"
-        >
-          应用配置
-        </el-button>
-        <el-button @click="resetConfig">重置</el-button>
-      </div>
     </el-card>
   </div>
 </template>
@@ -218,8 +171,7 @@ import {
   validateFieldMapping,
   type ChartConfig 
 } from '@/services/dashboardDataService'
-import { transformToObjectArray, type DatasetApiResponse, type ChartFieldMapping } from '@/utils/chartDataTransform'
-import { previewDatasetData } from '@/api/dataset'
+import { type ChartFieldMapping } from '@/utils/chartDataTransform'
 import type { DataSet } from '@/types/dataManagement'
 
 interface Props {
@@ -244,8 +196,7 @@ const selectedDatasetId = ref<number | null>(props.initialConfig?.datasetId || n
 const selectedDataset = ref<DataSet | null>(null)
 const availableFields = ref<string[]>([])
 const fieldMapping = ref<ChartFieldMapping>({})
-const previewData = ref<any[]>([])
-const previewLoading = ref(false)
+
 const loading = ref(false)
 
 // 计算属性
@@ -277,7 +228,6 @@ const handleDatasetChange = async (datasetId: number | null) => {
     selectedDataset.value = null
     availableFields.value = []
     fieldMapping.value = {}
-    previewData.value = []
     return
   }
 
@@ -294,9 +244,6 @@ const handleDatasetChange = async (datasetId: number | null) => {
     
     // 应用智能推荐
     fieldMapping.value = suggestFieldMapping(props.chartType, availableFields.value)
-    
-    // 加载预览数据
-    await refreshPreview()
     
     // 触发配置变化事件
     validateAndEmit()
@@ -318,31 +265,7 @@ const applySuggestedMapping = () => {
   ElMessage.success('已应用智能推荐配置')
 }
 
-const refreshPreview = async () => {
-  if (!selectedDatasetId.value) return
-  
-  try {
-    previewLoading.value = true
-    const response = await previewDatasetData(selectedDatasetId.value)
-    
-    // 直接使用响应数据，因为拦截器已经处理了格式
-    if (response.data && response.data.columns && response.data.data) {
-      const apiResponse: DatasetApiResponse = {
-        code: 200,
-        message: '成功',
-        data: response.data
-      }
-      previewData.value = transformToObjectArray(apiResponse)
-    } else {
-      throw new Error('数据格式不正确')
-    }
-  } catch (error) {
-    console.error('刷新预览数据失败:', error)
-    ElMessage.error('刷新预览数据失败')
-  } finally {
-    previewLoading.value = false
-  }
-}
+
 
 const validateAndEmit = () => {
   if (!selectedDatasetId.value) return
@@ -354,21 +277,13 @@ const validateAndEmit = () => {
   })
 }
 
-const applyConfig = () => {
-  if (!isConfigValid.value) {
-    ElMessage.warning('请完善配置信息')
-    return
-  }
-  
-  ElMessage.success('配置已应用')
-}
+
 
 const resetConfig = () => {
   selectedDatasetId.value = null
   selectedDataset.value = null
   availableFields.value = []
   fieldMapping.value = {}
-  previewData.value = []
 }
 
 const getQueryTypeLabel = (type: string) => {
@@ -475,28 +390,5 @@ onMounted(async () => {
   gap: 16px;
 }
 
-.preview-area {
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  overflow: hidden;
-}
 
-.preview-info {
-  padding: 8px 12px;
-  background: var(--el-fill-color-light);
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  text-align: center;
-}
-
-.config-actions {
-  display: flex;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.config-actions .el-button {
-  flex: 1;
-}
 </style> 

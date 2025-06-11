@@ -542,7 +542,7 @@ server.get('/api/datasets/:id/preview', (req, res) => {
         'patient_name', 'age', 'gender', 'department', 'visit_count', 
         'total_cost', 'visit_date', 'insurance_type', 'phone_number', 'diagnosis'
       ],
-      data: [
+      content: [
         {
           patient_name: '张三',
           age: 45,
@@ -609,6 +609,181 @@ server.get('/api/datasets/:id/preview', (req, res) => {
   });
 });
 
+// Dashboard相关接口
+// 获取仪表盘列表
+server.get('/api/dashboards', (req, res) => {
+  res.json({
+    code: 200,
+    message: 'success',
+    data: {
+      list: [
+        {
+          id: '1',
+          name: '医院运营分析仪表盘',
+          description: '展示医院各科室的患者数量、收入、医生工作量等关键指标',
+          status: 'published',
+          type: 'custom',
+          createdAt: '2024-01-15T10:30:00Z',
+          updatedAt: '2024-01-20T14:20:00Z',
+          createdBy: '系统管理员'
+        },
+        {
+          id: '2',
+          name: '患者就诊统计',
+          description: '患者就诊数据分析',
+          status: 'draft',
+          type: 'custom',
+          createdAt: '2024-01-16T09:15:00Z',
+          updatedAt: '2024-01-22T16:45:00Z',
+          createdBy: '数据分析师'
+        }
+      ],
+      total: 2
+    }
+  });
+});
+
+// 获取仪表盘详情
+server.get('/api/dashboards/:id', (req, res) => {
+  const id = req.params.id;
+  
+  if (id === '1') {
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        id: '1',
+        name: '医院运营分析仪表盘',
+        description: '展示医院各科室的患者数量、收入、医生工作量等关键指标',
+        status: 'published',
+        type: 'custom',
+        createdAt: '2024-01-15T10:30:00Z',
+        updatedAt: '2024-01-20T14:20:00Z',
+        createdBy: '系统管理员',
+        layout: JSON.stringify([
+          {
+            x: 0,
+            y: 0,
+            w: 6,
+            h: 8,
+            i: 'chart-1'
+          },
+          {
+            x: 6,
+            y: 0,
+            w: 6,
+            h: 8,
+            i: 'chart-2'
+          },
+          {
+            x: 0,
+            y: 8,
+            w: 12,
+            h: 10,
+            i: 'chart-3'
+          }
+        ]),
+        charts: JSON.stringify([
+          {
+            id: 'chart-1',
+            i: 'chart-1',
+            type: 'bar',
+            title: '各科室患者数量',
+            datasetId: 1,
+            xField: 'department',
+            yField: 'visit_count',
+            showLegend: true,
+            showToolbox: true,
+            dataLimit: 100
+          },
+          {
+            id: 'chart-2',
+            i: 'chart-2',
+            type: 'pie',
+            title: '医保类型分布',
+            datasetId: 1,
+            nameField: 'insurance_type',
+            valueField: 'visit_count',
+            showLegend: true,
+            showToolbox: true,
+            dataLimit: 100
+          },
+          {
+            id: 'chart-3',
+            i: 'chart-3',
+            type: 'line',
+            title: '患者费用趋势',
+            datasetId: 1,
+            xField: 'visit_date',
+            yField: 'total_cost',
+            showLegend: true,
+            showToolbox: true,
+            dataLimit: 100
+          }
+        ])
+      }
+    });
+  } else {
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        id: id,
+        name: '示例仪表盘',
+        description: '这是一个示例仪表盘',
+        status: 'draft',
+        type: 'custom',
+        createdAt: '2024-01-16T09:15:00Z',
+        updatedAt: '2024-01-22T16:45:00Z',
+        createdBy: '测试用户',
+        layout: '[]',
+        charts: '[]'
+      }
+    });
+  }
+});
+
+// 创建仪表盘
+server.post('/api/dashboards', (req, res) => {
+  const newDashboard = {
+    id: String(Date.now()),
+    ...req.body,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: '当前用户'
+  };
+  
+  res.json({
+    code: 200,
+    message: '创建成功',
+    data: newDashboard
+  });
+});
+
+// 更新仪表盘
+server.put('/api/dashboards/:id', (req, res) => {
+  const id = req.params.id;
+  const updatedDashboard = {
+    id: id,
+    ...req.body,
+    updatedAt: new Date().toISOString()
+  };
+  
+  res.json({
+    code: 200,
+    message: '更新成功',
+    data: updatedDashboard
+  });
+});
+
+// 删除仪表盘
+server.delete('/api/dashboards/:id', (req, res) => {
+  res.json({
+    code: 200,
+    message: '删除成功'
+  });
+});
+
 // 使用默认路由
 server.use('/api', router);
 
@@ -626,4 +801,9 @@ server.listen(PORT, () => {
   console.log(`   GET  /api/form-templates/:id/sql - 生成SQL建表语句`);
   console.log(`   GET  /api/form-templates/:id/statistics - 获取表单统计`);
   console.log(`   GET  /api/datasets/:id/preview - 获取数据集预览`);
+  console.log(`   GET  /api/dashboards - 获取仪表盘列表`);
+  console.log(`   GET  /api/dashboards/:id - 获取仪表盘详情`);
+  console.log(`   POST /api/dashboards - 创建仪表盘`);
+  console.log(`   PUT  /api/dashboards/:id - 更新仪表盘`);
+  console.log(`   DELETE /api/dashboards/:id - 删除仪表盘`);
 }); 
