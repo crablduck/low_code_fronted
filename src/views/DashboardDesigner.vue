@@ -663,7 +663,6 @@ const charts = computed(() => {
 const datasetStore = useDatasetStore()
 const datasets = ref<DataSet[]>([])
 const datasetsLoading = ref(false)
-const selectedDatasetId = ref<number | null>(null)
 const selectedDataset = ref<DataSet | null>(null)
 
 // 图表数据
@@ -2545,8 +2544,8 @@ const disableChartDrag = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex: 1;
-  min-width: 400px;
+  width: 380px;
+  flex-shrink: 0;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
   transition: all 0.1s ease;
 }
@@ -2560,8 +2559,7 @@ const disableChartDrag = () => {
 }
 
 .config-panel {
-  flex: 1;
-  min-width: 400px;
+  width: 100%;
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
