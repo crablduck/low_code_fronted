@@ -51,6 +51,16 @@ export interface AdvancedConfig {
   sortOrder: 'asc' | 'desc'
 }
 
+// 字段映射接口
+export interface ChartFieldMapping {
+  xField?: string
+  yField?: string
+  nameField?: string
+  valueField?: string
+  groupField?: string
+  tableFields?: string[]
+}
+
 // 图表配置接口
 export interface ChartConfig {
   i: string
@@ -66,6 +76,7 @@ export interface ChartConfig {
   showToolbox?: boolean
   dataLimit?: number
   datasetId?: number
+  fieldMapping?: ChartFieldMapping
   dataSourceConfig?: ChartDataSourceConfig
 }
 

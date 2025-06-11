@@ -14,12 +14,29 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 可以在这里添加认证token
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // 从localStorage获取用户信息和token
+    const userInfoStr = localStorage.getItem('userInfo');
+    const token = localStorage.getItem('token');
+    
+    // 添加 JWT Token
+    if (token) {
+      config.headers!.Authorization = `Bearer ${token}`;
+    }
+    
+    // 添加 X-User-ID 全局 header
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr);
+        if (userInfo && userInfo.id) {
+          config.headers!['X-User-ID'] = userInfo.id.toString();
+        }
+      } catch (error) {
+        console.warn('解析用户信息失败:', error);
+      }
+    }
+    
     console.log('🚀 API请求:', config.method?.toUpperCase(), config.url);
+    console.log('X-User-ID:', config.headers!['X-User-ID'] || '未设置');
     return config;
   },
   (error) => {

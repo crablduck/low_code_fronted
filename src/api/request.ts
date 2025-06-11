@@ -13,11 +13,27 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config: AxiosRequestConfig) => {
-    // 可以在这里添加token等认证信息
-    // const token = localStorage.getItem('token')
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`
-    // }
+    // 从localStorage获取用户信息（因为这个文件可能在 store 初始化之前调用）
+    const userInfoStr = localStorage.getItem('userInfo')
+    const token = localStorage.getItem('token')
+    
+    // 添加 JWT Token
+    if (token) {
+      config.headers!.Authorization = `Bearer ${token}`
+    }
+    
+    // 添加 X-User-ID 全局 header
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr)
+        if (userInfo && userInfo.id) {
+          config.headers!['X-User-ID'] = userInfo.id.toString()
+        }
+      } catch (error) {
+        console.warn('解析用户信息失败:', error)
+      }
+    }
+    
     return config
   },
   (error) => {

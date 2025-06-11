@@ -194,6 +194,18 @@ const routes: RouteRecordRaw[] = [
     name: 'DataSourceConfigDemo',
     component: () => import('../views/DataSourceConfigDemo.vue'),
     meta: { title: '数据源配置组件演示' }
+  },
+  {
+    path: '/dataset-chart-demo',
+    name: 'DatasetChartDemo',
+    component: () => import('../views/DatasetChartDemo.vue'),
+    meta: { title: '数据集图表渲染演示' }
+  },
+  {
+    path: '/header-test',
+    name: 'HeaderTest',
+    component: () => import('../views/HeaderTestPage.vue'),
+    meta: { title: 'Header 测试页面' }
   }
 ]
 

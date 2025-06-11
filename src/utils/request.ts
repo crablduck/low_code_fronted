@@ -12,6 +12,7 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
 import type { ApiResponse } from '@/types/dataManagement'
+import { addGlobalHeaders, logRequestInfo } from './requestHelpers'
 
 // 创建两个axios实例
 // 1. 主服务API实例（用于登录、菜单等）
@@ -35,34 +36,33 @@ const dataSourceService: AxiosInstance = axios.create({
 // 主服务请求拦截器
 mainService.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const userStore = useUserStore()
-    const token = userStore.token
+    // 使用通用工具添加全局 headers
+    addGlobalHeaders(config)
     
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // 可以添加主服务特有的逻辑
+    logRequestInfo(config, '主服务')
     
     return config
   },
   (error) => {
-    console.error('请求错误:', error)
+    console.error('主服务请求错误:', error)
     return Promise.reject(error)
   }
 )
 
-// 数据源服务请求拦截器（不需要JWT认证）
-// 只添加基础的请求日志
+// 数据源服务请求拦截器（不需要JWT认证，但需要X-User-ID）
 dataSourceService.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    console.log('===== 数据源请求调试信息 =====')
-    console.log('请求URL:', config.url)
-    console.log('请求方法:', config.method)
-    console.log('请求数据:', config.data)
+    // 使用通用工具添加全局 headers
+    addGlobalHeaders(config)
+    
+    // 数据源服务特有的逻辑
+    logRequestInfo(config, '数据源服务')
     
     return config
   },
   (error) => {
-    console.error('数据源请求错误:', error)
+    console.error('数据源服务请求错误:', error)
     return Promise.reject(error)
   }
 )

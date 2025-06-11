@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-29 11:16:34
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-05-29 11:19:34
+ * @LastEditTime: 2025-06-11 14:43:40
  * @FilePath: /workflow-system/src/config/index.ts
  * @Description: 全局配置文件
  */

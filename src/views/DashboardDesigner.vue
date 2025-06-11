@@ -147,6 +147,23 @@
                 <el-icon><Close /></el-icon>
               </el-button>
             </div>
+
+            <!-- 配置标签页 -->
+            <el-tabs v-model="activeConfigTab" class="config-tabs">
+              <!-- 数据集配置标签页 -->
+              <el-tab-pane label="数据源" name="dataset">
+                <DatasetConfigPanel
+                  :chart-type="selectedChart.type"
+                  :initial-config="{
+                    datasetId: selectedChart.datasetId,
+                    fieldMapping: selectedChart.fieldMapping
+                  }"
+                  @config-change="handleDatasetConfigChange"
+                />
+              </el-tab-pane>
+
+              <!-- 图表样式配置标签页 -->
+              <el-tab-pane label="样式" name="style">
             <el-form label-width="80px" class="config-form" size="small">
               <el-form-item label="图表类型">
                 <el-select v-model="selectedChart.type" @change="updateSelectedChart" size="small">
@@ -283,10 +300,12 @@
                 />
               </el-form-item>
 
-              <el-form-item>
-                <el-button type="danger" size="small" @click="removeSelectedChart">删除图表</el-button>
-              </el-form-item>
-            </el-form>
+                  <el-form-item>
+                    <el-button type="danger" size="small" @click="removeSelectedChart">删除图表</el-button>
+                  </el-form-item>
+                </el-form>
+              </el-tab-pane>
+            </el-tabs>
           </div>
 
           <!-- 数据配置面板 -->
@@ -611,11 +630,13 @@ import { GridLayout, GridItem } from 'vue3-grid-layout-next'
 import { Rank, TrendCharts, ArrowDown, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection } from '@element-plus/icons-vue'
 import ChartDataSourceConfig from '@/components/chart/ChartDataSourceConfig.vue'
 import DatasetSelector from '@/components/dataset/DatasetSelector.vue'
+import DatasetConfigPanel from '@/components/dashboard/DatasetConfigPanel.vue'
 import type { DataSet, DataSetField } from '@/types/dataManagement'
 import type { MenuSelectOption, MenuItem } from '@/types/menu'
 import { getMenuTree } from '@/api/menu'
 import { createDashboard, getDashboardDetail } from '@/api/dashboard'
 import { DashboardStatus, DashboardType } from '@/types/dashboard'
+import type { ChartFieldMapping } from '@/utils/chartDataTransform'
 import { useDatasetStore } from '@/stores/dataset'
 import type { DashboardForm, ChartConfig } from '@/types/dashboard'
 import type { LayoutItem } from '@/types/dashboard'
@@ -716,6 +737,9 @@ const isMobile = computed(() => {
 const isDragOver = ref(false)
 const dragFieldType = ref<'dimension' | 'metric' | null>(null)
 
+// 配置面板状态
+const activeConfigTab = ref('dataset')
+
 // 方法定义
 const handleDragStart = (event: DragEvent, chart: any) => {
   if (event.dataTransfer) {
@@ -803,15 +827,60 @@ const handleDrop = (e: DragEvent) => {
   })
 }
 
-// 初始化图表
-const initChartInstance = (chartId: string, config: ChartConfig) => {
+// 初始化图表 - 新增支持数据集渲染
+const initChartInstance = async (chartId: string, config: ChartConfig) => {
   const chartContainer = document.getElementById(`chart-${chartId}`)
   if (!chartContainer) return
 
-  const chart = echarts.init(chartContainer)
+  let chart = chartInstances.value.get(chartId)
+  if (chart) {
+    chart.dispose()
+  }
+  
+  chart = echarts.init(chartContainer)
+  chartInstances.value.set(chartId, chart)
+
+  // 如果配置了数据集ID，使用数据集数据渲染
+  if (config.datasetId && config.fieldMapping) {
+    try {
+      const { getChartData } = await import('@/services/dashboardDataService')
+      const echartsOption = await getChartData(
+        config.datasetId,
+        config.type,
+        config.fieldMapping,
+        config
+      )
+      chart.setOption(echartsOption)
+      return
+    } catch (error) {
+      console.error('获取数据集数据失败:', error)
+      // 如果获取数据集数据失败，显示错误状态
+      chart.setOption({
+        title: {
+          text: config.title || '图表',
+          left: 'center',
+          textStyle: { fontSize: 16, fontWeight: 'bold' }
+        },
+        graphic: {
+          elements: [{
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: `数据加载失败: ${error.message || '未知错误'}`,
+              fontSize: 14,
+              fill: '#f56c6c'
+            }
+          }]
+        }
+      })
+      return
+    }
+  }
+
+  // 否则使用原有的静态配置方式
   const option = getChartOption(config)
   chart.setOption(option)
-  chartInstances.value.set(chartId, chart)
 }
 
 const updateChart = (id: string, config: ChartConfig) => {
@@ -1396,6 +1465,25 @@ const handleSaveDataConfig = (config: any) => {
   }
 }
 
+// 新增：处理数据集配置变更
+const handleDatasetConfigChange = async (config: {
+  datasetId: number
+  fieldMapping: ChartFieldMapping
+  isValid: boolean
+}) => {
+  if (!selectedChart.value) return
+  
+  // 更新图表配置
+  selectedChart.value.datasetId = config.datasetId
+  selectedChart.value.fieldMapping = config.fieldMapping
+  
+  // 如果配置有效，重新渲染图表
+  if (config.isValid) {
+    await initChartInstance(selectedChart.value.i, selectedChart.value)
+    ElMessage.success('数据集配置已应用')
+  }
+}
+
 // 获取所有字段
 const allFields = computed(() => {
   return [...dimensionFields.value, ...metricFields.value]
@@ -1619,52 +1707,23 @@ const handleSave = async () => {
       return
     }
 
-    // 构建仪表盘数据
+    // 使用持久化工具构建仪表盘数据
+    const { serializeLayout, getSaveSummary } = await import('@/utils/dashboardPersistence')
+    const saveSummary = getSaveSummary(layout.value)
+    
     const dashboardData: DashboardForm = {
       name: saveForm.value.name,
       description: saveForm.value.description,
-      layout: JSON.stringify(layout.value.map(item => ({
-        x: item.x,
-        y: item.y,
-        w: item.w,
-        h: item.h,
-        i: item.i,
-        chartConfig: {
-          i: item.i,
-          id: item.i,
-          type: item.chartConfig.type,
-          title: item.chartConfig.title,
-          xField: item.chartConfig.xField,
-          yField: item.chartConfig.yField,
-          nameField: item.chartConfig.nameField,
-          valueField: item.chartConfig.valueField,
-          tableFields: item.chartConfig.tableFields,
-          showLegend: item.chartConfig.showLegend,
-          showToolbox: item.chartConfig.showToolbox,
-          dataLimit: item.chartConfig.dataLimit,
-          // 增加数据源配置
-          dataSourceConfig: item.chartConfig.dataSourceConfig || {
-            datasetId: null,
-            dataset: null,
-            dimensions: [],
-            metrics: [],
-            filters: [],
-            advanced: {
-              autoRefresh: false,
-              refreshInterval: 300,
-              enableCache: true,
-              cacheTime: 1800,
-              dataLimit: 1000,
-              sortField: '',
-              sortOrder: 'asc'
-            }
-          }
-        }
-      }))),
+      layout: serializeLayout(layout.value),
       status: DashboardStatus.DRAFT,
       type: DashboardType.CUSTOM,
       menuId: saveForm.value.menuPath[saveForm.value.menuPath.length - 1]
     }
+
+    console.log('=== 保存仪表盘配置 ===')
+    console.log('保存摘要:', saveSummary)
+    console.log('布局数据:', layout.value)
+    console.log('保存的数据结构:', dashboardData)
 
     const result = await createDashboard(dashboardData)
     
@@ -1689,39 +1748,57 @@ const handleSave = async () => {
   }
 }
 
+// 恢复图表数据和配置
+const restoreChartWithData = async (chartId: string, chartConfig: ChartConfig) => {
+  try {
+    console.log('恢复图表:', chartId, chartConfig)
+    
+    // 1. 初始化图表实例
+    await initChartInstance(chartId, chartConfig)
+    
+    // 2. 如果有数据源配置，设置当前数据集
+    if (chartConfig.datasetId) {
+      console.log('恢复图表数据源:', chartConfig.datasetId)
+      selectedDatasetId.value = chartConfig.datasetId
+      
+      // 如果选中了该图表，可以自动更新图表数据
+      if (selectedChart.value?.i === chartId) {
+        await updateSelectedChart()
+      }
+    }
+    
+    console.log('图表恢复完成:', chartId)
+  } catch (error) {
+    console.error('恢复图表失败:', chartId, error)
+    ElMessage.warning(`图表 ${chartConfig.title || chartId} 恢复失败`)
+  }
+}
+
 // 加载仪表盘数据
 const loadDashboard = async (id: string) => {
   try {
     const response = await getDashboardDetail(id)
     const dashboardDetail = response.data
     
+    console.log('=== 加载仪表盘数据 ===')
+    console.log('仪表盘详情:', dashboardDetail)
+    
     // 更新表单数据
     saveForm.value.name = dashboardDetail.name
     saveForm.value.description = dashboardDetail.description || ''
     
-    // 更新布局
+    // 使用持久化工具恢复布局
     if (dashboardDetail.layout) {
-      let layoutData
-      // 检查 layout 是否已经是对象还是需要解析的字符串
-      if (typeof dashboardDetail.layout === 'string') {
-        layoutData = JSON.parse(dashboardDetail.layout)
-      } else {
-        layoutData = dashboardDetail.layout
-      }
-      
-      layout.value = layoutData.map((item: any) => ({
-        ...item,
-        chartConfig: {
-          i: item.i,
-          ...item.chartConfig
-        }
-      }))
+      const { deserializeLayout } = await import('@/utils/dashboardPersistence')
+      layout.value = deserializeLayout(dashboardDetail.layout)
+      console.log('恢复的布局数据:', layout.value)
     }
     
     // 初始化所有图表
     nextTick(() => {
       layout.value.forEach(item => {
-        initChartInstance(item.i, item.chartConfig)
+        // 恢复图表实例并重新渲染数据
+        restoreChartWithData(item.i, item.chartConfig)
       })
     })
     

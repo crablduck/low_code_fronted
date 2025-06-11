@@ -42,6 +42,10 @@
           <el-icon><Collection /></el-icon>
           <span>数据集管理</span>
         </el-menu-item>
+        <el-menu-item index="/dataset-chart-demo">
+          <el-icon><TrendCharts /></el-icon>
+          <span>数据集图表演示</span>
+        </el-menu-item>
       </el-sub-menu>
       
       <el-menu-item index="/settings">
@@ -63,7 +67,8 @@ import {
   DataBoard, 
   Coin, 
   Collection, 
-  Setting 
+  Setting,
+  TrendCharts
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

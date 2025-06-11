@@ -6,7 +6,6 @@ import { Refresh, Edit } from '@element-plus/icons-vue'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
 import * as echarts from 'echarts'
 import type { DashboardDetail, LayoutItem, DashboardResponse, ChartConfig } from '@/types/dashboard'
-import type { DatasetData } from '@/types/dataset'
 import { getDashboardDetail } from '@/api/dashboard'
 import { getDatasetData } from '@/api/dataset'
 
@@ -67,8 +66,8 @@ const initCharts = async () => {
           nameField: chartConfig.nameField,
           valueField: chartConfig.valueField
         })
-        if (dataResponse.data) {
-          chartDataCache.value.set(item.i, dataResponse.data)
+        if (dataResponse.data && dataResponse.data.content) {
+          chartDataCache.value.set(item.i, dataResponse.data.content)
         }
       } catch (error) {
         console.error(`加载数据集 ${chartConfig.datasetId} 失败:`, error)
