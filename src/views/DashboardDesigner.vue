@@ -89,6 +89,7 @@
           :use-css-transforms="true"
           :margin="[10, 10]"
           @update:layout="onLayoutUpdated"
+          @contextmenu="handleCanvasContextMenu($event)"
         >
           <grid-item
             v-for="item in layout"
@@ -103,8 +104,9 @@
             @move="onMove"
             @moved="onMoved"
             @click="selectChart(item.i)"
+            @contextmenu="handleChartContextMenu($event, item)"
             :drag-allow-from="'.chart-drag-handler'"
-            :drag-ignore-from="'.chart-content'"
+            :drag-ignore-from="'.chart-actions'"
             class="grid-chart-item"
             :class="{ 'selected': selectedChart?.i === item.i }"
           >
@@ -121,7 +123,19 @@
                   </el-button>
                 </div>
               </div>
-              <div class="chart-content"></div>
+              <div 
+                class="chart-content"
+                @mousedown="handleChartContentMouseDown($event, item.i)"
+                @mouseup="handleChartContentMouseUp"
+                @mouseleave="handleChartContentMouseLeave"
+                :class="{ 'drag-enabled': chartDragState.isDragging && chartDragState.dragChartId === item.i }"
+                :title="chartDragState.isDragging && chartDragState.dragChartId === item.i ? '拖拽模式已激活，可以拖动图表' : '长按激活拖拽模式'"
+              >
+                <div v-if="chartDragState.isDragging && chartDragState.dragChartId === item.i" class="drag-hint">
+                  <el-icon><Rank /></el-icon>
+                  <span>拖拽模式已激活</span>
+                </div>
+              </div>
             </div>
           </grid-item>
         </grid-layout>
@@ -199,7 +213,10 @@
                     </div>
                     <div class="drop-hint" v-else>
                       <el-icon><Grid /></el-icon>
-                      拖拽维度字段
+                      <span class="hint-text">拖拽维度字段</span>
+                      <div class="hint-animation">
+                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
+                      </div>
                     </div>
                   </div>
                 </el-form-item>
@@ -223,7 +240,68 @@
                     </div>
                     <div class="drop-hint" v-else>
                       <el-icon><TrendCharts /></el-icon>
-                      拖拽指标字段
+                      <span class="hint-text">拖拽指标字段</span>
+                      <div class="hint-animation">
+                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
+                      </div>
+                    </div>
+                  </div>
+                </el-form-item>
+              </template>
+
+              <!-- 饼图字段配置 -->
+              <template v-if="selectedChart.type === 'pie'">
+                <el-form-item label="名称字段">
+                  <div 
+                    class="field-drop-zone"
+                    @dragover.prevent
+                    @drop="handleFieldDrop($event, 'name')"
+                    @dragenter="handleDragEnter($event, 'dimension')"
+                    @dragleave="handleDragLeave"
+                    :class="{ 
+                      'has-field': selectedChart.nameField,
+                      'drag-over': isDragOver && dragFieldType === 'dimension'
+                    }"
+                    data-field-type="name"
+                  >
+                    <div class="field-content" v-if="selectedChart.nameField">
+                      <el-icon><Grid /></el-icon>
+                      <span class="field-name">{{ getFieldDisplayName(selectedChart.nameField) }}</span>
+                      <el-icon class="remove-field" @click.stop="removeField('name')"><Close /></el-icon>
+                    </div>
+                    <div class="drop-hint" v-else>
+                      <el-icon><Grid /></el-icon>
+                      <span class="hint-text">拖拽维度字段</span>
+                      <div class="hint-animation">
+                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
+                      </div>
+                    </div>
+                  </div>
+                </el-form-item>
+                <el-form-item label="数值字段">
+                  <div 
+                    class="field-drop-zone"
+                    @dragover.prevent
+                    @drop="handleFieldDrop($event, 'value')"
+                    @dragenter="handleDragEnter($event, 'metric')"
+                    @dragleave="handleDragLeave"
+                    :class="{ 
+                      'has-field': selectedChart.valueField,
+                      'drag-over': isDragOver && dragFieldType === 'metric'
+                    }"
+                    data-field-type="value"
+                  >
+                    <div class="field-content" v-if="selectedChart.valueField">
+                      <el-icon><TrendCharts /></el-icon>
+                      <span class="field-name">{{ getFieldDisplayName(selectedChart.valueField) }}</span>
+                      <el-icon class="remove-field" @click.stop="removeField('value')"><Close /></el-icon>
+                    </div>
+                    <div class="drop-hint" v-else>
+                      <el-icon><TrendCharts /></el-icon>
+                      <span class="hint-text">拖拽指标字段</span>
+                      <div class="hint-animation">
+                        <el-icon class="bounce-icon"><ArrowDownBold /></el-icon>
+                      </div>
                     </div>
                   </div>
                 </el-form-item>
@@ -307,191 +385,6 @@
               </el-tab-pane>
             </el-tabs>
           </div>
-
-          <!-- 数据配置面板 -->
-          <div class="data-panel">
-            <div class="panel-header">
-              <div class="header-content">
-                <el-icon class="panel-icon"><DataBoard /></el-icon>
-                <h3>数据配置</h3>
-              </div>
-              <div class="panel-actions">
-                <el-button size="small" @click="showPreview" :disabled="!selectedDataset" text>
-                  <el-icon><View /></el-icon>
-                </el-button>
-                <el-button size="small" @click="refreshData" :disabled="!selectedDataset" text>
-                  <el-icon><Refresh /></el-icon>
-                </el-button>
-              </div>
-            </div>
-            
-            <!-- 数据集选择 -->
-            <div class="dataset-selector-section">
-              <div class="dataset-selector-wrapper">
-                <DatasetSelector
-                  v-model="selectedDataset"
-                  :show-preview="false"
-                  :show-create="false"
-                  @change="handleDatasetChange"
-                  @preview="showDatasetPreview = true"
-                />
-              </div>
-            </div>
-
-            <!-- 数据集信息卡片 - 优先显示 -->
-            <div class="dataset-info-section">
-              <div v-if="selectedDataset" class="selected-info-card">
-                <div class="selected-header">
-                  <div class="selected-title">
-                    <el-icon class="selected-icon"><DataBoard /></el-icon>
-                    <span>{{ selectedDataset.name }}</span>
-                  </div>
-                  <el-tag :type="getQueryTypeTag(selectedDataset.queryType)" size="small">
-                    {{ getQueryTypeLabel(selectedDataset.queryType) }}
-                  </el-tag>
-                </div>
-                
-                <div class="selected-content">
-                  <div class="basic-info">
-                    <div class="info-item">
-                      <span class="info-label">数据源:</span>
-                      <span class="info-value">{{ selectedDataset.dataSourceName || '未知' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">状态:</span>
-                      <el-tag :type="selectedDataset.status === 'active' ? 'success' : 'danger'" size="small">
-                        {{ selectedDataset.status === 'active' ? '启用' : '禁用' }}
-                      </el-tag>
-                    </div>
-                    <div class="info-item" v-if="selectedDataset.description">
-                      <span class="info-label">描述:</span>
-                      <span class="info-value">{{ selectedDataset.description }}</span>
-                    </div>
-                  </div>
-
-                  <!-- 字段统计 -->
-                  <div v-if="selectedDataset.fields && selectedDataset.fields.length > 0" class="fields-summary">
-                    <span class="fields-count">{{ selectedDataset.fields.length }} 个字段</span>
-                    <div class="fields-breakdown">
-                      <span class="field-stat dimension">
-                        {{ selectedDataset.fields.filter(f => f.fieldType === 'dimension').length }} 维度
-                      </span>
-                      <span class="field-stat metric">
-                        {{ selectedDataset.fields.filter(f => f.fieldType === 'metric').length }} 指标
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 无数据集时的提示 -->
-              <div v-else class="no-dataset-hint">
-                <div class="hint-content">
-                  <el-icon class="hint-icon"><DataBoard /></el-icon>
-                  <span class="hint-text">暂无选择数据集</span>
-                  <span class="hint-subtext">请先在上方选择一个数据集</span>
-                </div>
-              </div>
-            </div>
-
-
-
-            <!-- 字段拖拽区域 -->
-            <div v-if="selectedDataset" class="field-drag-section">
-              <div class="section-header">
-                <el-icon><Select /></el-icon>
-                <span>字段配置</span>
-                <el-tooltip content="拖拽下方字段到图表配置区域，或直接拖拽到画布中的图表上" placement="top">
-                  <el-icon class="help-icon"><InfoFilled /></el-icon>
-                </el-tooltip>
-              </div>
-
-              <!-- 字段搜索 -->
-              <div class="field-search">
-                <el-input
-                  v-model="fieldSearchKeyword"
-                  placeholder="搜索字段..."
-                  prefix-icon="Search"
-                  size="small"
-                  clearable
-                />
-              </div>
-
-              <!-- 字段列表容器 -->
-              <div class="field-sections-container">
-                <!-- 维度字段 -->
-                <div class="field-section">
-                  <div class="field-section-title">
-                    <el-icon class="dimension-icon"><Rank /></el-icon>
-                    <span>维度字段</span>
-                    <el-tag size="small" type="info">{{ dimensionFields.length }}</el-tag>
-                  </div>
-                  <div class="field-list">
-                    <div
-                      v-for="field in dimensionFields"
-                      :key="field.fieldName"
-                      class="field-item dimension-field"
-                      draggable="true"
-                      @dragstart="handleFieldDragStart($event, field)"
-                    >
-                      <div class="field-content">
-                        <el-icon class="field-icon"><Rank /></el-icon>
-                        <div class="field-info">
-                          <div class="field-name">{{ field.displayName || field.fieldName }}</div>
-                          <div class="field-meta">{{ field.fieldName }}</div>
-                        </div>
-                        <el-tooltip
-                          v-if="field.description"
-                          :content="field.description"
-                          placement="right"
-                        >
-                          <el-icon class="field-help"><InfoFilled /></el-icon>
-                        </el-tooltip>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 指标字段 -->
-                <div class="field-section">
-                  <div class="field-section-title">
-                    <el-icon class="metric-icon"><TrendCharts /></el-icon>
-                    <span>指标字段</span>
-                    <el-tag size="small" type="success">{{ metricFields.length }}</el-tag>
-                  </div>
-                  <div class="field-list">
-                    <div
-                      v-for="field in metricFields"
-                      :key="field.fieldName"
-                      class="field-item metric-field"
-                      draggable="true"
-                      @dragstart="handleFieldDragStart($event, field)"
-                    >
-                      <div class="field-content">
-                        <el-icon class="field-icon"><TrendCharts /></el-icon>
-                        <div class="field-info">
-                          <div class="field-name">{{ field.displayName || field.fieldName }}</div>
-                          <div class="field-meta">
-                            {{ field.fieldName }}
-                            <el-tag v-if="field.aggregation" size="small" type="warning">
-                              {{ getAggregationLabel(field.aggregation) }}
-                            </el-tag>
-                          </div>
-                        </div>
-                        <el-tooltip
-                          v-if="field.description"
-                          :content="field.description"
-                          placement="right"
-                        >
-                          <el-icon class="field-help"><InfoFilled /></el-icon>
-                        </el-tooltip>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       
@@ -530,19 +423,42 @@
     >
       <div class="dataset-preview">
         <div class="preview-header">
-          <h4>{{ selectedDataset?.name }}</h4>
-          <el-tag type="info">{{ selectedDataset?.tableName }}</el-tag>
+          <div class="header-info">
+            <h4>{{ selectedDataset?.name }}</h4>
+            <el-tag type="info">{{ selectedDataset?.tableName || '自定义查询' }}</el-tag>
+            <span v-if="previewDataList.length > 0" class="record-count">
+              共 {{ previewDataList.length }} 条预览数据
+            </span>
+          </div>
+          <div class="header-actions">
+            <el-button size="small" @click="refreshPreviewData" :loading="previewLoading">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
         </div>
         
-        <el-table :data="previewDataList" border style="width: 100%">
+        <el-table 
+          :data="previewDataList" 
+          border 
+          style="width: 100%" 
+          max-height="500"
+          v-loading="previewLoading"
+          stripe
+        >
           <el-table-column
-            v-for="field in selectedDataset?.fields"
-            :key="field.fieldName"
-            :prop="field.fieldName"
-            :label="field.description || field.displayName"
-            :width="field.fieldType === 'date' ? 120 : undefined"
+            v-for="column in previewColumns"
+            :key="column"
+            :prop="column"
+            :label="getColumnDisplayName(column)"
+            min-width="120"
+            show-overflow-tooltip
           />
         </el-table>
+        
+        <div v-if="previewDataList.length === 0 && !previewLoading" class="empty-preview">
+          <el-empty description="暂无预览数据" />
+        </div>
       </div>
     </el-dialog>
 
@@ -618,6 +534,74 @@
         <el-button type="primary" @click="handlePublish">确认发布</el-button>
       </template>
     </el-dialog>
+
+    <!-- 右键菜单 -->
+    <div 
+      v-if="contextMenu.visible"
+      class="context-menu"
+      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      @click.stop
+    >
+      <div class="context-menu-item" @click="handleContextMenuAction('edit')" v-if="contextMenu.chartItem">
+        <el-icon><Setting /></el-icon>
+        <span>编辑图表</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('duplicate')" v-if="contextMenu.chartItem">
+        <el-icon><CopyDocument /></el-icon>
+        <span>复制图表</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('moveToTop')" v-if="contextMenu.chartItem">
+        <el-icon><ArrowUp /></el-icon>
+        <span>置于顶层</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('moveToBottom')" v-if="contextMenu.chartItem">
+        <el-icon><ArrowDown /></el-icon>
+        <span>置于底层</span>
+      </div>
+      <div class="context-menu-divider" v-if="contextMenu.chartItem"></div>
+      <div class="context-menu-item" @click="handleContextMenuAction('delete')" v-if="contextMenu.chartItem">
+        <el-icon><Delete /></el-icon>
+        <span>删除图表</span>
+      </div>
+      
+      <!-- 画布右键菜单 -->
+      <div class="context-menu-item" @click="handleContextMenuAction('addBar')" v-if="!contextMenu.chartItem">
+        <el-icon><TrendCharts /></el-icon>
+        <span>添加柱状图</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('addLine')" v-if="!contextMenu.chartItem">
+        <el-icon><TrendCharts /></el-icon>
+        <span>添加折线图</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('addPie')" v-if="!contextMenu.chartItem">
+        <el-icon><TrendCharts /></el-icon>
+        <span>添加饼图</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('addTable')" v-if="!contextMenu.chartItem">
+        <el-icon><Grid /></el-icon>
+        <span>添加表格</span>
+      </div>
+      <div class="context-menu-divider" v-if="!contextMenu.chartItem && layout.length > 0"></div>
+      <div class="context-menu-item" @click="handleContextMenuAction('selectAll')" v-if="!contextMenu.chartItem && layout.length > 0">
+        <el-icon><Select /></el-icon>
+        <span>全选图表</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('clearAll')" v-if="!contextMenu.chartItem && layout.length > 0">
+        <el-icon><Delete /></el-icon>
+        <span>清空画布</span>
+      </div>
+      <div class="context-menu-item" @click="handleContextMenuAction('autoLayout')" v-if="!contextMenu.chartItem && layout.length > 0">
+        <el-icon><Grid /></el-icon>
+        <span>自动布局</span>
+      </div>
+    </div>
+
+    <!-- 右键菜单背景遮罩 -->
+    <div 
+      v-if="contextMenu.visible"
+      class="context-menu-overlay"
+      @click="hideContextMenu"
+    ></div>
   </div>
 </template>
 
@@ -627,14 +611,14 @@ import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, ElTable, ElTableColumn } from 'element-plus'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
-import { Rank, TrendCharts, ArrowDown, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection } from '@element-plus/icons-vue'
+import { Rank, TrendCharts, ArrowDown, ArrowUp, ArrowDownBold, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection } from '@element-plus/icons-vue'
 import ChartDataSourceConfig from '@/components/chart/ChartDataSourceConfig.vue'
 import DatasetSelector from '@/components/dataset/DatasetSelector.vue'
 import DatasetConfigPanel from '@/components/dashboard/DatasetConfigPanel.vue'
 import type { DataSet, DataSetField } from '@/types/dataManagement'
 import type { MenuSelectOption, MenuItem } from '@/types/menu'
 import { getMenuTree } from '@/api/menu'
-import { createDashboard, getDashboardDetail } from '@/api/dashboard'
+import { createDashboard, updateDashboard, getDashboardDetail } from '@/api/dashboard'
 import { DashboardStatus, DashboardType } from '@/types/dashboard'
 import type { ChartFieldMapping } from '@/utils/chartDataTransform'
 import { useDatasetStore } from '@/stores/dataset'
@@ -642,6 +626,7 @@ import type { DashboardForm, ChartConfig } from '@/types/dashboard'
 import type { LayoutItem } from '@/types/dashboard'
 import { defaultFieldMappings } from '@/mock/dashboardData'
 import { dataSetApi } from '@/api/dataSource'
+import { previewDatasetData } from '@/api/dataset'
 
 // 预览数据类型
 interface PreviewData {
@@ -683,6 +668,46 @@ const selectedDataset = ref<DataSet | null>(null)
 
 // 图表数据
 const chartData = ref<any[]>([])
+
+// 数据预览相关
+const previewLoading = ref(false)
+const previewColumns = ref<string[]>([])
+
+// 获取列显示名称
+const getColumnDisplayName = (column: string) => {
+  const field = selectedDataset.value?.fields?.find(f => f.fieldName === column)
+  return field?.description || field?.displayName || column
+}
+
+// 处理预览数据格式
+const processPreviewData = (response: any) => {
+  let previewData = []
+  
+  if (response?.data?.columns && response?.data?.data) {
+    // 处理二维数组格式：将 [["M", 10], ["F", 10]] 转换为 [{gender: "M", 患者ID: 10}, ...]
+    const { columns, data } = response.data
+    previewColumns.value = columns
+    previewData = data.map((row: any[]) => {
+      const obj: Record<string, any> = {}
+      columns.forEach((column: string, index: number) => {
+        obj[column] = row[index]
+      })
+      return obj
+    })
+  } else if (response?.data?.content && Array.isArray(response.data.content)) {
+    previewData = response.data.content
+    if (previewData.length > 0) {
+      previewColumns.value = Object.keys(previewData[0])
+    }
+  } else if (response?.data && Array.isArray(response.data)) {
+    previewData = response.data
+    if (previewData.length > 0) {
+      previewColumns.value = Object.keys(previewData[0])
+    }
+  }
+  
+  return previewData
+}
 
 // 字段搜索
 const fieldSearchKeyword = ref('')
@@ -740,6 +765,25 @@ const dragFieldType = ref<'dimension' | 'metric' | null>(null)
 // 配置面板状态
 const activeConfigTab = ref('dataset')
 
+// 右键菜单状态
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  chartItem: null as LayoutItem | null
+})
+
+// 图表拖拽状态
+const chartDragState = ref({
+  isDragging: false,
+  dragChartId: null as string | null,
+  mouseDownTime: 0,
+  dragThreshold: 150, // 长按阈值（毫秒）
+  isManualDragging: false,
+  dragStartPos: { x: 0, y: 0 },
+  initialGridPos: { x: 0, y: 0 }
+})
+
 // 方法定义
 const handleDragStart = (event: DragEvent, chart: any) => {
   if (event.dataTransfer) {
@@ -753,7 +797,7 @@ const handleFieldDragStart = (event: DragEvent, field: DataSetField) => {
   }
 }
 
-const handleFieldDrop = (e: DragEvent, targetType: 'x' | 'y') => {
+const handleFieldDrop = (e: DragEvent, targetType: 'x' | 'y' | 'name' | 'value') => {
   if (!e.dataTransfer || !selectedChart.value) return
   
   const fieldData = JSON.parse(e.dataTransfer.getData('field'))
@@ -764,21 +808,25 @@ const handleFieldDrop = (e: DragEvent, targetType: 'x' | 'y') => {
   dragFieldType.value = null
   
   // 验证字段类型
-  if (targetType === 'x' && field.fieldType !== 'dimension') {
-    ElMessage.warning('X轴字段必须是维度字段')
+  if ((targetType === 'x' || targetType === 'name') && field.fieldType !== 'dimension') {
+    ElMessage.warning('X轴/名称字段必须是维度字段')
     return
   }
   
-  if (targetType === 'y' && field.fieldType !== 'metric') {
-    ElMessage.warning('Y轴字段必须是指标字段')
+  if ((targetType === 'y' || targetType === 'value') && field.fieldType !== 'metric') {
+    ElMessage.warning('Y轴/数值字段必须是指标字段')
     return
   }
   
   // 更新字段
   if (targetType === 'x') {
     selectedChart.value.xField = field.fieldName
-  } else {
+  } else if (targetType === 'y') {
     selectedChart.value.yField = field.fieldName
+  } else if (targetType === 'name') {
+    selectedChart.value.nameField = field.fieldName
+  } else if (targetType === 'value') {
+    selectedChart.value.valueField = field.fieldName
   }
   
   updateSelectedChart()
@@ -800,12 +848,9 @@ const handleDrop = (e: DragEvent) => {
     dataLimit: 100
   }
   
-  // 根据图表类型设置默认字段
+  // 应用智能推荐字段配置
   if (selectedDatasetId.value && selectedDataset.value) {
-    const defaultMapping = defaultFieldMappings[chartConfig.type]
-    if (defaultMapping) {
-      Object.assign(chartConfig, defaultMapping)
-    }
+    autoConfigureChartFields(chartConfig)
   }
   
   // 创建一个新的布局项
@@ -1253,12 +1298,16 @@ const loadDatasetData = async () => {
     
     // 尝试加载数据预览
     try {
-      const previewData = await dataSetApi.previewData(selectedDataset.value, 100)
-      chartData.value = previewData.data
-      console.log('数据预览:', previewData.data.length, '行数据')
+      const response = await previewDatasetData(selectedDataset.value.id)
+      const previewData = processPreviewData(response)
+      
+      chartData.value = previewData
+      previewDataList.value = previewData // 同时更新预览数据列表
+      console.log('数据预览:', previewData.length, '行数据', previewData)
     } catch (dataError) {
       console.warn('数据预览失败，但字段信息已加载:', dataError.message)
       chartData.value = []
+      previewDataList.value = []
     }
     
     ElMessage.success(`数据集 "${selectedDataset.value.name}" 加载成功`)
@@ -1289,8 +1338,52 @@ const refreshData = async () => {
   }
 }
 
-const showPreview = () => {
+const showPreview = async () => {
+  if (!selectedDataset.value) {
+    ElMessage.warning('请先选择数据集')
+    return
+  }
+  
+  // 如果还没有预览数据，先加载
+  if (previewDataList.value.length === 0) {
+    try {
+      const response = await previewDatasetData(selectedDataset.value.id)
+      const previewData = processPreviewData(response)
+      
+      previewDataList.value = previewData
+      console.log('预览数据加载成功:', previewData.length, '行数据')
+    } catch (error) {
+      console.error('加载预览数据失败:', error)
+      ElMessage.error('加载预览数据失败: ' + (error.message || '未知错误'))
+      return
+    }
+  }
+  
   showDatasetPreview.value = true
+}
+
+// 刷新预览数据
+const refreshPreviewData = async () => {
+  if (!selectedDataset.value) {
+    ElMessage.warning('请先选择数据集')
+    return
+  }
+  
+  try {
+    previewLoading.value = true
+    const response = await previewDatasetData(selectedDataset.value.id)
+    const previewData = processPreviewData(response)
+    
+    previewDataList.value = previewData
+    chartData.value = previewData
+    console.log('预览数据刷新成功:', previewData.length, '行数据')
+    ElMessage.success('预览数据已刷新')
+  } catch (error) {
+    console.error('刷新预览数据失败:', error)
+    ElMessage.error('刷新预览数据失败: ' + (error.message || '未知错误'))
+  } finally {
+    previewLoading.value = false
+  }
 }
 
 const selectAllCharts = () => {
@@ -1427,19 +1520,8 @@ const removeChart = (chartId: string) => {
 
 // 数据集变更处理
 const handleDatasetChange = async (dataset: DataSet | null) => {
-  if (dataset) {
-    selectedDataset.value = dataset
-    selectedDatasetId.value = dataset.id
-    
-    // 加载数据集数据
-    await loadDatasetData()
-    
-    ElMessage.success(`数据集 "${dataset.name}" 加载成功`)
-  } else {
-    selectedDataset.value = null
-    selectedDatasetId.value = null
-    chartData.value = []
-  }
+  // 此功能已迁移到 DatasetConfigPanel 组件
+  console.log('数据集变更:', dataset)
 }
 
 // 新增：处理数据源配置变更
@@ -1532,14 +1614,69 @@ const getFieldDisplayName = (fieldName: string) => {
   return field?.displayName || fieldName
 }
 
+// 智能推荐字段映射
+const smartFieldMapping = computed(() => {
+  if (!selectedDataset.value?.fields) return null
+  
+  const dimensions = dimensionFields.value
+  const metrics = metricFields.value
+  
+  if (dimensions.length === 0 || metrics.length === 0) return null
+  
+  return {
+    xField: dimensions[0]?.fieldName,
+    yField: metrics[0]?.fieldName,
+    nameField: dimensions[0]?.fieldName,
+    valueField: metrics[0]?.fieldName
+  }
+})
+
+// 自动配置图表字段的函数
+const autoConfigureChartFields = (chartConfig: ChartConfig) => {
+  if (!smartFieldMapping.value) return
+  
+  const mapping = smartFieldMapping.value
+  
+  // 根据图表类型配置字段
+  switch (chartConfig.type) {
+    case 'bar':
+    case 'line':
+      if (!chartConfig.xField && mapping.xField) {
+        chartConfig.xField = mapping.xField
+      }
+      if (!chartConfig.yField && mapping.yField) {
+        chartConfig.yField = mapping.yField
+      }
+      break
+    case 'pie':
+      if (!chartConfig.nameField && mapping.nameField) {
+        chartConfig.nameField = mapping.nameField
+      }
+      if (!chartConfig.valueField && mapping.valueField) {
+        chartConfig.valueField = mapping.valueField
+      }
+      break
+    case 'table':
+      if (!chartConfig.tableFields || chartConfig.tableFields.length === 0) {
+        const allFields = [...dimensionFields.value, ...metricFields.value]
+        chartConfig.tableFields = allFields.slice(0, 5).map(f => f.fieldName)
+      }
+      break
+  }
+}
+
 // 移除字段
-const removeField = (type: 'x' | 'y') => {
+const removeField = (type: 'x' | 'y' | 'name' | 'value') => {
   if (!selectedChart.value) return
   
   if (type === 'x') {
     selectedChart.value.xField = undefined
-  } else {
+  } else if (type === 'y') {
     selectedChart.value.yField = undefined
+  } else if (type === 'name') {
+    selectedChart.value.nameField = undefined
+  } else if (type === 'value') {
+    selectedChart.value.valueField = undefined
   }
   
   updateSelectedChart()
@@ -1654,17 +1791,25 @@ const handleResizerMouseDown = (e: MouseEvent) => {
   document.body.style.userSelect = 'none'
 }
 
+// 路由和仪表盘ID
+const route = useRoute()
+const router = useRouter()
+const currentDashboardId = ref<string | null>(null)
+
 // 组件挂载
 onMounted(async () => {
-  const route = useRoute()
   const dashboardId = route.params.id
   
   if (dashboardId) {
+    currentDashboardId.value = dashboardId as string
     await loadDashboard(dashboardId as string)
   }
   
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('resize', handleResize)
+  
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeyDown)
   
   // 加载数据集列表
   await loadDatasets()
@@ -1681,9 +1826,14 @@ onUnmounted(() => {
   
   window.removeEventListener('resize', handleWindowResize)
   window.removeEventListener('resize', handleResize)
+  document.removeEventListener('keydown', handleKeyDown)
+  
+  // 重置拖拽状态
+  chartDragState.value.isDragging = false
+  chartDragState.value.dragChartId = null
+  document.body.style.cursor = ''
 })
 
-const router = useRouter()
 const dashboardName = ref('')
 const publishDialogVisible = ref(false)
 
@@ -1725,19 +1875,32 @@ const handleSave = async () => {
     console.log('布局数据:', layout.value)
     console.log('保存的数据结构:', dashboardData)
 
-    const result = await createDashboard(dashboardData)
+    // 判断是创建还是更新模式
+    const isEditMode = !!currentDashboardId.value
+    console.log('保存模式:', isEditMode ? '更新' : '创建')
+
+    let result
+    if (isEditMode) {
+      // 编辑模式：调用更新API
+      console.log('更新仪表盘 ID:', currentDashboardId.value)
+      result = await updateDashboard(currentDashboardId.value!, dashboardData)
+    } else {
+      // 创建模式：调用创建API
+      console.log('创建新仪表盘')
+      result = await createDashboard(dashboardData)
+    }
     
     if (result.code === 200 || result.code === 201) {
-      ElMessage.success('保存成功')
+      ElMessage.success(isEditMode ? '更新成功' : '创建成功')
       showSaveDialog.value = false
       
-      // 修改这里：使用 router.push 并添加 skipAuthCheck 参数
+      // 跳转到列表页
       router.push({
         path: '/dashboard/list',
         query: { skipAuthCheck: 'true' }
       })
       
-      return result.data.id
+      return isEditMode ? currentDashboardId.value : result.data?.id
     } else {
       throw new Error(result.message || '保存失败')
     }
@@ -1942,6 +2105,298 @@ const getChartOption = (config: ChartConfig) => {
       return {}
   }
 }
+
+// 右键菜单相关方法
+const handleChartContextMenu = (event: MouseEvent, item: LayoutItem) => {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  const { x, y } = getMenuPosition(event.clientX, event.clientY)
+  
+  contextMenu.value = {
+    visible: true,
+    x,
+    y,
+    chartItem: item
+  }
+  
+  // 点击其他地方时隐藏菜单
+  document.addEventListener('click', hideContextMenu, { once: true })
+}
+
+const handleCanvasContextMenu = (event: MouseEvent) => {
+  // 检查是否点击在图表上
+  const target = event.target as HTMLElement
+  if (target.closest('.grid-chart-item')) {
+    return // 如果点击在图表上，不显示画布菜单
+  }
+  
+  event.preventDefault()
+  event.stopPropagation()
+  
+  const { x, y } = getMenuPosition(event.clientX, event.clientY)
+  
+  contextMenu.value = {
+    visible: true,
+    x,
+    y,
+    chartItem: null
+  }
+  
+  // 点击其他地方时隐藏菜单
+  document.addEventListener('click', hideContextMenu, { once: true })
+}
+
+const getMenuPosition = (clientX: number, clientY: number) => {
+  const menuWidth = 160
+  const menuHeight = 300
+  const windowWidth = window.innerWidth
+  const windowHeight = window.innerHeight
+  
+  let x = clientX
+  let y = clientY
+  
+  // 防止菜单超出屏幕右边界
+  if (x + menuWidth > windowWidth) {
+    x = windowWidth - menuWidth - 10
+  }
+  
+  // 防止菜单超出屏幕下边界
+  if (y + menuHeight > windowHeight) {
+    y = windowHeight - menuHeight - 10
+  }
+  
+  // 防止菜单超出屏幕左边界
+  if (x < 0) {
+    x = 10
+  }
+  
+  // 防止菜单超出屏幕上边界
+  if (y < 0) {
+    y = 10
+  }
+  
+  return { x, y }
+}
+
+const hideContextMenu = () => {
+  contextMenu.value.visible = false
+  contextMenu.value.chartItem = null
+}
+
+const handleContextMenuAction = (action: string) => {
+  const { chartItem } = contextMenu.value
+  
+  switch (action) {
+    case 'edit':
+      if (chartItem) {
+        selectChart(chartItem.i)
+      }
+      break
+    case 'duplicate':
+      if (chartItem) {
+        duplicateChart(chartItem)
+      }
+      break
+    case 'moveToTop':
+      if (chartItem) {
+        moveChartToTop(chartItem)
+      }
+      break
+    case 'moveToBottom':
+      if (chartItem) {
+        moveChartToBottom(chartItem)
+      }
+      break
+    case 'delete':
+      if (chartItem) {
+        removeChart(chartItem.i)
+      }
+      break
+    case 'addBar':
+      handleAddChart('bar')
+      break
+    case 'addLine':
+      handleAddChart('line')
+      break
+    case 'addPie':
+      handleAddChart('pie')
+      break
+    case 'addTable':
+      handleAddChart('table')
+      break
+    case 'selectAll':
+      selectAllCharts()
+      break
+    case 'clearAll':
+      clearAllCharts()
+      break
+    case 'autoLayout':
+      autoLayout()
+      break
+  }
+  
+  hideContextMenu()
+}
+
+const moveChartToTop = (item: LayoutItem) => {
+  const index = layout.value.findIndex(l => l.i === item.i)
+  if (index > -1) {
+    const chartItem = layout.value.splice(index, 1)[0]
+    layout.value.unshift(chartItem)
+    ElMessage.success('图表已置于顶层')
+  }
+}
+
+const moveChartToBottom = (item: LayoutItem) => {
+  const index = layout.value.findIndex(l => l.i === item.i)
+  if (index > -1) {
+    const chartItem = layout.value.splice(index, 1)[0]
+    layout.value.push(chartItem)
+    ElMessage.success('图表已置于底层')
+  }
+}
+
+// 键盘事件处理
+const handleKeyDown = (event: KeyboardEvent) => {
+  // ESC键隐藏右键菜单
+  if (event.key === 'Escape' && contextMenu.value.visible) {
+    hideContextMenu()
+  }
+  
+  // Ctrl/Cmd + A 全选图表
+  if ((event.ctrlKey || event.metaKey) && event.key === 'a' && layout.value.length > 0) {
+    event.preventDefault()
+    selectAllCharts()
+  }
+  
+  // Delete键删除选中的图表
+  if (event.key === 'Delete' && selectedChart.value) {
+    event.preventDefault()
+    removeChart(selectedChart.value.i)
+  }
+  
+  // Ctrl/Cmd + D 复制选中的图表
+  if ((event.ctrlKey || event.metaKey) && event.key === 'd' && selectedChart.value) {
+    event.preventDefault()
+    const item = layout.value.find(l => l.i === selectedChart.value!.i)
+    if (item) {
+      duplicateChart(item)
+    }
+  }
+}
+
+// 图表内容区域拖拽处理
+const handleChartContentMouseDown = (event: MouseEvent, chartId: string) => {
+  // 记录鼠标按下时间
+  chartDragState.value.mouseDownTime = Date.now()
+  chartDragState.value.dragChartId = chartId
+  
+  // 设置长按定时器
+  const longPressTimer = setTimeout(() => {
+    if (chartDragState.value.dragChartId === chartId) {
+      enableChartDrag(chartId)
+    }
+  }, chartDragState.value.dragThreshold)
+  
+  // 鼠标释放时清除定时器
+  const clearTimer = () => {
+    clearTimeout(longPressTimer)
+    document.removeEventListener('mouseup', clearTimer)
+  }
+  
+  document.addEventListener('mouseup', clearTimer)
+}
+
+const handleChartContentMouseUp = () => {
+  const pressDuration = Date.now() - chartDragState.value.mouseDownTime
+  
+  // 如果是短按（小于阈值），不启用拖拽模式
+  if (pressDuration < chartDragState.value.dragThreshold) {
+    chartDragState.value.dragChartId = null
+    disableChartDrag()
+  } else if (chartDragState.value.isDragging) {
+    // 如果已经在拖拽模式，设置自动禁用定时器
+    setTimeout(() => {
+      disableChartDrag()
+      ElMessage.success('拖拽模式已自动关闭')
+    }, 3000) // 3秒后自动关闭拖拽模式
+  }
+}
+
+const handleChartContentMouseLeave = () => {
+  // 鼠标离开图表区域时重置状态
+  if (!chartDragState.value.isDragging) {
+    chartDragState.value.dragChartId = null
+    disableChartDrag()
+  }
+}
+
+
+
+const enableChartDrag = (chartId: string) => {
+  console.log('启用拖拽模式:', chartId)
+  chartDragState.value.isDragging = true
+  
+  // 添加视觉反馈
+  const chartContainer = document.querySelector(`#chart-${chartId}`)
+  if (chartContainer) {
+    chartContainer.classList.add('drag-mode')
+  }
+  
+  // 修改图表内容区域的样式，启用拖拽
+  const chartContent = document.querySelector(`#chart-${chartId} .chart-content`)
+  if (chartContent) {
+    chartContent.classList.add('drag-enabled')
+  }
+  
+  // 关键：动态修改grid-item的拖拽区域
+  nextTick(() => {
+    const gridItem = document.querySelector(`[data-grid-item-id="${chartId}"]`) as any
+    if (gridItem && gridItem.__vueParentComponent) {
+      // 临时修改vue3-grid-layout的dragAllowFrom属性
+      const vueInstance = gridItem.__vueParentComponent.ctx
+      if (vueInstance) {
+        vueInstance.dragAllowFrom = '.chart-drag-handler, .chart-content'
+        console.log('已更新拖拽配置:', vueInstance.dragAllowFrom)
+      }
+    }
+    
+    // 备用方案：直接在DOM元素上设置属性
+    const chartContentElements = document.querySelectorAll(`#chart-${chartId} .chart-content, #chart-${chartId} .chart-content *`)
+    chartContentElements.forEach(el => {
+      (el as HTMLElement).setAttribute('data-grid-drag-handle', 'true')
+    })
+  })
+  
+  ElMessage({ message: '拖拽模式已激活！现在可以拖动蓝色区域', type: 'info', duration: 3000 })
+}
+
+
+
+const disableChartDrag = () => {
+  if (chartDragState.value.dragChartId) {
+    const chartId = chartDragState.value.dragChartId
+    
+    const chartContent = document.querySelector(`#chart-${chartId} .chart-content`)
+    if (chartContent) {
+      chartContent.classList.remove('drag-enabled')
+      // 移除备用方案的拖拽属性
+      const chartContentElements = document.querySelectorAll(`#chart-${chartId} .chart-content, #chart-${chartId} .chart-content *`)
+      chartContentElements.forEach(el => {
+        (el as HTMLElement).removeAttribute('data-grid-drag-handle')
+      })
+    }
+    
+    const chartContainer = document.querySelector(`#chart-${chartId}`)
+    if (chartContainer) {
+      chartContainer.classList.remove('drag-mode')
+    }
+  }
+  
+  chartDragState.value.isDragging = false
+  chartDragState.value.dragChartId = null
+}
 </script>
 
 <style scoped lang="scss">
@@ -2090,9 +2545,10 @@ const getChartOption = (config: ChartConfig) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 400px;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
-  transition: width 0.1s ease;
+  transition: all 0.1s ease;
 }
 
 .panels-container {
@@ -2100,10 +2556,12 @@ const getChartOption = (config: ChartConfig) => {
   display: flex;
   flex-direction: row;
   overflow: hidden;
+  width: 100%;
 }
 
 .config-panel {
-  width: 320px;
+  flex: 1;
+  min-width: 400px;
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
@@ -2355,12 +2813,14 @@ const getChartOption = (config: ChartConfig) => {
   
   &:hover {
     border-color: #409eff;
-    background: #ecf5ff;
-    transform: translateX(4px);
+    background: linear-gradient(135deg, #ecf5ff 0%, #e1f3ff 100%);
+    transform: translateX(4px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
   }
   
   &:active {
     cursor: grabbing;
+    transform: translateX(4px) scale(0.98);
   }
   
   .el-icon {
@@ -2462,13 +2922,47 @@ const getChartOption = (config: ChartConfig) => {
   }
   
   .drop-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     color: #999999;
     font-size: 13px;
     pointer-events: none;
-    white-space: nowrap;
     font-weight: 500;
     opacity: 0.8;
     text-align: center;
+    
+    .hint-text {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .hint-animation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      .bounce-icon {
+        font-size: 16px;
+        color: #d3d4d6;
+        animation: bounce 2s infinite;
+      }
+    }
+  }
+  
+  &.drag-over {
+    .drop-hint {
+      .hint-text {
+        color: #409eff;
+        font-weight: 600;
+      }
+      
+      .hint-animation .bounce-icon {
+        color: #409eff;
+        animation: bounce-fast 1s infinite;
+      }
+    }
   }
 }
 
@@ -2554,6 +3048,153 @@ const getChartOption = (config: ChartConfig) => {
   flex: 1;
   min-height: 0;
   padding: 8px;
+  transition: all 0.3s ease;
+  user-select: none;
+  
+  &.drag-enabled {
+    cursor: grab !important;
+    background: #f0f8ff !important;
+    border: 2px dashed #409eff;
+    animation: dragPulse 2s infinite;
+    position: relative;
+    z-index: 999;
+    
+    // 确保所有子元素都可以拖拽
+    *, canvas {
+      pointer-events: none !important;
+    }
+    
+    &:hover {
+      background: #e6f3ff !important;
+      border-color: #66b1ff;
+      transform: scale(1.02);
+    }
+    
+    &:active {
+      cursor: grabbing !important;
+      background: #cce7ff !important;
+      transform: scale(0.98);
+      animation: none;
+    }
+  }
+}
+
+/* 拖拽模式动画 */
+@keyframes dragPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(64, 158, 255, 0.1);
+  }
+}
+
+/* 拖拽模式下的图表容器样式 */
+.chart-container.drag-mode {
+  border: 2px solid #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+  transform: scale(1.02);
+  
+  .chart-drag-handler {
+    background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    color: white;
+    
+    .chart-title {
+      color: white;
+      font-weight: 600;
+    }
+    
+    .chart-actions .el-button {
+      color: white;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+}
+
+/* 拖拽提示样式 */
+.drag-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+  animation: dragHintBounce 1s ease-in-out infinite alternate;
+  z-index: 999;
+  cursor: grab;
+  
+  .el-icon {
+    font-size: 18px;
+    animation: dragHintRotate 2s linear infinite;
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+
+
+
+
+@keyframes dragHintBounce {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 字段拖拽动画 */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes bounce-fast {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes dragHintBounce {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+@keyframes dragHintRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 移动端优化 */
@@ -2798,6 +3439,41 @@ const getChartOption = (config: ChartConfig) => {
       border-color: #67c23a;
       background: #f0f9eb;
     }
+  }
+}
+
+/* 数据预览对话框样式 */
+.dataset-preview {
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e4e7ed;
+    
+    .header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      h4 {
+        margin: 0;
+        color: #303133;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      
+      .record-count {
+        color: #909399;
+        font-size: 14px;
+      }
+    }
+  }
+  
+  .empty-preview {
+    margin-top: 40px;
+    text-align: center;
   }
 }
 
@@ -3884,6 +4560,87 @@ const getChartOption = (config: ChartConfig) => {
     border: none !important;
     box-shadow: none !important;
   }
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  min-width: 160px;
+  padding: 8px 0;
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+  animation: contextMenuFadeIn 0.15s ease-out;
+  
+  .context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #606266;
+    line-height: 1.2;
+    
+    &:hover {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8f4fd 100%);
+      color: #409eff;
+      
+      .el-icon {
+        transform: scale(1.1);
+      }
+    }
+    
+    &:active {
+      background: #e8f4fd;
+      transform: scale(0.98);
+    }
+    
+    .el-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    span {
+      flex: 1;
+      font-weight: 400;
+      font-size: 13px;
+    }
+  }
+  
+  .context-menu-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e4e7ed, transparent);
+    margin: 6px 0;
+  }
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.context-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  background: transparent;
 }
 
 /* 垂直分隔条样式 */
