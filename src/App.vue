@@ -1,8 +1,17 @@
+<!--
+ * @Author: Mr.Crab wei17306927526@gmail.com
+ * @Date: 2025-05-28 10:00:35
+ * @LastEditors: Mr.Crab wei17306927526@gmail.com
+ * @LastEditTime: 2025-06-12 08:38:21
+ * @FilePath: /workflow-system/src/App.vue
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DefaultLayout from '@/components/Layout.vue'
 import DesignerLayout from '@/components/DesignerLayout.vue'
+import AIChatAssistant from '@/components/AIChatAssistant.vue'
 
 const route = useRoute()
 
@@ -29,6 +38,7 @@ const layout = computed(() => {
   <component :is="layout">
     <router-view />
   </component>
+  <AIChatAssistant />
 </template>
 
 <style>
