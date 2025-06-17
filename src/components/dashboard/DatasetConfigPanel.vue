@@ -153,6 +153,34 @@
             </el-select>
           </el-form-item>
         </div>
+
+        <!-- 图片配置 -->
+        <div v-else-if="chartType === 'image'" class="mapping-config">
+          <el-form-item label="图片地址">
+            <el-input 
+              v-model="fieldMapping.imageUrl" 
+              placeholder="请输入图片URL"
+              @change="validateAndEmit"
+            >
+              <template #append>
+                <el-upload
+                  class="image-uploader"
+                  action="/api/upload"
+                  :show-file-list="false"
+                  :on-success="handleUploadSuccess"
+                  :before-upload="beforeUpload"
+                >
+                  <el-button type="primary">上传</el-button>
+                </el-upload>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item v-if="fieldMapping.imageUrl">
+            <div class="image-preview">
+              <img :src="fieldMapping.imageUrl" alt="预览图" />
+            </div>
+          </el-form-item>
+        </div>
       </div>
 
 
@@ -163,7 +191,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DataBoard } from '@element-plus/icons-vue'
+import { DataBoard, Picture } from '@element-plus/icons-vue'
 import { dataSetApi } from '@/api/dataSource'
 import { 
   getDatasetFields, 
@@ -175,7 +203,7 @@ import { type ChartFieldMapping } from '@/utils/chartDataTransform'
 import type { DataSet } from '@/types/dataManagement'
 
 interface Props {
-  chartType: 'bar' | 'line' | 'pie' | 'table'
+  chartType: 'bar' | 'line' | 'pie' | 'table' | 'image'
   initialConfig?: Partial<ChartConfig>
 }
 
@@ -265,8 +293,6 @@ const applySuggestedMapping = () => {
   ElMessage.success('已应用智能推荐配置')
 }
 
-
-
 const validateAndEmit = () => {
   if (!selectedDatasetId.value) return
   
@@ -276,8 +302,6 @@ const validateAndEmit = () => {
     isValid: isConfigValid.value
   })
 }
-
-
 
 const resetConfig = () => {
   selectedDatasetId.value = null
@@ -311,6 +335,30 @@ watch(() => props.chartType, (newType) => {
     validateAndEmit()
   }
 })
+
+// 图片上传相关方法
+const handleUploadSuccess = (response: any) => {
+  if (response.code === 0 && response.data) {
+    fieldMapping.value.imageUrl = response.data.url
+    validateAndEmit()
+  } else {
+    ElMessage.error('上传失败')
+  }
+}
+
+const beforeUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!')
+    return false
+  }
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!')
+    return false
+  }
+  return true
+}
 
 // 初始化
 onMounted(async () => {
@@ -390,5 +438,23 @@ onMounted(async () => {
   gap: 16px;
 }
 
+.image-preview {
+  margin-top: 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 10px;
+  text-align: center;
+  
+  img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+  }
+}
 
+.image-uploader {
+  :deep(.el-upload) {
+    width: 100%;
+  }
+}
 </style> 

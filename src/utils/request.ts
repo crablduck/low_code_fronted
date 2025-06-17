@@ -17,7 +17,7 @@ import { addGlobalHeaders, logRequestInfo } from './requestHelpers'
 // 创建两个axios实例
 // 1. 主服务API实例（用于登录、菜单等）
 const mainService: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:6001',
+  baseURL: 'http://172.16.1.107:6001',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
@@ -26,7 +26,7 @@ const mainService: AxiosInstance = axios.create({
 
 // 2. 数据源服务API实例（跳过JWT认证）
 const dataSourceService: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: 'http://172.16.1.107:8080',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'

@@ -228,14 +228,22 @@
                     <span>数据源</span>
                   </div>
                 </template>
-                <DatasetConfigPanel
-                  :chart-type="selectedChart.type"
-                  :initial-config="{
-                    datasetId: selectedChart.datasetId,
-                    fieldMapping: selectedChart.fieldMapping
-                  }"
-                  @config-change="handleDatasetConfigChange"
-                />
+                <template v-if="selectedChart.type === 'image'">
+                  <ImageConfigPanel
+                    :image-url="selectedChart.imageUrl"
+                    @update:imageUrl="val => { selectedChart.imageUrl = val; updateSelectedChart(); }"
+                  />
+                </template>
+                <template v-else>
+                  <DatasetConfigPanel
+                    :chart-type="(selectedChart.type as 'bar' | 'line' | 'pie' | 'table' | 'image')"
+                    :initial-config="{
+                      datasetId: selectedChart.datasetId,
+                      fieldMapping: selectedChart.fieldMapping
+                    }"
+                    @config-change="handleDatasetConfigChange"
+                  />
+                </template>
                 
                                 <!-- 字段展示区域 -->
                 <div v-if="selectedDataset" class="fields-display-section">
@@ -330,6 +338,7 @@
                             <el-option label="热力图" value="heatmap" />
                             <el-option label="树图" value="treemap" />
                             <el-option label="水球图" value="liquidfill" />
+                            <el-option label="图片" value="image" />
                           </el-select>
                         </el-form-item>
                         
@@ -639,10 +648,11 @@ import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, ElTable, ElTableColumn } from 'element-plus'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
-import { Rank, TrendCharts, ArrowDown, ArrowUp, ArrowDownBold, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection, Menu, CirclePlus, DataAnalysis, Sort, RefreshLeft, RefreshRight, Upload, Document } from '@element-plus/icons-vue'
+import { Rank, TrendCharts, ArrowDown, ArrowUp, ArrowDownBold, Close, Setting, Grid, Refresh, Select, Delete, CopyDocument, Download, DataBoard, View, Search, InfoFilled, Plus, Collection, Menu, CirclePlus, DataAnalysis, Sort, RefreshLeft, RefreshRight, Upload, Document, Picture } from '@element-plus/icons-vue'
 import ChartDataSourceConfig from '@/components/chart/ChartDataSourceConfig.vue'
 import DatasetSelector from '@/components/dataset/DatasetSelector.vue'
 import DatasetConfigPanel from '@/components/dashboard/DatasetConfigPanel.vue'
+import ImageConfigPanel from '@/components/dashboard/ImageConfigPanel.vue'
 import type { DataSet, DataSetField } from '@/types/dataManagement'
 import type { MenuSelectOption, MenuItem } from '@/types/menu'
 import { getMenuTree } from '@/api/menu'
@@ -674,7 +684,8 @@ const chartTypes = [
   { label: '漏斗图', value: 'funnel', icon: 'Sort' },
   { label: '热力图', value: 'heatmap', icon: 'Grid' },
   { label: '树图', value: 'treemap', icon: 'Menu' },
-  { label: '水球图', value: 'liquidfill', icon: 'TrendCharts' }
+  { label: '水球图', value: 'liquidfill', icon: 'TrendCharts' },
+  { label: '图片', value: 'image', icon: 'Picture' }
 ]
 
 // 状态管理
@@ -1194,6 +1205,18 @@ const updateChart = (id: string, config: ChartConfig) => {
         }]
       }
       break
+    case 'image':
+      return {
+        title: { text: config.title },
+        graphic: [{
+          type: 'image',
+          style: {
+            image: config.imageUrl,
+            width: '100%',
+            height: '100%'
+          }
+        }]
+      }
   }
   
   chart.setOption(option, true)
@@ -1725,7 +1748,8 @@ const getChartTitle = (type: ChartConfig['type']) => {
     funnel: '漏斗图',
     heatmap: '热力图',
     treemap: '树图',
-    liquidfill: '水球图'
+    liquidfill: '水球图',
+    image: '图片'
   }
   return titles[type] || '图表'
 }
@@ -1744,7 +1768,8 @@ const getDefaultChartWidth = (type: ChartConfig['type']) => {
     funnel: 5,
     heatmap: 8,
     treemap: 6,
-    liquidfill: 4
+    liquidfill: 4,
+    image: 6
   }
   return widths[type] || 6
 }
@@ -1763,7 +1788,8 @@ const getDefaultChartHeight = (type: ChartConfig['type']) => {
     funnel: 8,
     heatmap: 8,
     treemap: 7,
-    liquidfill: 6
+    liquidfill: 6,
+    image: 7
   }
   return heights[type] || 7
 }
@@ -2252,6 +2278,18 @@ const getChartOption = (config: ChartConfig) => {
           }
         }]
       }
+    case 'image':
+      return {
+        title: { text: config.title },
+        graphic: [{
+          type: 'image',
+          style: {
+            image: config.imageUrl,
+            width: '100%',
+            height: '100%'
+          }
+        }]
+      }
     default:
       return {
         title: { text: config.title || '图表' },
@@ -2638,6 +2676,34 @@ const getMetricFields = () => {
     field.businessType === 'METRIC' || 
     field.fieldType === 'metric'
   ) || []
+}
+
+// 修改图表渲染逻辑
+const renderChart = (chartId: string, config: ChartConfig) => {
+  const chartContainer = document.getElementById(`chart-${chartId}`)
+  if (!chartContainer) return
+
+  if (config.type === 'image') {
+    // 对于图片类型，直接渲染图片
+    chartContainer.innerHTML = `
+      <div class="image-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+        <img src="${config.imageUrl}" alt="${config.title || '图片'}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+      </div>
+    `
+    return
+  }
+
+  // 其他图表类型的渲染逻辑
+  let chart = chartInstances.value.get(chartId)
+  if (chart) {
+    chart.dispose()
+  }
+  
+  chart = echarts.init(chartContainer)
+  chartInstances.value.set(chartId, chart)
+  
+  const option = getChartOption(config)
+  chart.setOption(option)
 }
 </script>
 

@@ -65,7 +65,7 @@ export interface ChartFieldMapping {
 export interface ChartConfig {
   i: string
   id: string
-  type: 'bar' | 'line' | 'pie' | 'table' | 'area' | 'scatter' | 'radar' | 'gauge' | 'funnel' | 'heatmap' | 'treemap' | 'liquidfill'
+  type: 'bar' | 'line' | 'pie' | 'table' | 'area' | 'scatter' | 'radar' | 'gauge' | 'funnel' | 'heatmap' | 'treemap' | 'liquidfill' | 'image'
   title?: string
   xField?: string
   yField?: string
@@ -78,6 +78,7 @@ export interface ChartConfig {
   datasetId?: number
   fieldMapping?: ChartFieldMapping
   dataSourceConfig?: ChartDataSourceConfig
+  imageUrl?: string
 }
 
 // 布局项接口

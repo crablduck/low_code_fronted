@@ -8,7 +8,8 @@
  */
 import type { LoginForm, LoginResponse, UserInfo, ApiResponse, TenantListResponse } from '@/types/auth'
 
-const API_BASE_URL = 'http://localhost:6001' // 这里替换成你的实际API地址
+// const API_BASE_URL = 'http://localhost:6001' // 这里替换成你的实际API地址
+const API_BASE_URL = 'http://172.16.1.107:6001' // 这里替换成你的实际API地址
 
 export const login = async (data: LoginForm): Promise<LoginResponse> => {
   try {
