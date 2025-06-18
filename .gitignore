@@ -113,3 +113,7 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Documentation folders
+doc/
+docs/
