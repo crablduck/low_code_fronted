@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import AntvChartAnalyzer from '@/components/AntvChartAnalyzer.vue'
+import AntvChartAnalyzer from '../features/dashboard/components/AntvChartAnalyzer.vue'
 </script>
 
 <style scoped>

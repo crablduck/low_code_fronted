@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { DataSet } from '@/types/dataManagement'
+import type { DataSet } from '@/shared/types/dataManagement'
 
 export const useDatasetStore = defineStore('dataset', () => {
   // 状态

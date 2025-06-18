@@ -9,9 +9,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import DefaultLayout from '@/components/Layout.vue'
-import DesignerLayout from '@/components/DesignerLayout.vue'
-import AIChatAssistant from '@/components/AIChatAssistant.vue'
+import DefaultLayout from '@/shared/components/Layout.vue'
+import DesignerLayout from '@/shared/components/DesignerLayout.vue'
+import AIChatAssistant from '@/shared/components/AIChatAssistant.vue'
 
 const route = useRoute()
 

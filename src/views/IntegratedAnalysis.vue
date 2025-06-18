@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import UniverWithAntV from '@/components/UniverWithAntV.vue'
+import UniverWithAntV from '../features/dashboard/components/UniverWithAntV.vue'
 </script>
 
 <style scoped>

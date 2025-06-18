@@ -744,7 +744,7 @@ import {
 import { 
   dataSourceApi
 } from '@/api/dataSource'
-import type { DataSource, TableInfo, FieldInfo } from '@/types/dataManagement'
+import type { DataSource, TableInfo, FieldInfo } from '@/shared/types/dataManagement'
 
 // 字段类型定义
 interface FormField {

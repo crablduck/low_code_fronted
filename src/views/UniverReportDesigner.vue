@@ -345,8 +345,8 @@ import {
   Document,
   ArrowDown
 } from '@element-plus/icons-vue'
-import UniverSheet from '@/components/UniverSheet.vue'
-import CellComputedDialog from '@/components/data-compute/CellComputedDialog.vue'
+import UniverSheet from '../features/report-designer/components/UniverSheet.vue'
+import CellComputedDialog from '../features/data-management/components/data-compute/CellComputedDialog.vue'
 import { 
   getUniverReport, 
   createUniverReport, 
@@ -495,7 +495,7 @@ const loadTemplate = (templateKey: string) => {
     if (templates[templateKey]) {
       currentData.value = templates[templateKey].data
       saveForm.name = templates[templateKey].name
-      ElMessage.success(`✅ 已加载模板：${templates[templateKey].name}`)
+      // ElMessage.success(`✅ 已加载模板：${templates[templateKey].name}`)
       
       univerStatus.value = {
         type: 'info',

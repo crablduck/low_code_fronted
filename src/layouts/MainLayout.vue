@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
-import NavigationMenu from '@/components/NavigationMenu.vue'
+import NavigationMenu from '@/shared/components/NavigationMenu.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

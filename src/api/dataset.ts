@@ -6,9 +6,9 @@
  * @FilePath: /workflow-system/src/api/dataset.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
-import { get } from '@/utils/request'
-import { dataSourceService } from '@/utils/request'
-import type { DataSet } from '@/types/dataManagement'
+import { get } from '@/shared/utils/request'
+import { dataSourceService } from '@/shared/utils/request'
+import type { DataSet } from '@/shared/types/dataManagement'
 
 // 获取数据集详情
 export const getDatasetDetail = async (id: number) => {

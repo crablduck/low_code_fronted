@@ -6,9 +6,9 @@
  * @FilePath: /workflow-system/src/api/report.ts
  * @Description: 报表管理API接口
  */
-import { get, post, put, del, dataSourceService } from '@/utils/request'
-import { mainService } from '@/utils/request'
-import request from '@/utils/request'
+import { get, post, put, del, dataSourceService } from '@/shared/utils/request'
+import { mainService } from '@/shared/utils/request'
+import request from '@/shared/utils/request'
 
 // 报表相关类型定义
 export interface Report {

@@ -4,7 +4,7 @@
  * @LastEditors: KrabWW wei17306927526@gmail.com
  * @LastEditTime: 2025-06-17 17:52:08
  * @FilePath: /workflow-system/src/main.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ * @Description: 应用程序入口文件
  */
 // @ts-nocheck
 import { createApp } from 'vue'
@@ -26,7 +26,7 @@ import '@vue-flow/core/dist/theme-default.css'
 import { createPinia } from 'pinia'
 
 // 开发工具
-import { initStagewiseToolbar, fixPassiveEventListeners } from './config/dev-tools'
+import { initStagewiseToolbar, fixPassiveEventListeners } from '@/app/config/dev-tools'
 
 const app = createApp(App)
 const pinia = createPinia()

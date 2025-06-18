@@ -10,7 +10,7 @@ import {
   type DatasetApiResponse,
   type ChartFieldMapping,
   type ChartDataResult
-} from '@/utils/chartDataTransform'
+} from '@/shared/utils/chartDataTransform'
 
 export interface ChartConfig {
   i: string

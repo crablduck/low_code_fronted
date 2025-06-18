@@ -8,7 +8,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LoginForm, UserInfo } from '@/types/auth'
+import type { LoginForm, UserInfo } from '@/shared/types/auth'
 import { login as loginApi, getUserInfo as getUserInfoApi } from '@/api/auth'
 
 // 使用选项式API方式定义store

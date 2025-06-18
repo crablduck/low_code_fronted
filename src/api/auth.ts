@@ -6,7 +6,7 @@
  * @FilePath: /workflow-system/src/api/auth.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
-import type { LoginForm, LoginResponse, UserInfo, ApiResponse, TenantListResponse } from '@/types/auth'
+import type { LoginForm, LoginResponse, UserInfo, ApiResponse, TenantListResponse } from '@/shared/types/auth'
 
 // const API_BASE_URL = 'http://localhost:6001' // 这里替换成你的实际API地址
 const API_BASE_URL = 'http://172.16.1.107:6001' // 这里替换成你的实际API地址

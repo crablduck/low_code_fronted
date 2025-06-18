@@ -1,4 +1,4 @@
-import type { DataSource, TableInfo, FieldInfo, DataSet, DataPreviewDTO } from '@/types/dataManagement'
+import type { DataSource, TableInfo, FieldInfo, DataSet, DataPreviewDTO } from '@/shared/types/dataManagement'
 
 // 模拟数据源数据 - 医疗行业场景
 export const mockDataSources: DataSource[] = [

@@ -4,7 +4,7 @@
  * @LastEditors: Mr.Crab wei17306927526@gmail.com
  * @LastEditTime: 2025-06-06 23:19:50
  * @FilePath: /workflow-system/vite.config.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ * @Description: Vite配置文件
  */
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -32,7 +32,17 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, 'src'),
+      '@/app': resolve(__dirname, 'src/app'),
+      '@/shared': resolve(__dirname, 'src/shared'),
+      '@/features': resolve(__dirname, 'src/features'),
+      '@/layouts': resolve(__dirname, 'src/layouts'),
+      '@/assets': resolve(__dirname, 'src/assets'),
+      '@/components': resolve(__dirname, 'src/components'),
+      '@/views': resolve(__dirname, 'src/views'),
+      '@/stores': resolve(__dirname, 'src/stores'),
+      '@/api': resolve(__dirname, 'src/api'),
+      '@/router': resolve(__dirname, 'src/router')
     }
   },
   optimizeDeps: {

@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import UniverEnhancedReportDesigner from '@/components/UniverEnhancedReportDesigner.vue'
+import UniverEnhancedReportDesigner from '../features/report-designer/components/UniverEnhancedReportDesigner.vue'
 </script>
 
 <style scoped>

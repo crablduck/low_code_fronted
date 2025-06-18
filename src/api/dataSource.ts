@@ -1,5 +1,5 @@
-import { get, post, put, del } from '@/utils/request'
-import { dataSourceService } from '@/utils/request'
+import { get, post, put, del } from '@/shared/utils/request'
+import { dataSourceService } from '@/shared/utils/request'
 import type { 
   DataSource, 
   DataSourceCreateRequest, 
@@ -11,7 +11,7 @@ import type {
   DataSetUpdateRequest,
   DataPreviewDTO, 
   PagedResponse
-} from '@/types/dataManagement'
+} from '@/shared/types/dataManagement'
 
 // 测试连接请求参数类型
 interface TestConnectionRequest {
