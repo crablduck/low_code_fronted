@@ -25,6 +25,7 @@
 ## 🛠️ 技术栈
 
 ### 前端核心
+
 - **框架**: Vue 3.4 + TypeScript 5.2
 - **构建工具**: Vite 5.1
 - **状态管理**: Pinia 3.0
@@ -32,11 +33,13 @@
 - **UI组件**: Element Plus 2.9
 
 ### 数据可视化
+
 - **图表库**: ECharts 5.6 + AntV G2/G6/S2
 - **流程图**: Vue Flow + AntV X6
 - **表格**: Univer 0.7 (在线表格编辑器)
 
 ### 功能增强
+
 - **拖拽**: VueDraggable 4.1
 - **Excel**: LuckySheet 2.1 + LuckyExcel
 - **打印**: Print.js + html2pdf.js
@@ -215,4 +218,4 @@ CMD ["npm", "run", "preview"]
 
 ---
 
-**让低代码开发更简单，让医疗信息化更高效！** 🏥✨ 
+**让低代码开发更简单，让医疗信息化更高效！** 🏥✨
