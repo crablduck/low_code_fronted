@@ -1,8 +1,8 @@
 /*
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
- * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-06-11 20:57:15
+ * @LastEditors: KrabWW wei17306927526@gmail.com
+ * @LastEditTime: 2025-06-17 17:52:27
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -47,12 +47,6 @@ const routes: RouteRecordRaw[] = [
     name: 'WorkflowDesigner',
     component: () => import('../components/WorkflowDesigner.vue'),
     meta: { title: '流程设计器' }
-  },
-  {
-    path: '/api-test',
-    name: 'ApiTest',
-    component: () => import('../views/ApiTest.vue'),
-    meta: { title: 'API接口测试' }
   },
   {
     path: '/print-designer',
@@ -176,37 +170,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/dashboard/View.vue'),
     meta: { title: '查看仪表盘' }
   },
-  // 示例页面
-  {
-    path: '/chart-test',
-    name: 'ChartTest',
-    component: () => import('../views/ChartTest.vue'),
-    meta: { title: '图表测试' }
-  },
-  {
-    path: '/examples/basic-usage',
-    name: 'ExampleBasicUsage',
-    component: () => import('../views/basic-usage.vue'),
-    meta: { title: '快速表单向导示例' }
-  },
-  {
-    path: '/data-source-config-demo',
-    name: 'DataSourceConfigDemo',
-    component: () => import('../views/DataSourceConfigDemo.vue'),
-    meta: { title: '数据源配置组件演示' }
-  },
-  {
-    path: '/dataset-chart-demo',
-    name: 'DatasetChartDemo',
-    component: () => import('../views/DatasetChartDemo.vue'),
-    meta: { title: '数据集图表渲染演示' }
-  },
-  {
-    path: '/header-test',
-    name: 'HeaderTest',
-    component: () => import('../views/HeaderTestPage.vue'),
-    meta: { title: 'Header 测试页面' }
-  }
+
 ]
 
 const router = createRouter({
