@@ -28,6 +28,7 @@ dist-ssr
 # IDE and Editor specific files
 .cursor/
 .cursor
+.cursorindexingignore
 .idea/
 .specstory/
 .specstory
@@ -60,6 +61,10 @@ out/
 # Dependencies
 node_modules/
 jspm_packages/
+
+# Lock files
+package-lock.json
+yarn.lock
 
 # Optional npm cache directory
 .npm
