@@ -59,14 +59,57 @@ export interface ChartFieldMapping {
   valueField?: string
   groupField?: string
   tableFields?: string[]
+  sizeField?: string
+}
+
+// 全局筛选器相关类型定义
+export interface GlobalFilterConfig {
+  key: string
+  label: string
+  datasetId: number
+  fieldName: string
+  controlType: 'select' | 'multiSelect' | 'dateRange' | 'slider' | 'input'
+  defaultValue?: any
+  options?: FilterOption[]
+  cascadeFilters?: CascadeFilterConfig[]
+  required?: boolean
+  placeholder?: string
+}
+
+export interface FilterOption {
+  label: string
+  value: any
+  children?: FilterOption[]
+}
+
+export interface CascadeFilterConfig {
+  dependsOn: string // 依赖的筛选器key
+  targetField: string // 联动字段名
+}
+
+export interface GlobalFilterBinding {
+  filterKey: string
+  chartField: string
+}
+
+export interface DashboardGlobalFilters {
+  filters: GlobalFilterConfig[]
+  layout?: {
+    position: 'top' | 'left' | 'right'
+    columns?: number
+    spacing?: number
+  }
 }
 
 // 图表配置接口
 export interface ChartConfig {
   i: string
   id: string
-  type: 'bar' | 'line' | 'pie' | 'table' | 'area' | 'scatter' | 'radar' | 'gauge' | 'funnel' | 'heatmap' | 'treemap' | 'liquidfill' | 'image'
+  type: 'bar' | 'line' | 'pie' | 'table' | 'area' | 'scatter' | 'radar' | 'gauge' | 'funnel' | 'heatmap' | 'treemap' | 'liquidfill' | 'image' | 
+        'filter-select' | 'filter-multiselect' | 'filter-date' | 'filter-daterange' | 'filter-slider' | 'filter-input' | 
+        'text-title' | 'text-content'
   title?: string
+  label?: string // 用于筛选器组件
   xField?: string
   yField?: string
   nameField?: string
@@ -75,10 +118,30 @@ export interface ChartConfig {
   showLegend?: boolean
   showToolbox?: boolean
   dataLimit?: number
-  datasetId?: number
+  datasetId?: number | null
   fieldMapping?: ChartFieldMapping
   dataSourceConfig?: ChartDataSourceConfig
   imageUrl?: string
+  // 新增全局筛选器绑定配置
+  useGlobalFilters?: boolean
+  globalFilterBindings?: GlobalFilterBinding[]
+  
+  // 筛选器组件专用属性
+  fieldName?: string
+  placeholder?: string
+  required?: boolean
+  options?: FilterOption[]
+  defaultValue?: any
+  min?: number
+  max?: number
+  step?: number
+  
+  // 文本组件专用属性
+  content?: string
+  fontSize?: number
+  fontWeight?: string
+  color?: string
+  textAlign?: string
 }
 
 // 布局项接口
@@ -182,5 +245,6 @@ export interface DashboardDetail {
     charts?: ChartConfig[]
     renderState?: boolean
     autoRender?: boolean
+    globalFilters?: DashboardGlobalFilters
   }
 }

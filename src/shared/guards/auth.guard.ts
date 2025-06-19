@@ -17,12 +17,14 @@ export const authGuard = async (
     document.title = `${to.meta.title} - 低代码工作流系统`
   }
 
-  // 处理公开页面
+  // 处理公开页面（如登录页面）
   if (to.meta?.public) {
+    // 如果是登录页面且用户已有token，跳转到首页
     if (userStore.token && to.path === '/login') {
       next('/')
       return
     }
+    // 对于公开页面，直接通过，不进行任何认证检查
     next()
     return
   }
@@ -39,7 +41,7 @@ export const authGuard = async (
     return
   }
 
-  // 获取用户信息
+  // 获取用户信息（仅对需要认证的页面）
   if (!userStore.userInfo) {
     try {
       const userInfo = await userStore.getUserInfo()

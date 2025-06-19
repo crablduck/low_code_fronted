@@ -57,25 +57,13 @@ export const getChartData = async (
     const echartsOption = generateEChartsOption(
       chartType,
       chartData,
-      chartConfig?.title || '图表'
-    )
-    
-    // 5. 应用额外配置
-    if (chartConfig?.showLegend !== undefined) {
-      echartsOption.legend.show = chartConfig.showLegend
-    }
-    
-    if (chartConfig?.showToolbox) {
-      echartsOption.toolbox = {
-        show: true,
-        feature: {
-          dataView: { show: true, readOnly: false },
-          magicType: { show: true, type: ['line', 'bar'] },
-          restore: { show: true },
-          saveAsImage: { show: true }
-        }
+      chartConfig?.title || '图表',
+      {
+        showLegend: chartConfig?.showLegend,
+        showToolbox: chartConfig?.showToolbox,
+        theme: 'light' // 可以后续根据用户设置调整
       }
-    }
+    )
     
     return echartsOption
     

@@ -67,6 +67,7 @@
     "@vitejs/plugin-vue": "^5.0.3",
     "@vitejs/plugin-vue-jsx": "^4.2.0",
     "@vue/tsconfig": "^0.7.0",
+    "code-inspector-plugin": "^0.20.12",
     "sass-embedded": "^1.89.0",
     "typescript": "^5.2.2",
     "vite": "^5.1.0",

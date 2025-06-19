@@ -50,8 +50,44 @@ export const previewDatasetData = async (datasetId: number) => {
   }
 }
 
+// 获取数据集字段的去重值（用于全局筛选器选项）
+export const getDatasetFieldDistinctValues = async (datasetId: number, fieldName: string, filters?: Record<string, any>) => {
+  try {
+    // 构建查询参数
+    const queryParams: any = {
+      field: fieldName
+    }
+    
+    // 如果有级联筛选条件，添加到参数中
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== null && filters[key] !== undefined) {
+          queryParams[`filter_${key}`] = filters[key]
+        }
+      })
+    }
+    
+    const queryString = new URLSearchParams(queryParams).toString()
+    const url = `/api/datasets/${datasetId}/distinct-values?${queryString}`
+    
+    console.log(`获取数据集 ${datasetId} 字段 ${fieldName} 的去重值`)
+    const response = await get(dataSourceService, url)
+    
+    if (response && response.data) {
+      console.log(`字段 ${fieldName} 的去重值:`, response.data)
+      return response
+    }
+    
+    return response
+  } catch (error) {
+    console.error(`获取字段 ${fieldName} 去重值失败:`, error)
+    throw error
+  }
+}
+
 export default {
   getDatasetDetail,
   getDatasetData,
-  previewDatasetData
+  previewDatasetData,
+  getDatasetFieldDistinctValues
 }

@@ -11,11 +11,21 @@ import { ref } from 'vue'
 import type { LoginForm, UserInfo } from '@/shared/types/auth'
 import { login as loginApi, getUserInfo as getUserInfoApi } from '@/api/auth'
 
+// 从localStorage获取用户信息
+const getStoredUserInfo = (): UserInfo | null => {
+  try {
+    const stored = localStorage.getItem('userInfo')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 // 使用选项式API方式定义store
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: localStorage.getItem('token'),
-    userInfo: null as UserInfo | null
+    userInfo: getStoredUserInfo()
   }),
   
   actions: {

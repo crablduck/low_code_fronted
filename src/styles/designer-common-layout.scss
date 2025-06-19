@@ -275,18 +275,81 @@
 
 // 面板标题样式
 .panel-header {
-  padding: 16px;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8fbff 0%, #e8f5e8 100%);
+  border-bottom: 1px solid #e3f2fd;
   flex-shrink: 0;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #2196f3 0%, #4caf50 100%);
+    border-radius: 0 2px 2px 0;
+  }
   
   h3, h4 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #303133;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: #2196f3;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
     
     @media (max-width: 1366px) {
       font-size: 14px;
+    }
+  }
+  
+  // 添加标题图标支持
+  .panel-icon {
+    color: #2196f3;
+    margin-right: 6px;
+    font-size: 16px;
+  }
+  
+  // 标题副文本
+  .panel-subtitle {
+    font-size: 12px;
+    color: #78909c;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  
+  // 右侧操作按钮
+  .panel-actions {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    
+    .el-button {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      
+      &.el-button--text {
+        color: #78909c;
+        
+        &:hover {
+          color: #1976d2;
+          background: rgba(33, 150, 243, 0.08);
+        }
+      }
     }
   }
 }

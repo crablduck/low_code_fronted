@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
  * @LastEditors: KrabWW wei17306927526@gmail.com
- * @LastEditTime: 2025-06-18 11:00:52
+ * @LastEditTime: 2025-06-19 12:05:12
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 路由配置
  */
@@ -68,43 +68,31 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/univer-report-designer',
     name: 'UniverReportDesigner',
-    component: () => import('@/views/UniverReportDesigner.vue'),
+    component: () => import('@/features/report-designer/views/designer.vue'),
     meta: { title: 'Univer报表设计器' }
   },
   {
     path: '/univer-enhanced-designer',
     name: 'UniverEnhancedDesigner',
-    component: () => import('@/views/UniverEnhancedDesigner.vue'),
+    component: () => import('@/features/report-designer/views/enhanced-designer.vue'),
     meta: { title: 'Univer增强图表设计器' }
   },
   {
     path: '/univer-report-designer/:id?',
     name: 'UniverReportDesignerEdit',
-    component: () => import('@/views/UniverReportDesigner.vue'),
+    component: () => import('@/features/report-designer/views/designer.vue'),
     meta: { title: 'Univer报表设计器' }
   },
   {
     path: '/univer-report-manager',
     name: 'UniverReportManager',
-    component: () => import('@/views/UniverReportManager.vue'),
+    component: () => import('@/features/report-designer/views/manager.vue'),
     meta: { title: 'Univer报表管理' }
-  },
-  {
-    path: '/antv-analysis',
-    name: 'AntvAnalysis',
-    component: () => import('@/views/AntvAnalysis.vue'),
-    meta: { title: 'AntV数据分析平台' }
-  },
-  {
-    path: '/integrated-analysis',
-    name: 'IntegratedAnalysis',
-    component: () => import('@/views/IntegratedAnalysis.vue'),
-    meta: { title: 'Univer+AntV 数据分析工作台' }
   },
   {
     path: '/form-design',
     name: 'FormDesign',
-    component: () => import('@/views/FormDesign.vue'),
+    component: () => import('@/features/form-designer/views/designer.vue'),
     meta: { title: '表单设计' }
   },
   // 数据源管理路由
@@ -148,7 +136,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/dashboard/designer/:id?',
     name: 'DashboardDesigner',
-    component: () => import('@/features/dashboard/views/designer.vue'),
+    component: () => import('@/features/dashboard/views/designer-refactored.vue'),
     meta: { title: '仪表盘设计器', layout: 'designer' }
   },
   {

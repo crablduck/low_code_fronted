@@ -22,8 +22,7 @@ const searchForm = ref<DashboardQuery>({
 // 状态选项
 const statusOptions = [
   { label: '草稿', value: DashboardStatus.DRAFT },
-  { label: '已发布', value: DashboardStatus.PUBLISHED },
-  { label: '已归档', value: DashboardStatus.ARCHIVED }
+  { label: '已发布', value: DashboardStatus.PUBLISHED }
 ]
 
 // 表格数据
@@ -41,8 +40,7 @@ const pagination = ref({
 const getStatusType = (status: DashboardStatus) => {
   const map: Record<DashboardStatus, string> = {
     [DashboardStatus.DRAFT]: 'warning',
-    [DashboardStatus.PUBLISHED]: 'success',
-    [DashboardStatus.ARCHIVED]: 'info'
+    [DashboardStatus.PUBLISHED]: 'success'
   }
   return map[status]
 }
@@ -51,8 +49,7 @@ const getStatusType = (status: DashboardStatus) => {
 const getStatusLabel = (status: DashboardStatus) => {
   const map: Record<DashboardStatus, string> = {
     [DashboardStatus.DRAFT]: '草稿',
-    [DashboardStatus.PUBLISHED]: '已发布',
-    [DashboardStatus.ARCHIVED]: '已归档'
+    [DashboardStatus.PUBLISHED]: '已发布'
   }
   return map[status]
 }
@@ -61,7 +58,7 @@ const getStatusLabel = (status: DashboardStatus) => {
 const getTypeType = (type: DashboardType) => {
   const map: Record<DashboardType, string> = {
     [DashboardType.CUSTOM]: 'primary',
-    [DashboardType.SYSTEM]: 'success'
+    [DashboardType.TEMPLATE]: 'success'
   }
   return map[type]
 }
@@ -70,7 +67,7 @@ const getTypeType = (type: DashboardType) => {
 const getTypeLabel = (type: DashboardType) => {
   const map: Record<DashboardType, string> = {
     [DashboardType.CUSTOM]: '自定义',
-    [DashboardType.SYSTEM]: '系统'
+    [DashboardType.TEMPLATE]: '模板'
   }
   return map[type]
 }
