@@ -523,6 +523,8 @@ export function useDragAndDrop() {
     }
     
     layout.push(newItem)
+    // 触发响应式更新，确保新图表可拖拽
+    layout.splice(0, layout.length, ...layout)
     
     nextTick(() => {
       if (isChartType(itemConfig.chartConfig.type)) {

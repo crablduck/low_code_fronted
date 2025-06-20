@@ -257,6 +257,8 @@ export function useDashboardState() {
       
       // 确保配置面板显示数据源标签页
       activeConfigTab.value = 'dataset'
+      // 选中图表时始终展示配置面板
+      showConfigPanel.value = true
     } else {
       console.warn('未找到图表或图表配置:', chartId, item)
     }
@@ -265,6 +267,7 @@ export function useDashboardState() {
   // 取消选择图表
   const deselectChart = () => {
     selectedChart.value = null
+    showConfigPanel.value = false
   }
   
   // 删除图表
