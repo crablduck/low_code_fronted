@@ -1,12 +1,13 @@
 /*
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-06-11 12:42:22
- * @LastEditors: Mr.Crab wei17306927526@gmail.com
- * @LastEditTime: 2025-06-11 14:09:42
+ * @LastEditors: KrabWW wei17306927526@gmail.com
+ * @LastEditTime: 2025-06-20 10:10:20
  * @FilePath: /workflow-system/src/utils/requestHelpers.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import type { InternalAxiosRequestConfig, AxiosRequestConfig } from 'axios'
+import { SKIP_AUTH_CONFIG } from '@/app/constants'
 
 /**
  * 添加全局 headers 到请求配置
@@ -21,6 +22,16 @@ export const addGlobalHeaders = (config: InternalAxiosRequestConfig | AxiosReque
   // 确保 headers 对象存在
   if (!config.headers) {
     config.headers = {}
+  }
+  
+  // 如果启用跳过认证，使用模拟认证信息
+  const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true'
+  
+  if (skipAuth) {
+    console.log(`🔓 跳过认证模式：使用模拟认证信息 (token: ${SKIP_AUTH_CONFIG.MOCK_TOKEN})`)
+    config.headers['Authorization'] = SKIP_AUTH_CONFIG.MOCK_AUTH_HEADER
+    config.headers['X-User-ID'] = SKIP_AUTH_CONFIG.MOCK_USER_ID
+    return config
   }
   
   // 添加 JWT Token

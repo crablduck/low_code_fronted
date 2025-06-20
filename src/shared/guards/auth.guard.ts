@@ -17,6 +17,15 @@ export const authGuard = async (
     document.title = `${to.meta.title} - 低代码工作流系统`
   }
 
+  // 如果启用跳过认证，直接通过
+  const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true'
+  
+  if (skipAuth) {
+    console.log('🔓 跳过认证模式：允许访问所有页面')
+    next()
+    return
+  }
+
   // 处理公开页面（如登录页面）
   if (to.meta?.public) {
     // 如果是登录页面且用户已有token，跳转到首页
@@ -31,6 +40,7 @@ export const authGuard = async (
 
   // 检查 token
   if (!userStore.token) {
+    console.log('🔒 未找到token，跳转到登录页面')
     next('/login')
     return
   }

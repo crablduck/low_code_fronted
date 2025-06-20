@@ -67,4 +67,14 @@ export const THEME_CONFIG = {
   WARNING_COLOR: '#E6A23C',
   DANGER_COLOR: '#F56C6C',
   INFO_COLOR: '#909399'
+} as const
+
+// 跳过认证模式配置
+export const SKIP_AUTH_CONFIG = {
+  // 跳过认证时使用的模拟token
+  MOCK_TOKEN: 'dev-mock-token',
+  // 跳过认证时使用的模拟用户ID
+  MOCK_USER_ID: '1',
+  // 完整的Authorization头格式
+  MOCK_AUTH_HEADER: 'Bearer dev-mock-token'
 } as const 

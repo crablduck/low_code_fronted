@@ -46,4 +46,10 @@ if (import.meta.env.DEV) {
   initStagewiseToolbar()
 }
 
+// 调试信息 - 检查环境变量是否正确加载
+console.log('=== 应用启动环境变量检查 ===')
+console.log('VITE_SKIP_AUTH:', import.meta.env.VITE_SKIP_AUTH)
+console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL)
+console.log('VITE_DATASOURCE_BASE_URL:', import.meta.env.VITE_DATASOURCE_BASE_URL)
+
 app.mount('#app')
