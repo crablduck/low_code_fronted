@@ -107,18 +107,22 @@
                 </el-form-item>
 
                 <!-- 控件配置 -->
-                <el-form-item label="控件类型" required>
-                  <el-select 
-                    v-model="filter.controlType" 
-                    @change="handleControlTypeChange(filter, $event)"
-                  >
-                    <el-option label="下拉选择" value="select" />
-                    <el-option label="多选" value="multiSelect" />
-                    <el-option label="日期范围" value="dateRange" />
-                    <el-option label="滑块" value="slider" />
-                    <el-option label="输入框" value="input" />
-                  </el-select>
-                </el-form-item>
+                                  <el-form-item label="控件类型" required>
+                    <el-select 
+                      v-model="filter.controlType" 
+                      @change="handleControlTypeChange(filter, $event)"
+                    >
+                      <el-option label="下拉选择" value="select" />
+                      <el-option label="多选" value="multiSelect" />
+                      <el-option label="日期范围" value="dateRange" />
+                      <el-option label="日期选择" value="date" />
+                      <el-option label="月份选择" value="month" />
+                      <el-option label="年份选择" value="year" />
+                      <el-option label="输入框" value="input" />
+                      <el-option label="数字输入" value="number" />
+                      <el-option label="滑块" value="slider" />
+                    </el-select>
+                  </el-form-item>
 
                 <el-form-item label="占位符">
                   <el-input 
@@ -175,6 +179,45 @@
                       range-separator="至"
                       start-placeholder="开始日期"
                       end-placeholder="结束日期"
+                      format="YYYY-MM-DD"
+                      value-format="YYYY-MM-DD"
+                      @change="validateAndEmit"
+                    />
+                  </div>
+                  <div v-else-if="filter.controlType === 'date'">
+                    <el-date-picker
+                      v-model="filter.defaultValue"
+                      type="date"
+                      placeholder="选择日期"
+                      format="YYYY-MM-DD"
+                      value-format="YYYY-MM-DD"
+                      @change="validateAndEmit"
+                    />
+                  </div>
+                  <div v-else-if="filter.controlType === 'month'">
+                    <el-date-picker
+                      v-model="filter.defaultValue"
+                      type="month"
+                      placeholder="选择月份"
+                      format="YYYY-MM"
+                      value-format="YYYY-MM"
+                      @change="validateAndEmit"
+                    />
+                  </div>
+                  <div v-else-if="filter.controlType === 'year'">
+                    <el-date-picker
+                      v-model="filter.defaultValue"
+                      type="year"
+                      placeholder="选择年份"
+                      format="YYYY"
+                      value-format="YYYY"
+                      @change="validateAndEmit"
+                    />
+                  </div>
+                  <div v-else-if="filter.controlType === 'number'">
+                    <el-input-number 
+                      v-model="filter.defaultValue" 
+                      placeholder="输入默认数字"
                       @change="validateAndEmit"
                     />
                   </div>
@@ -186,6 +229,32 @@
                     />
                   </div>
                 </el-form-item>
+
+                <!-- 滑块配置 -->
+                <div v-if="filter.controlType === 'slider'" class="slider-config">
+                  <el-form-item label="最小值">
+                    <el-input-number 
+                      v-model="filter.sliderConfig.min"
+                      placeholder="最小值"
+                      @change="validateAndEmit"
+                    />
+                  </el-form-item>
+                  <el-form-item label="最大值">
+                    <el-input-number 
+                      v-model="filter.sliderConfig.max"
+                      placeholder="最大值"
+                      @change="validateAndEmit"
+                    />
+                  </el-form-item>
+                  <el-form-item label="步长">
+                    <el-input-number 
+                      v-model="filter.sliderConfig.step"
+                      :min="1"
+                      placeholder="步长"
+                      @change="validateAndEmit"
+                    />
+                  </el-form-item>
+                </div>
 
                 <!-- 选项值配置 -->
                 <el-form-item 
@@ -417,6 +486,12 @@ const handleControlTypeChange = (filter: GlobalFilterConfig, type: string) => {
   filter.defaultValue = undefined
   if (type === 'multiSelect') {
     filter.defaultValue = []
+  } else if (type === 'slider') {
+    // 初始化滑块配置
+    if (!filter.sliderConfig) {
+      filter.sliderConfig = { min: 0, max: 100, step: 1 }
+    }
+    filter.defaultValue = filter.sliderConfig.min
   }
   validateAndEmit()
 }

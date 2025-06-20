@@ -277,8 +277,12 @@ const getControlTypeLabel = (type: string) => {
     select: '下拉选择',
     multiSelect: '多选',
     dateRange: '日期范围',
+    date: '日期选择',
+    month: '月份选择',
+    year: '年份选择',
     slider: '滑块',
-    input: '输入框'
+    input: '输入框',
+    number: '数字输入'
   }
   return labels[type as keyof typeof labels] || type
 }

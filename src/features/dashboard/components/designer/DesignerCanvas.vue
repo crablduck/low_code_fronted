@@ -75,7 +75,6 @@
         @resized="handleResized"
         @move="handleMove"
         @moved="handleMoved"
-        @click="handleChartClick(item.i)"
         @contextmenu="handleChartContextMenu($event, item)"
         drag-allow-from=".chart-drag-handler"
         :drag-ignore-from="'.chart-actions, .el-select, .el-input, .el-date-editor, .el-slider, .el-button'"

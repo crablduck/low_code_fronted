@@ -30,6 +30,58 @@ export const componentTypes = [
   { value: 'text-content', label: '内容文本', icon: 'Document', category: 'text' }
 ]
 
+// 过滤器组件类型
+export const filterTypes = [
+  {
+    type: 'filter-date',
+    name: '日期选择',
+    icon: 'Calendar',
+    description: '单日期选择器'
+  },
+  {
+    type: 'filter-daterange',
+    name: '日期范围',
+    icon: 'Calendar',
+    description: '日期范围选择器'
+  },
+  {
+    type: 'filter-select',
+    name: '下拉选择',
+    icon: 'ArrowDown',
+    description: '单选下拉框'
+  },
+  {
+    type: 'filter-multiselect',
+    name: '多选下拉',
+    icon: 'ArrowDown',
+    description: '多选下拉框'
+  },
+  {
+    type: 'filter-cascade',
+    name: '级联选择',
+    icon: 'Share',
+    description: '省市区级联选择'
+  },
+  {
+    type: 'filter-quicktime',
+    name: '快捷时间',
+    icon: 'Timer',
+    description: '最近1个月/季度/年'
+  },
+  {
+    type: 'filter-slider',
+    name: '滑块选择',
+    icon: 'Operation',
+    description: '数值范围滑块'
+  },
+  {
+    type: 'filter-input',
+    name: '输入框',
+    icon: 'Edit',
+    description: '文本输入框'
+  }
+]
+
 export interface DragDropState {
   isDragging: boolean
   draggedItem: string | null
@@ -49,17 +101,17 @@ export function useDragAndDrop() {
   let externalGetDefaultFilterValue: ((filterType: string) => any) | null = null
   
   // 判断是否为图表类型
-  const isChartType = (type: string) => {
+  const isChartType = (type: string): boolean => {
     return chartTypes.some(chart => chart.value === type)
   }
   
   // 判断是否为筛选器类型
-  const isFilterType = (type: string) => {
-    return componentTypes.some(comp => comp.value === type && comp.category === 'filter')
+  const isFilterType = (type: string): boolean => {
+    return filterTypes.some(filter => filter.type === type)
   }
   
   // 判断是否为文本类型
-  const isTextType = (type: string) => {
+  const isTextType = (type: string): boolean => {
     return componentTypes.some(comp => comp.value === type && comp.category === 'text')
   }
   
@@ -145,6 +197,43 @@ export function useDragAndDrop() {
   ) => {
     externalGetDefaultFilterOptions = getDefaultFilterOptionsFn
     externalGetDefaultFilterValue = getDefaultFilterValueFn
+  }
+  
+  // 获取过滤器默认选项
+  const getFilterDefaultOptions = (filterType: string) => {
+    switch (filterType) {
+      case 'filter-select':
+        return [
+          { label: '北京', value: 'beijing' },
+          { label: '上海', value: 'shanghai' },
+          { label: '广州', value: 'guangzhou' },
+          { label: '深圳', value: 'shenzhen' }
+        ]
+      case 'filter-multiselect':
+        return [
+          { label: '内科', value: 'internal' },
+          { label: '外科', value: 'surgery' },
+          { label: '儿科', value: 'pediatrics' },
+          { label: '妇产科', value: 'obstetrics' }
+        ]
+      default:
+        return []
+    }
+  }
+  
+  // 获取过滤器占位符文本
+  const getFilterPlaceholder = (filterType: string) => {
+    const placeholderMap = {
+      'filter-date': '选择日期',
+      'filter-daterange': '选择日期范围',
+      'filter-select': '请选择',
+      'filter-multiselect': '请选择多项',
+      'filter-cascade': '请选择省市区',
+      'filter-quicktime': '选择时间范围',
+      'filter-slider': '拖拽选择数值',
+      'filter-input': '请输入关键词'
+    }
+    return placeholderMap[filterType as keyof typeof placeholderMap] || '请选择'
   }
   
   // 智能推荐字段配置
@@ -384,34 +473,36 @@ export function useDragAndDrop() {
         autoConfigureChartFields(itemConfig.chartConfig, datasetFields)
       }
     } else if (componentTypeData) {
-      // 处理组件类型
+      // 处理组件类型（包括过滤器）
       const component = JSON.parse(componentTypeData)
-      isFilter = component.category === 'filter'
       
-      // 筛选器使用较小的默认尺寸
-      const componentSize = isFilter ? { w: 4, h: 3 } : { w: 6, h: 4 }
+      // 判断是否为过滤器类型
+      isFilter = isFilterType(component.type)
+      
+      // 过滤器使用表单适合的尺寸
+      const componentSize = isFilter ? { w: 3, h: 1 } : { w: 6, h: 4 }
       const position = calculateSmartPosition(layout, isFilter, componentSize)
       
       itemConfig = {
-        i: `${component.category}-${Date.now()}`,
+        i: `${isFilter ? 'filter' : 'component'}-${Date.now()}`,
         x: position.x,
         y: position.y,
         w: position.w,
         h: position.h,
         chartConfig: {
-          type: component.value,
-          title: component.label,
-          label: component.label,
-          // 筛选器特有配置
+          type: component.type,
+          title: component.name,
+          label: component.name,
+          // 过滤器特有配置
           ...(isFilter && {
-            options: getDefaultFilterOptions(component.value) || [],
-            value: getDefaultFilterValue(component.value),
-            placeholder: `请选择${component.label}`
+            options: getFilterDefaultOptions(component.type),
+            value: getDefaultFilterValue(component.type),
+            placeholder: getFilterPlaceholder(component.type)
           }),
           // 文本组件特有配置
           ...(component.category === 'text' && {
-            content: component.value === 'text-title' ? '标题文本' : '内容文本',
-            fontSize: component.value === 'text-title' ? 24 : 14,
+            content: component.type === 'text-title' ? '标题文本' : '内容文本',
+            fontSize: component.type === 'text-title' ? 24 : 14,
             color: '#303133',
             textAlign: 'left'
           })
@@ -457,6 +548,7 @@ export function useDragAndDrop() {
     // 常量
     chartTypes,
     componentTypes,
+    filterTypes,
     
     // 响应式状态
     isDragging,
@@ -473,6 +565,8 @@ export function useDragAndDrop() {
     getDefaultFilterOptions,
     getDefaultFilterValue,
     setDefaultValueFunctions,
+    getFilterDefaultOptions,
+    getFilterPlaceholder,
     autoConfigureChartFields,
     
     // 拖拽处理函数

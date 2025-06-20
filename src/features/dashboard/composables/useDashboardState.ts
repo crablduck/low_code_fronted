@@ -128,44 +128,7 @@ export function useDashboardState() {
     } catch (error) {
       console.error('加载数据集失败:', error)
       ElMessage.error('加载数据集失败: ' + (error.message || '未知错误'))
-      
-      // 如果API调用失败，使用模拟数据
-      datasets.value = [
-        {
-          id: 1,
-          name: '销售数据集（模拟）',
-          description: '包含销售相关的数据',
-          dataSourceId: 1,
-          dataSourceName: 'MySQL数据源',
-          tableName: 'sales_data',
-          queryType: 'single',
-          status: 'active',
-          createTime: '2024-01-01',
-          fields: [
-            { 
-              id: 1, datasetId: 1, fieldName: 'date', displayName: '日期', fieldType: 'dimension', 
-              isVisible: true, sortOrder: 1, dataType: 'date'
-            },
-            { 
-              id: 2, datasetId: 1, fieldName: 'region', displayName: '地区', fieldType: 'dimension', 
-              isVisible: true, sortOrder: 2, dataType: 'string'
-            },
-            { 
-              id: 3, datasetId: 1, fieldName: 'product', displayName: '产品', fieldType: 'dimension', 
-              isVisible: true, sortOrder: 3, dataType: 'string'
-            },
-            { 
-              id: 4, datasetId: 1, fieldName: 'sales', displayName: '销售额', fieldType: 'metric', 
-              isVisible: true, sortOrder: 4, dataType: 'number', aggregation: 'sum'
-            },
-            { 
-              id: 5, datasetId: 1, fieldName: 'quantity', displayName: '数量', fieldType: 'metric', 
-              isVisible: true, sortOrder: 5, dataType: 'number', aggregation: 'sum'
-            }
-          ]
-        }
-      ]
-      console.log('使用模拟数据集:', datasets.value)
+      datasets.value = []
     }
   }
   
@@ -431,17 +394,13 @@ export function useDashboardState() {
       }
       
       // 更新配置并触发响应性
-      item.chartConfig = {
-        ...item.chartConfig,
+      Object.assign(item.chartConfig, {
         ...selectedChart.value,
         fieldMapping: {
           ...item.chartConfig.fieldMapping,
           ...selectedChart.value.fieldMapping
         }
-      }
-      
-      // 强制触发布局更新，确保 ChartItem 重新渲染
-      layout.value = [...layout.value]
+      })
       
       console.log(`图表 ${selectedChart.value.i} 配置已更新:`, item.chartConfig)
     }

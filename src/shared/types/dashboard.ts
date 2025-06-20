@@ -68,12 +68,17 @@ export interface GlobalFilterConfig {
   label: string
   datasetId: number
   fieldName: string
-  controlType: 'select' | 'multiSelect' | 'dateRange' | 'slider' | 'input'
+  controlType: 'select' | 'multiSelect' | 'dateRange' | 'date' | 'month' | 'year' | 'input' | 'number' | 'slider' | 'cascade'
   defaultValue?: any
   options?: FilterOption[]
   cascadeFilters?: CascadeFilterConfig[]
   required?: boolean
   placeholder?: string
+  sliderConfig?: {
+    min?: number
+    max?: number
+    step?: number
+  }
 }
 
 export interface FilterOption {
@@ -126,6 +131,9 @@ export interface ChartConfig {
   useGlobalFilters?: boolean
   globalFilterBindings?: GlobalFilterBinding[]
   
+  // 筛选器关联配置
+  filterBindings?: FilterBinding[]
+  
   // 筛选器组件专用属性
   fieldName?: string
   placeholder?: string
@@ -142,6 +150,15 @@ export interface ChartConfig {
   fontWeight?: string
   color?: string
   textAlign?: string
+}
+
+// 筛选器绑定接口
+export interface FilterBinding {
+  filterId: string
+  filterType: string
+  filterLabel: string
+  targetField: string
+  enabled: boolean
 }
 
 // 布局项接口

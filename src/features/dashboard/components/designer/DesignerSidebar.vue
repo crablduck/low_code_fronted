@@ -40,15 +40,15 @@
           <div 
             class="component-type-item" 
             v-for="type in filterTypes" 
-            :key="type.value"
+            :key="type.type"
             draggable="true"
             @dragstart="handleComponentDragStart($event, type)"
-            :title="type.label"
+            :title="type.name"
           >
             <el-icon>
               <component :is="type.icon" />
             </el-icon>
-            <span v-if="!isMobile">{{ type.label }}</span>
+            <span v-if="!isMobile">{{ type.name }}</span>
           </div>
         </div>
       </div>
@@ -92,9 +92,13 @@ import {
   Select,
   Calendar,
   Edit,
-  Reading
+  Reading,
+  ArrowDown,
+  Share,
+  Timer,
+  Operation
 } from '@element-plus/icons-vue'
-import { chartTypes, componentTypes } from '../../composables/useDragAndDrop'
+import { chartTypes, componentTypes, filterTypes } from '../../composables/useDragAndDrop'
 
 interface Props {
   isMobile: boolean
@@ -108,11 +112,7 @@ interface Emits {
 defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 筛选组件类型
-const filterTypes = computed(() => 
-  componentTypes.filter(type => type.category === 'filter')
-)
-
+// 文本组件类型
 const textTypes = computed(() => 
   componentTypes.filter(type => type.category === 'text')
 )

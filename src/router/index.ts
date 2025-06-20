@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
  * @LastEditors: KrabWW wei17306927526@gmail.com
- * @LastEditTime: 2025-06-19 12:05:12
+ * @LastEditTime: 2025-06-20 17:38:24
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 路由配置
  */
@@ -150,6 +150,12 @@ const routes: RouteRecordRaw[] = [
     name: 'DashboardView',
     component: () => import('@/features/dashboard/views/view.vue'),
     meta: { title: '查看仪表盘' }
+  },
+  {
+    path: '/dashboard/traditional-filter-demo',
+    name: 'TraditionalFilterDemo',
+    component: () => import('@/features/dashboard/views/traditional-filter-demo.vue'),
+    meta: { title: '传统样式筛选器演示' }
   }
 ]
 

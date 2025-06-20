@@ -46,6 +46,12 @@
 - **条码**: JSBarcode + QRCode
 - **代码编辑**: CodeMirror 6.0
 
+### 开发工具
+
+- **🧠 Stagewise**: 可视化编码工具，支持在浏览器中选择元素并与AI代理交互
+- **⚡ HMR**: Vite 热模块替换，极速开发体验
+- **🔧 TypeScript**: 完整的类型检查和智能提示
+
 ## 📦 快速开始
 
 ### 环境要求
@@ -123,6 +129,17 @@ src/
 ```
 
 ## 🔧 开发指南
+
+### 🧠 可视化编码 (Stagewise)
+
+本项目集成了 Stagewise 可视化编码工具，让您可以直接在浏览器中选择UI元素并与AI代理交互：
+
+1. **安装扩展**: 首先安装 [Stagewise VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=stagewise.stagewise-vscode-extension)
+2. **启动开发**: `npm run dev` 启动开发服务器
+3. **使用工具**: 页面底部会出现工具栏，选择元素并添加注释
+4. **AI处理**: AI代理会自动分析并修改代码
+
+详细使用指南请查看：[Stagewise 设置指南](./doc/stagewise-setup.md)
 
 ### 代码规范
 

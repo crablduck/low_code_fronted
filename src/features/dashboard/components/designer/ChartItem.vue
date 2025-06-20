@@ -1,7 +1,7 @@
 <template>
-  <div class="chart-container" :id="`chart-${item.i}`" :class="{ selected: isSelected, 'preview-mode': isPreview }" @click.stop="handleChartClick">
+  <div class="chart-container" :id="`chart-${item.i}`" :class="{ selected: isSelected, 'preview-mode': isPreview }" @click="handleChartClick">
     <!-- 拖拽手柄和标题栏 - 仅在编辑模式下显示，用于拖拽移动位置 -->
-    <div v-if="!isPreview" class="chart-drag-handler" title="拖拽移动图表位置" @click.stop>
+    <div v-if="!isPreview" class="chart-drag-handler" title="拖拽移动图表位置">
       <div class="drag-handle" title="拖拽移动">
         <el-icon><Grid /></el-icon>
       </div>
@@ -18,7 +18,7 @@
     </div>
     
     <!-- 图表内容区域 -->
-    <div class="chart-content">
+    <div class="chart-content" @click="handleChartClick">
       <!-- 图表内容 -->
       <div v-if="isChartType()" class="chart-render-area">
         <!-- 图片类型 -->
@@ -74,20 +74,11 @@
       
       <!-- 筛选器组件内容 -->
       <div v-else-if="isFilterType()" class="filter-component">
-        <div class="component-wrapper">
-          <component 
-            :is="getFilterComponent()"
-            :config="item.chartConfig"
-            :is-design-mode="true"
-            @update:config="(config) => $emit('update-config', config)"
-          />
-        </div>
-        <!-- 组件渲染失败时的后备内容 -->
-        <div v-if="!getFilterComponent()" class="component-error">
-          <el-icon><Setting /></el-icon>
-          <span>筛选器组件加载失败</span>
-          <p>点击右侧配置面板重新配置</p>
-        </div>
+        <FilterRenderer
+          :config="item.chartConfig"
+          @value-change="handleFilterValueChange"
+          @filter-apply="handleFilterApply"
+        />
       </div>
       
       <!-- 文本组件内容 -->
@@ -142,6 +133,11 @@ import FilterSliderDesigner from '../dashboard/FilterSliderDesigner.vue'
 import FilterInputDesigner from '../dashboard/FilterInputDesigner.vue'
 import TextTitleDesigner from '../dashboard/TextTitleDesigner.vue'
 import TextContentDesigner from '../dashboard/TextContentDesigner.vue'
+import FilterRenderer from '../dashboard/FilterRenderer.vue'
+
+// 导入统一的类型定义
+import { chartTypes, componentTypes, filterTypes } from '../../composables/useDragAndDrop'
+import { useDragAndDrop } from '../../composables/useDragAndDrop'
 
 interface Props {
   item: LayoutItem
@@ -163,15 +159,15 @@ const dataError = ref<string | null>(null)
 const chartInstance = ref<echarts.ECharts | null>(null)
 const resizeObserver = ref<ResizeObserver | null>(null)
 
+// 获取拖拽相关函数
+const { isFilterType: checkIsFilterType, isChartType: checkIsChartType, isTextType: checkIsTextType } = useDragAndDrop()
+
 // 处理图表点击事件
 const handleChartClick = () => {
   emit('chart-click')
 }
 
 // 注释：组件状态监控逻辑已整合到下方的生命周期钩子中
-
-// 导入统一的类型定义
-import { chartTypes, componentTypes } from '../../composables/useDragAndDrop'
 
 // 检查是否有有效的数据配置
 const hasValidDataConfig = computed(() => {
@@ -226,21 +222,17 @@ const getItemTypeBadge = () => {
 
 // 判断是否为图表类型
 const isChartType = () => {
-  return chartTypes.some(chart => chart.value === props.item.chartConfig.type)
+  return checkIsChartType(props.item.chartConfig.type)
 }
 
 // 判断是否为筛选器类型
 const isFilterType = () => {
-  return componentTypes.some(comp => 
-    comp.value === props.item.chartConfig.type && comp.category === 'filter'
-  )
+  return checkIsFilterType(props.item.chartConfig.type)
 }
 
 // 判断是否为文本类型
 const isTextType = () => {
-  return componentTypes.some(comp => 
-    comp.value === props.item.chartConfig.type && comp.category === 'text'
-  )
+  return checkIsTextType(props.item.chartConfig.type)
 }
 
 // 获取筛选器组件
@@ -447,6 +439,20 @@ const loadAndRenderChart = async () => {
 // 重试加载数据
 const retryLoadData = async () => {
   await loadAndRenderChart()
+}
+
+// 处理过滤器值变化
+const handleFilterValueChange = (value: any) => {
+  console.log('过滤器值变化:', value)
+  // 这里可以添加过滤器值变化的处理逻辑
+  // 比如更新图表配置或触发其他组件的更新
+}
+
+// 处理过滤器应用
+const handleFilterApply = (filterData: any) => {
+  console.log('应用过滤器:', filterData)
+  // 这里可以添加过滤器应用的处理逻辑
+  // 比如更新全局过滤条件，重新加载相关图表数据
 }
 
 // 组件挂载完成

@@ -24,29 +24,80 @@
       />
       
       <!-- 中间画布区域 -->
-      <DesignerCanvas
-        :layout="layout"
-        @update:layout="layout = $event"
-        :selected-chart="selectedChart"
-        :is-preview="isPreview"
-        :show-grid-helper="showGridHelper"
-        :has-charts="hasCharts"
-        @drop="handleDrop"
-        @chart-click="selectChart"
-        @canvas-click="deselectChart"
-        @chart-context-menu="handleChartContextMenu"
-        @update-config="updateItemConfig"
-        @delete-chart="(chartId) => deleteChart(chartId)"
-        @copy-chart="(chartId) => copyChart(chartId)"
-        @select-all="selectAllCharts"
-        @clear-all="clearAllCharts"
-        @auto-layout="autoLayout"
-        @export="exportDashboard"
-        @resize="onResize"
-        @resized="onResized"
-        @move="onMove"
-        @moved="onMoved"
-      />
+      <div class="canvas-area">
+        <!-- 筛选器容器 - 固定在顶部 -->
+        <div class="filters-container" 
+             :class="{ 'drag-over': isFilterDragOver }"
+             @dragover="handleFilterContainerDragOver" 
+             @dragleave="handleFilterContainerDragLeave"
+             @drop="handleFilterContainerDrop">
+          <div class="filters-header">
+            <el-icon><Filter /></el-icon>
+            <span>筛选器</span>
+            <el-tag size="small" type="info" v-if="filterItems.length > 0">{{ filterItems.length }} 个</el-tag>
+          </div>
+          
+          <!-- 筛选器内容区域 -->
+          <div v-if="filterItems.length > 0" class="filters-content" 
+               @dragover="handleFilterDragOver" 
+               @drop="handleFilterDrop">
+            <div 
+              v-for="(filter, index) in filterItems" 
+              :key="filter.i"
+              class="filter-item-wrapper"
+              :class="{ selected: selectedChart?.i === filter.i }"
+              draggable="true"
+              @dragstart="handleFilterDragStart($event, filter, index)"
+              @dragend="handleFilterDragEnd"
+              @click="selectChart(filter.i)"
+            >
+              <div class="filter-drag-handle">
+                <el-icon><Grid /></el-icon>
+              </div>
+              <div class="filter-label">{{ filter.chartConfig.title || filter.chartConfig.label || '筛选器' }}</div>
+              <FilterRenderer
+                :config="filter.chartConfig"
+                @value-change="handleFilterValueChange"
+                @filter-apply="handleFilterApply"
+              />
+            </div>
+          </div>
+          
+          <!-- 空状态提示 -->
+          <div v-else class="filters-empty-state">
+            <el-icon><Filter /></el-icon>
+            <span>将筛选器组件拖拽到此处添加筛选器</span>
+          </div>
+        </div>
+        
+        <!-- 画布区域 -->
+        <div class="canvas-container" @click="handleCanvasBackgroundClick">
+          <!-- 画布组件 - 只显示图表，不显示筛选器 -->
+          <DesignerCanvas
+            :layout="chartLayout"
+            :selected-chart="selectedChart"
+            :is-preview="isPreview"
+            :show-grid-helper="showGridHelper"
+            :has-charts="chartLayout.length > 0"
+            @update:layout="updateChartLayout"
+            @drop="handleDrop"
+            @chart-click="selectChart"
+            @canvas-click="deselectChart"
+            @chart-context-menu="handleChartContextMenu"
+            @update-config="updateItemConfig"
+            @delete-chart="deleteChart"
+            @copy-chart="copyChart"
+            @select-all="selectAllCharts"
+            @clear-all="clearAllCharts"
+            @auto-layout="autoLayout"
+            @export="exportDashboard"
+            @resize="onResize"
+            @resized="onResized"
+            @move="onMove"
+            @moved="onMoved"
+          />
+        </div>
+      </div>
       
       <!-- 右侧配置面板 -->
       <div class="right-panels" :class="{ 'mobile-panels': isMobile }">
@@ -94,19 +145,19 @@
                 
                 <!-- 基础图表配置 -->
                 <div class="basic-chart-config">
-                  <el-form label-width="80px" size="small">
+                  <el-form label-width="80px" size="small" v-if="localConfig">
                     <el-form-item label="图表标题">
-                      <el-input 
-                        v-model="selectedChart.title" 
-                        @change="updateSelectedChart"
+                      <el-input
+                        v-model="localConfig.title"
+                        @change="handleConfigChange"
                         placeholder="请输入图表标题"
                       />
                     </el-form-item>
                     
                     <el-form-item label="数据集">
-                      <el-select 
-                        v-model="selectedChart.datasetId" 
-                        @change="handleDatasetChange"
+                      <el-select
+                        v-model="localConfig.datasetId"
+                        @change="(datasetId) => handleDatasetChange(datasetId as number)"
                         placeholder="请选择数据集"
                         style="width: 100%"
                       >
@@ -120,11 +171,11 @@
                     </el-form-item>
                     
                     <!-- 字段映射配置 -->
-                    <template v-if="selectedDataset && isChartType(selectedChart.type)">
-                      <el-form-item label="X轴字段" v-if="['bar', 'line', 'area'].includes(selectedChart.type)">
-                        <el-select 
-                          v-model="selectedChart.fieldMapping.xField" 
-                          @change="updateSelectedChart"
+                    <template v-if="selectedDataset && isChartType(localConfig.type)">
+                      <el-form-item label="X轴字段" v-if="['bar', 'line', 'area'].includes(localConfig.type)">
+                        <el-select
+                          v-model="localConfig.fieldMapping.xField"
+                          @change="handleConfigChange"
                           placeholder="请选择X轴字段"
                           style="width: 100%"
                         >
@@ -137,10 +188,10 @@
                         </el-select>
                       </el-form-item>
                       
-                      <el-form-item label="Y轴字段" v-if="['bar', 'line', 'area'].includes(selectedChart.type)">
-                        <el-select 
-                          v-model="selectedChart.fieldMapping.yField" 
-                          @change="updateSelectedChart"
+                      <el-form-item label="Y轴字段" v-if="['bar', 'line', 'area'].includes(localConfig.type)">
+                        <el-select
+                          v-model="localConfig.fieldMapping.yField"
+                          @change="handleConfigChange"
                           placeholder="请选择Y轴字段"
                           style="width: 100%"
                         >
@@ -153,10 +204,10 @@
                         </el-select>
                       </el-form-item>
                       
-                      <el-form-item label="名称字段" v-if="selectedChart.type === 'pie'">
-                        <el-select 
-                          v-model="selectedChart.fieldMapping.nameField" 
-                          @change="updateSelectedChart"
+                      <el-form-item label="名称字段" v-if="localConfig.type === 'pie'">
+                        <el-select
+                          v-model="localConfig.fieldMapping.nameField"
+                          @change="handleConfigChange"
                           placeholder="请选择名称字段"
                           style="width: 100%"
                         >
@@ -169,10 +220,10 @@
                         </el-select>
                       </el-form-item>
                       
-                      <el-form-item label="数值字段" v-if="selectedChart.type === 'pie'">
-                        <el-select 
-                          v-model="selectedChart.fieldMapping.valueField" 
-                          @change="updateSelectedChart"
+                      <el-form-item label="数值字段" v-if="localConfig.type === 'pie'">
+                        <el-select
+                          v-model="localConfig.fieldMapping.valueField"
+                          @change="handleConfigChange"
                           placeholder="请选择数值字段"
                           style="width: 100%"
                         >
@@ -258,32 +309,93 @@
                     <span>样式配置</span>
                   </div>
                 </template>
-                <div class="style-config-container">
+                <div class="style-config-container" v-if="localConfig">
                   <el-form label-width="80px" size="small">
-                    <el-form-item label="显示图例" v-if="['bar', 'line', 'pie', 'area'].includes(selectedChart.type)">
-                      <el-switch 
-                        v-model="selectedChart.showLegend" 
-                        @change="updateSelectedChart"
+                    <el-form-item label="显示图例" v-if="['bar', 'line', 'pie', 'area'].includes(localConfig.type)">
+                      <el-switch
+                        v-model="localConfig.showLegend"
+                        @change="handleConfigChange"
                       />
                     </el-form-item>
                     
-                    <el-form-item label="显示工具栏" v-if="['bar', 'line', 'pie', 'area'].includes(selectedChart.type)">
-                      <el-switch 
-                        v-model="selectedChart.showToolbox" 
-                        @change="updateSelectedChart"
+                    <el-form-item label="显示工具栏" v-if="['bar', 'line', 'pie', 'area'].includes(localConfig.type)">
+                      <el-switch
+                        v-model="localConfig.showToolbox"
+                        @change="handleConfigChange"
                       />
                     </el-form-item>
                     
                     <el-form-item label="数据限制">
-                      <el-input-number 
-                        v-model="selectedChart.dataLimit" 
-                        @change="updateSelectedChart"
+                      <el-input-number
+                        v-model="localConfig.dataLimit"
+                        @change="handleConfigChange"
                         :min="10"
                         :max="10000"
                         :step="10"
                       />
                     </el-form-item>
                   </el-form>
+                </div>
+              </el-tab-pane>
+              
+              <!-- 筛选器关联标签页 -->
+              <el-tab-pane name="filters" v-if="selectedChart && isChartType(selectedChart.type) && availableFilters.length > 0">
+                <template #label>
+                  <div class="tab-label">
+                    <el-icon><Filter /></el-icon>
+                    <span>筛选器关联</span>
+                  </div>
+                </template>
+                <div class="filter-binding-container">
+                  <div class="section-header">
+                    <el-icon><Filter /></el-icon>
+                    <span>可用筛选器</span>
+                    <el-tag size="small" type="info">{{ availableFilters.length }} 个</el-tag>
+                  </div>
+                  
+                  <div class="filter-list">
+                    <div v-for="filter in availableFilters" :key="filter.i" class="filter-item">
+                      <div class="filter-header">
+                        <el-checkbox 
+                          :model-value="isFilterBound(filter.i)"
+                          @change="(checked) => toggleFilterBinding(filter.i, checked)"
+                        >
+                          <span class="filter-name">{{ filter.chartConfig.title || filter.chartConfig.label }}</span>
+                        </el-checkbox>
+                        <el-tag size="small" :type="getFilterTypeColor(filter.chartConfig.type)">
+                          {{ getFilterTypeLabel(filter.chartConfig.type) }}
+                        </el-tag>
+                      </div>
+                      
+                      <!-- 字段选择 -->
+                      <div v-if="isFilterBound(filter.i)" class="field-selection">
+                        <el-form-item label="关联字段" size="small">
+                          <el-select 
+                            :model-value="getFilterBinding(filter.i)?.targetField"
+                            @change="(field) => updateFilterBinding(filter.i, field)"
+                            placeholder="选择要关联的字段"
+                            style="width: 100%"
+                          >
+                            <el-option
+                              v-for="field in getCompatibleFields(filter.chartConfig.type)"
+                              :key="field.fieldName"
+                              :label="field.displayName || field.fieldName"
+                              :value="field.fieldName"
+                            >
+                              <span>{{ field.displayName || field.fieldName }}</span>
+                              <el-tag size="small" style="margin-left: 8px">{{ field.fieldType }}</el-tag>
+                            </el-option>
+                          </el-select>
+                        </el-form-item>
+                      </div>
+                    </div>
+                    
+                    <div v-if="availableFilters.length === 0" class="empty-filters">
+                      <el-icon><InfoFilled /></el-icon>
+                      <span>当前画布中没有筛选器组件</span>
+                      <p>请先从左侧组件面板拖拽筛选器到画布</p>
+                    </div>
+                  </div>
                 </div>
               </el-tab-pane>
             </el-tabs>
@@ -322,9 +434,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { onMounted, onUnmounted, nextTick, ref, computed, watch, toRaw } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Setting, 
   DataAnalysis, 
@@ -333,16 +445,18 @@ import {
   CirclePlus, 
   InfoFilled, 
   TrendCharts, 
-  Close 
+  Close, 
+  Filter 
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getDashboardDetail } from '@/api/dashboard'
-import { DashboardStatus, DashboardType } from '@/shared/types/dashboard'
+import { DashboardStatus, DashboardType, ChartConfig } from '@/shared/types/dashboard'
 
 // 组件导入
 import DesignerToolbar from '../components/designer/DesignerToolbar.vue'
 import DesignerSidebar from '../components/designer/DesignerSidebar.vue'
 import DesignerCanvas from '../components/designer/DesignerCanvas.vue'
+import FilterRenderer from '../components/dashboard/FilterRenderer.vue'
 
 // 组合式函数
 import { useDashboardState } from '../composables/useDashboardState'
@@ -350,6 +464,7 @@ import { useDragAndDrop } from '../composables/useDragAndDrop'
 
 // 路由
 const route = useRoute()
+const router = useRouter()
 const dashboardId = route.params.id as string
 
 // 使用组合式函数
@@ -395,6 +510,29 @@ const {
   getDefaultFilterOptions
 } = useDashboardState()
 
+// 本地配置副本，用于表单绑定
+const localConfig = ref<ChartConfig | null>(null)
+
+// 侦听 selectedChart 的变化，更新本地副本
+watch(selectedChart, (newChart) => {
+  if (newChart) {
+    // 使用深拷贝，避免直接修改全局状态
+    localConfig.value = JSON.parse(JSON.stringify(toRaw(newChart)))
+  } else {
+    localConfig.value = null
+  }
+}, { deep: true })
+
+// 配置变更处理器
+const handleConfigChange = () => {
+  if (localConfig.value && selectedChart.value) {
+    // 1. 将本地副本的更改同步回全局 selectedChart
+    Object.assign(selectedChart.value, localConfig.value)
+    // 2. 调用核心更新方法，将更改持久化到 layout
+    updateSelectedChart()
+  }
+}
+
 // 获取默认筛选器值
 const getDefaultFilterValue = (filterType: string) => {
   const defaultValueMap: Record<string, any> = {
@@ -422,6 +560,35 @@ const {
 // 设置默认值函数
 setDefaultValueFunctions(getDefaultFilterOptions, getDefaultFilterValue)
 
+// 过滤器相关的响应式变量
+const filterItems = computed(() => {
+  return layout.value.filter(item => isFilterType(item.chartConfig.type))
+})
+
+const chartLayout = computed(() => {
+  return layout.value.filter(item => !isFilterType(item.chartConfig.type))
+})
+
+const hasFilters = computed(() => {
+  return filterItems.value.length > 0
+})
+
+// 过滤器事件处理
+const handleFilterValueChange = (value: any) => {
+  console.log('过滤器值变化:', value)
+}
+
+const handleFilterApply = (filterData: any) => {
+  console.log('应用过滤器:', filterData)
+}
+
+// 更新图表布局
+const updateChartLayout = (newLayout: any[]) => {
+  // 只更新图表部分，保持筛选器不变
+  const filterItems = layout.value.filter(item => isFilterType(item.chartConfig.type))
+  layout.value = [...filterItems, ...newLayout]
+}
+
 // 处理拖拽放下
 const handleDrop = (event: DragEvent) => {
   const newChart = handleCanvasDrop(
@@ -433,7 +600,25 @@ const handleDrop = (event: DragEvent) => {
   )
   
   if (newChart) {
+    // 如果是筛选器类型，确保它被正确添加到布局中
+    if (isFilterType(newChart.type)) {
+      // 筛选器会在顶部显示，但仍需要在layout中管理
+      console.log('添加筛选器到布局:', newChart)
+    }
+    
+    // 立即选中新添加的图表/筛选器
     selectedChart.value = newChart
+    
+    // 确保配置面板显示并打开到数据源标签页
+    showConfigPanel.value = true
+    activeConfigTab.value = 'dataset'
+    
+    // 延迟一下确保DOM更新后再次设置选中状态
+    nextTick(() => {
+      selectChart(newChart.i)
+    })
+    
+    console.log('已添加并选中组件:', newChart)
   }
 }
 
@@ -487,6 +672,17 @@ const handleChartContextMenu = (event: MouseEvent, item: any) => {
   event.preventDefault()
 }
 
+// 画布背景点击处理
+const handleCanvasBackgroundClick = () => {
+  deselectChart()
+}
+
+// 全局过滤器变化处理
+const handleGlobalFilterChange = (filterValues: Record<string, any>) => {
+  console.log('全局过滤器值变化:', filterValues)
+  // TODO: 应用过滤器到图表数据
+}
+
 // 保存仪表盘
 const handleSaveDashboard = async () => {
   if (!saveForm.name.trim()) {
@@ -531,10 +727,6 @@ const handleSaveDashboard = async () => {
     ElMessage.error(dashboardId ? '更新失败' : '保存失败')
   }
 }
-
-
-
-
 
 // 布局事件处理
 const onMove = (i: string, newX: number, newY: number) => {
@@ -618,14 +810,253 @@ const loadDashboardData = async () => {
   }
 }
 
+// 筛选器关联相关功能
+// 获取画布中可用的筛选器
+const availableFilters = computed(() => {
+  return layout.value.filter(item => isFilterType(item.chartConfig.type))
+})
+
+// 获取筛选器类型对应的颜色
+const getFilterTypeColor = (filterType: string) => {
+  const colorMap: Record<string, string> = {
+    'filter-select': 'primary',
+    'filter-multiselect': 'success',
+    'filter-date': 'warning',
+    'filter-daterange': 'warning',
+    'filter-slider': 'info',
+    'filter-input': 'default'
+  }
+  return colorMap[filterType] || 'default'
+}
+
+// 获取筛选器类型标签
+const getFilterTypeLabel = (filterType: string) => {
+  const labelMap: Record<string, string> = {
+    'filter-select': '下拉选择',
+    'filter-multiselect': '多选下拉',
+    'filter-date': '日期选择',
+    'filter-daterange': '日期范围',
+    'filter-slider': '滑块',
+    'filter-input': '输入框'
+  }
+  return labelMap[filterType] || '筛选器'
+}
+
+// 检查筛选器是否已绑定
+const isFilterBound = (filterId: string) => {
+  if (!selectedChart.value?.filterBindings) return false
+  return selectedChart.value.filterBindings.some(binding => binding.filterId === filterId)
+}
+
+// 获取筛选器绑定配置
+const getFilterBinding = (filterId: string) => {
+  if (!selectedChart.value?.filterBindings) return null
+  return selectedChart.value.filterBindings.find(binding => binding.filterId === filterId)
+}
+
+// 切换筛选器绑定
+const toggleFilterBinding = (filterId: string, enabled: boolean) => {
+  if (!selectedChart.value) return
+  
+  if (!selectedChart.value.filterBindings) {
+    selectedChart.value.filterBindings = []
+  }
+  
+  const filterItem = layout.value.find(item => item.i === filterId)
+  if (!filterItem) return
+  
+  if (enabled) {
+    // 添加绑定
+    const binding = {
+      filterId,
+      filterType: filterItem.chartConfig.type,
+      filterLabel: filterItem.chartConfig.title || filterItem.chartConfig.label || '筛选器',
+      targetField: '',
+      enabled: true
+    }
+    selectedChart.value.filterBindings.push(binding)
+  } else {
+    // 移除绑定
+    selectedChart.value.filterBindings = selectedChart.value.filterBindings.filter(
+      binding => binding.filterId !== filterId
+    )
+  }
+  
+  updateSelectedChart()
+}
+
+// 更新筛选器绑定的目标字段
+const updateFilterBinding = (filterId: string, targetField: string) => {
+  if (!selectedChart.value?.filterBindings) return
+  
+  const binding = selectedChart.value.filterBindings.find(b => b.filterId === filterId)
+  if (binding) {
+    binding.targetField = targetField
+    updateSelectedChart()
+  }
+}
+
+// 获取与筛选器类型兼容的字段
+const getCompatibleFields = (filterType: string) => {
+  if (!datasetFields.value) return []
+  
+  // 筛选器类型与字段类型的匹配规则
+  const compatibilityMap: Record<string, (field: any) => boolean> = {
+    'filter-date': (field) => ['date', 'datetime', 'timestamp'].includes(field.dataType?.toLowerCase()) || field.fieldType === 'dimension',
+    'filter-daterange': (field) => ['date', 'datetime', 'timestamp'].includes(field.dataType?.toLowerCase()) || field.fieldType === 'dimension',
+    'filter-select': (field) => field.fieldType === 'dimension',
+    'filter-multiselect': (field) => field.fieldType === 'dimension',
+    'filter-slider': (field) => field.fieldType === 'metric' || ['number', 'int', 'float', 'decimal'].includes(field.dataType?.toLowerCase()),
+    'filter-input': (field) => field.fieldType === 'dimension' || ['string', 'text', 'varchar'].includes(field.dataType?.toLowerCase())
+  }
+  
+  const filterFn = compatibilityMap[filterType]
+  if (!filterFn) return datasetFields.value
+  
+  return datasetFields.value.filter(filterFn)
+}
+
+// 筛选器拖拽排序相关
+let draggedFilterIndex = -1
+const isFilterDragOver = ref(false)
+
+const handleFilterDragStart = (event: DragEvent, filter: any, index: number) => {
+  draggedFilterIndex = index
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('text/html', '')
+}
+
+const handleFilterDragEnd = () => {
+  draggedFilterIndex = -1
+}
+
+const handleFilterDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'move'
+}
+
+const handleFilterDrop = (event: DragEvent) => {
+  event.preventDefault()
+  
+  const target = event.target as HTMLElement
+  const filterWrapper = target.closest('.filter-item-wrapper')
+  
+  if (!filterWrapper || draggedFilterIndex === -1) return
+  
+  // 获取目标位置的索引
+  const allFilters = Array.from(filterWrapper.parentElement!.children)
+  const targetIndex = allFilters.indexOf(filterWrapper)
+  
+  if (targetIndex === -1 || targetIndex === draggedFilterIndex) return
+  
+  // 重新排序筛选器
+  const filters = [...filterItems.value]
+  const draggedFilter = filters.splice(draggedFilterIndex, 1)[0]
+  filters.splice(targetIndex, 0, draggedFilter)
+  
+  // 更新布局中的筛选器顺序
+  const chartItems = layout.value.filter(item => !isFilterType(item.chartConfig.type))
+  layout.value = [...filters, ...chartItems]
+  
+  console.log('筛选器重新排序完成')
+}
+
+// 筛选器容器拖拽处理
+const handleFilterContainerDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  
+  // 检查是否是从侧边栏拖拽的组件
+  const componentData = event.dataTransfer?.getData('componentType')
+  if (componentData) {
+    try {
+      const component = JSON.parse(componentData)
+      if (isFilterType(component.type)) {
+        isFilterDragOver.value = true
+        event.dataTransfer!.dropEffect = 'copy'
+      }
+    } catch (e) {
+      // 忽略解析错误
+    }
+  }
+}
+
+const handleFilterContainerDragLeave = (event: DragEvent) => {
+  // 检查是否真的离开了容器
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    isFilterDragOver.value = false
+  }
+}
+
+const handleFilterContainerDrop = (event: DragEvent) => {
+  event.preventDefault()
+  isFilterDragOver.value = false
+  
+  const componentData = event.dataTransfer?.getData('componentType')
+  if (componentData) {
+    try {
+      const component = JSON.parse(componentData)
+      if (isFilterType(component.type)) {
+        // 创建新的筛选器
+        const newFilter = handleCanvasDrop(
+          event,
+          layout.value,
+          selectedDataset.value,
+          datasetFields.value,
+          initChartInstance
+        )
+        
+        if (newFilter) {
+          // 立即选中新添加的筛选器
+          selectedChart.value = newFilter
+          
+          // 确保配置面板显示并打开到数据源标签页
+          showConfigPanel.value = true
+          activeConfigTab.value = 'dataset'
+          
+          // 延迟一下确保DOM更新后再次设置选中状态
+          nextTick(() => {
+            selectChart(newFilter.i)
+          })
+          
+          console.log('添加筛选器到筛选器栏:', newFilter)
+        }
+      }
+    } catch (e) {
+      console.error('解析拖拽数据失败:', e)
+    }
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   checkMobile()
   await loadDatasets()
   
-  // 如果有仪表盘ID，加载仪表盘数据
+  // 如果有仪表盘ID，加载现有配置
   if (dashboardId) {
-    await loadDashboardData()
+    try {
+      const { getDashboardDetail } = await import('@/api/dashboard')
+      const result = await getDashboardDetail(dashboardId)
+      if (result.code === 200 && result.data) {
+        const dashboard = result.data
+        if (dashboard.layout) {
+          try {
+            layout.value = JSON.parse(dashboard.layout)
+          } catch (error) {
+            console.error('解析仪表盘布局失败:', error)
+          }
+        }
+        saveForm.name = dashboard.name || ''
+        saveForm.description = dashboard.description || ''
+      }
+    } catch (error) {
+      console.error('加载仪表盘详情失败:', error)
+      ElMessage.warning('加载仪表盘配置失败，将使用默认配置')
+    }
   }
   
   window.addEventListener('resize', checkMobile)
@@ -651,6 +1082,157 @@ onUnmounted(() => {
     display: flex;
     flex: 1;
     height: calc(100vh - 60px);
+    
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      
+      .filters-container {
+        background: white;
+        border-bottom: 1px solid #e4e7ed;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 12px 16px;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+        
+        &.drag-over {
+          background: #f0f9ff;
+          border-bottom-color: #409eff;
+          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+        }
+        
+        .filters-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #303133;
+          
+          .el-icon {
+            color: #409eff;
+            font-size: 16px;
+          }
+        }
+        
+        .filters-empty-state {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 24px;
+          border: 2px dashed #e4e7ed;
+          border-radius: 8px;
+          color: #909399;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          
+          .el-icon {
+            font-size: 24px;
+            color: #c0c4cc;
+          }
+          
+          &:hover {
+            border-color: #409eff;
+            color: #409eff;
+            background: #f0f9ff;
+            
+            .el-icon {
+              color: #409eff;
+            }
+          }
+        }
+        
+        .filters-content {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          
+          .filter-item-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 180px;
+            max-width: 240px;
+            padding: 8px;
+            border: 1px solid #e4e7ed;
+            border-radius: 6px;
+            background: #fafbfc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            
+            &:hover {
+              border-color: #409eff;
+              background: #ecf5ff;
+              transform: translateY(-1px);
+              box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+            }
+            
+            &.selected {
+              border-color: #409eff;
+              background: #ecf5ff;
+              box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+            }
+            
+            &[draggable="true"] {
+              cursor: move;
+              
+              &:active {
+                opacity: 0.8;
+                transform: scale(1.02);
+              }
+            }
+            
+            .filter-drag-handle {
+              position: absolute;
+              top: 4px;
+              right: 4px;
+              padding: 2px;
+              border-radius: 3px;
+              background: rgba(64, 158, 255, 0.1);
+              color: #409eff;
+              cursor: grab;
+              opacity: 0.7;
+              transition: opacity 0.2s ease;
+              
+              &:hover {
+                opacity: 1;
+                background: rgba(64, 158, 255, 0.2);
+              }
+              
+              &:active {
+                cursor: grabbing;
+              }
+              
+              .el-icon {
+                font-size: 12px;
+              }
+            }
+            
+            .filter-label {
+              font-size: 12px;
+              color: #606266;
+              font-weight: 500;
+              text-align: center;
+              margin-bottom: 4px;
+              padding-right: 20px; // 为拖拽手柄留出空间
+            }
+          }
+        }
+      }
+      
+      .canvas-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+    }
     
     .right-panels {
       width: 380px;
@@ -1054,5 +1636,70 @@ onUnmounted(() => {
       }
     }
   }
+}
+
+// 筛选器关联面板样式
+.filter-binding-container {
+  padding: 16px;
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-weight: 500;
+    color: #303133;
+  }
+  
+  .filter-list {
+    .filter-item {
+      border: 1px solid #e4e7ed;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      background: #fafafa;
+      
+      .filter-header {
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        
+        .filter-name {
+          font-weight: 500;
+          color: #303133;
+        }
+      }
+      
+      .field-selection {
+        padding: 0 12px 12px;
+        border-top: 1px solid #e4e7ed;
+        background: white;
+        
+        .el-form-item {
+          margin-bottom: 0;
+        }
+      }
+    }
+    
+    .empty-filters {
+      text-align: center;
+      padding: 40px 20px;
+      color: #909399;
+      
+      .el-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #c0c4cc;
+      }
+      
+      p {
+        margin: 8px 0 0;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.mobile-layout {
 }
 </style> 
