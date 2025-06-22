@@ -20,28 +20,28 @@
           网格
         </el-button>
         
-        <!-- 智能布局 -->
-        <el-button @click="$emit('smart-layout')" type="info" v-if="hasCharts">
+        <!-- 自动布局 -->
+        <el-button @click="$emit('auto-layout')" type="info" v-if="hasCharts">
           <el-icon><MagicStick /></el-icon>
-          智能布局
+          自动布局
         </el-button>
         
-        <!-- 全选 -->
-        <el-button @click="$emit('select-all')" v-if="hasCharts">
-          <el-icon><Select /></el-icon>
-          全选
-        </el-button>
-        
-        <!-- 清空 -->
+        <!-- 清空画布 -->
         <el-button @click="$emit('clear-all')" type="danger" v-if="hasCharts">
           <el-icon><Delete /></el-icon>
-          清空
+          清空画布
         </el-button>
         
         <!-- 导出配置 -->
         <el-button @click="$emit('export-dashboard')">
           <el-icon><Download /></el-icon>
           导出
+        </el-button>
+        
+        <!-- 全屏 -->
+        <el-button @click="$emit('toggle-fullscreen')" :type="isFullscreen ? 'primary' : 'default'">
+          <el-icon><FullScreen /></el-icon>
+          {{ isFullscreen ? '退出全屏' : '全屏' }}
         </el-button>
         
         <!-- 保存 -->
@@ -66,13 +66,9 @@
               <el-icon><Grid /></el-icon>
               {{ showGridHelper ? '隐藏网格' : '显示网格' }}
             </el-dropdown-item>
-            <el-dropdown-item @click="$emit('smart-layout')" v-if="hasCharts">
+            <el-dropdown-item @click="$emit('auto-layout')" v-if="hasCharts">
               <el-icon><MagicStick /></el-icon>
-              智能布局
-            </el-dropdown-item>
-            <el-dropdown-item @click="$emit('select-all')" v-if="hasCharts">
-              <el-icon><Select /></el-icon>
-              全选图表
+              自动布局
             </el-dropdown-item>
             <el-dropdown-item @click="$emit('clear-all')" v-if="hasCharts">
               <el-icon><Delete /></el-icon>
@@ -81,6 +77,10 @@
             <el-dropdown-item @click="$emit('export-dashboard')">
               <el-icon><Download /></el-icon>
               导出配置
+            </el-dropdown-item>
+            <el-dropdown-item @click="$emit('toggle-fullscreen')">
+              <el-icon><FullScreen /></el-icon>
+              {{ isFullscreen ? '退出全屏' : '全屏模式' }}
             </el-dropdown-item>
             <el-dropdown-item @click="$emit('save-dashboard')">
               <el-icon><Document /></el-icon>
@@ -102,8 +102,8 @@ import {
   Document, 
   ArrowDown,
   MagicStick,
-  Select,
-  Delete
+  Delete,
+  FullScreen
 } from '@element-plus/icons-vue'
 
 interface Props {
@@ -111,6 +111,7 @@ interface Props {
   showGridHelper: boolean
   isMobile: boolean
   hasCharts: boolean
+  isFullscreen: boolean
 }
 
 defineProps<Props>()
@@ -118,8 +119,8 @@ defineProps<Props>()
 defineEmits<{
   'toggle-preview': []
   'toggle-grid-helper': []
-  'smart-layout': []
-  'select-all': []
+  'toggle-fullscreen': []
+  'auto-layout': []
   'clear-all': []
   'export-dashboard': []
   'save-dashboard': []

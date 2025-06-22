@@ -1,26 +1,7 @@
 <template>
-  <div class="designer-canvas" @dragover.prevent @drop="handleDrop">
-    <!-- 快捷操作工具栏 -->
-    <div class="canvas-toolbar" v-if="hasCharts">
-      <el-button-group size="small">
-        <el-button @click="handleSelectAll">
-          <el-icon><Select /></el-icon>
-          全选
-        </el-button>
-        <el-button @click="handleClearAll" type="danger">
-          <el-icon><Delete /></el-icon>
-          清空
-        </el-button>
-        <el-button @click="handleAutoLayout">
-          <el-icon><Grid /></el-icon>
-          自动布局
-        </el-button>
-        <el-button @click="handleExport">
-          <el-icon><Download /></el-icon>
-          导出
-        </el-button>
-      </el-button-group>
-    </div>
+  <div class="designer-canvas" :class="{ 'show-grid': showGridHelper && !isPreview }" @dragover.prevent @drop="handleDrop">
+    <!-- 网格背景 -->
+    <div v-if="showGridHelper && !isPreview" class="grid-background"></div>
 
     <!-- 空状态提示 -->
     <div v-if="!hasCharts" class="empty-canvas">
@@ -60,7 +41,7 @@
       :use-css-transforms="true"
       :margin="[10, 10]"
       @update:layout="handleLayoutUpdate"
-      @click="handleCanvasClick"
+
       :class="{ 'show-grid': showGridHelper }"
     >
       <grid-item
@@ -80,20 +61,28 @@
         :drag-ignore-from="'.chart-actions, .el-select, .el-input, .el-date-editor, .el-slider, .el-button'"
         class="grid-chart-item"
         :class="{ 
-          'selected': selectedChart?.i === item.i,
-          'preview-mode': isPreview
+          'preview-mode': isPreview,
+          'filter-item': isFilterType(item.chartConfig.type),
+          'hidden-filter': isFilterType(item.chartConfig.type)
         }"
       >
+        <!-- 只渲染非筛选器组件 -->
         <ChartItem
+          v-if="!isFilterType(item.chartConfig.type)"
           :item="item"
           :is-preview="isPreview"
-          :is-selected="selectedChart?.i === item.i"
+          :is-selected="false"
           :key="`${item.i}-${item.w}-${item.h}`"
           @update-config="(config) => handleUpdateConfig(item.i, config)"
           @remove="handleDeleteChart(item.i)"
           @duplicate="handleCopyChart(item.i)"
-          @chart-click="handleChartClick(item.i)"
+          @click="handleItemClick(item)"
         />
+        
+        <!-- 筛选器组件占位符（隐藏但保持布局） -->
+        <div v-else class="filter-placeholder">
+          <!-- 筛选器已移至顶部区域 -->
+        </div>
       </grid-item>
     </grid-layout>
   </div>
@@ -104,17 +93,16 @@
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
 import ChartItem from './ChartItem.vue'
 import { 
-  Select, 
-  Delete, 
-  Grid, 
-  Download, 
   DataBoard 
 } from '@element-plus/icons-vue'
 import type { LayoutItem, ChartConfig } from '@/shared/types/dashboard'
+import { useDragAndDrop } from '../../composables/useDragAndDrop'
+
+// 获取isFilterType函数
+const { isFilterType } = useDragAndDrop()
 
 interface Props {
   layout: LayoutItem[]
-  selectedChart: ChartConfig | null
   isPreview: boolean
   showGridHelper: boolean
   hasCharts: boolean
@@ -123,20 +111,15 @@ interface Props {
 interface Emits {
   (e: 'update:layout', layout: LayoutItem[]): void
   (e: 'drop', event: DragEvent): void
-  (e: 'chart-click', chartId: string): void
-  (e: 'canvas-click'): void
   (e: 'chart-context-menu', event: MouseEvent, item: LayoutItem): void
   (e: 'update-config', itemId: string, config: any): void
   (e: 'delete-chart', chartId: string): void
   (e: 'copy-chart', chartId: string): void
-  (e: 'select-all'): void
-  (e: 'clear-all'): void
-  (e: 'auto-layout'): void
-  (e: 'export'): void
   (e: 'resize', i: string, newH: number, newW: number, newHPx: number, newWPx: number): void
   (e: 'resized', i: string, newH: number, newW: number, newHPx: number, newWPx: number): void
   (e: 'move', i: string, newX: number, newY: number): void
   (e: 'moved', i: string, newX: number, newY: number): void
+  (e: 'item-click', item: LayoutItem): void
 }
 
 defineProps<Props>()
@@ -150,13 +133,7 @@ const handleLayoutUpdate = (newLayout: LayoutItem[]) => {
   emit('update:layout', newLayout)
 }
 
-const handleChartClick = (chartId: string) => {
-  emit('chart-click', chartId)
-}
-
-const handleCanvasClick = () => {
-  emit('canvas-click')
-}
+// 移除了不需要的事件处理函数
 
 const handleChartContextMenu = (event: MouseEvent, item: LayoutItem) => {
   emit('chart-context-menu', event, item)
@@ -174,21 +151,7 @@ const handleCopyChart = (chartId: string) => {
   emit('copy-chart', chartId)
 }
 
-const handleSelectAll = () => {
-  emit('select-all')
-}
 
-const handleClearAll = () => {
-  emit('clear-all')
-}
-
-const handleAutoLayout = () => {
-  emit('auto-layout')
-}
-
-const handleExport = () => {
-  emit('export')
-}
 
 const handleResize = (i: string, newH: number, newW: number, newHPx: number, newWPx: number) => {
   emit('resize', i, newH, newW, newHPx, newWPx)
@@ -205,6 +168,10 @@ const handleMove = (i: string, newX: number, newY: number) => {
 const handleMoved = (i: string, newX: number, newY: number) => {
   emit('moved', i, newX, newY)
 }
+
+const handleItemClick = (item: LayoutItem) => {
+  emit('item-click', item)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -214,6 +181,22 @@ const handleMoved = (i: string, newX: number, newY: number) => {
   background: #f5f7fa;
   position: relative;
   overflow: auto;
+  
+  &.show-grid {
+    .grid-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(64, 158, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(64, 158, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
   
   .canvas-toolbar {
     display: flex;
@@ -357,6 +340,25 @@ const handleMoved = (i: string, newX: number, newY: number) => {
       
       &:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
+    
+    // 筛选器项样式 - 隐藏但保持布局
+    &.hidden-filter {
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: none;
+      
+      .filter-placeholder {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #c0c4cc;
+        font-size: 12px;
+        background: #f5f7fa;
+        border: 1px dashed #dcdfe6;
+        border-radius: 4px;
       }
     }
   }

@@ -496,8 +496,9 @@ export function useDragAndDrop() {
           // 过滤器特有配置
           ...(isFilter && {
             options: getFilterDefaultOptions(component.type),
-            value: getDefaultFilterValue(component.type),
-            placeholder: getFilterPlaceholder(component.type)
+            defaultValue: getDefaultFilterValue(component.type),
+            placeholder: getFilterPlaceholder(component.type),
+            position: layout.filter(item => isFilterType(item.chartConfig.type)).length // 设置筛选器位置
           }),
           // 文本组件特有配置
           ...(component.category === 'text' && {

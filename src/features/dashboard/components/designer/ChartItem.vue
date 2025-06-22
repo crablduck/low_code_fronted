@@ -54,8 +54,8 @@
             <el-button size="small" @click="retryLoadData" type="primary">重试</el-button>
           </div>
           
-          <!-- 占位符内容 - 仅在没有配置数据集时显示 -->
-          <div v-else-if="!hasValidDataConfig" class="placeholder-content">
+          <!-- 占位符内容 - 仅在没有配置数据集且非预览模式时显示 -->
+          <div v-else-if="!hasValidDataConfig && !isPreview" class="placeholder-content">
             <div class="chart-icon">
               <el-icon v-if="item.chartConfig.type === 'bar'"><DataBoard /></el-icon>
               <el-icon v-else-if="item.chartConfig.type === 'line'"><TrendCharts /></el-icon>
@@ -68,6 +68,13 @@
             <div class="chart-title">{{ getChartTypeLabel(item.chartConfig.type) }}</div>
             <div class="chart-description">{{ getChartDescription(item.chartConfig.type) }}</div>
             <div class="config-hint">点击右侧配置面板设置数据源</div>
+          </div>
+          
+          <!-- 预览模式下的示例数据显示 -->
+          <div v-else-if="!hasValidDataConfig && isPreview" class="preview-placeholder">
+            <div class="preview-chart-container">
+              <div :id="`preview-echarts-${item.i}`" class="preview-echarts-container"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -551,17 +558,202 @@ watch(() => hasValidDataConfig.value, async (isValid, wasValid) => {
 
 // 监控预览模式变化
 watch(() => props.isPreview, async (isPreview) => {
-  if (isPreview && isChartType() && hasValidDataConfig.value) {
-    // 进入预览模式时，确保图表正确渲染
-    await nextTick()
-    if (chartInstance.value && !chartInstance.value.isDisposed()) {
-      chartInstance.value.resize()
+  if (isPreview && isChartType()) {
+    if (hasValidDataConfig.value) {
+      // 有有效配置时，确保图表正确渲染
+      await nextTick()
+      if (chartInstance.value && !chartInstance.value.isDisposed()) {
+        chartInstance.value.resize()
+      } else {
+        initChartInstance()
+        await loadAndRenderChart()
+      }
     } else {
-      initChartInstance()
-      await loadAndRenderChart()
+      // 没有有效配置时，渲染示例数据
+      await nextTick()
+      renderPreviewChart()
     }
   }
 })
+
+// 渲染预览模式的示例数据
+const renderPreviewChart = () => {
+  const previewContainer = document.getElementById(`preview-echarts-${props.item.i}`)
+  if (!previewContainer) return
+
+  // 检查是否已经有实例
+  const existingInstance = echarts.getInstanceByDom(previewContainer)
+  if (existingInstance) {
+    existingInstance.dispose()
+  }
+
+  const previewInstance = echarts.init(previewContainer)
+  
+  // 生成示例数据
+  const sampleData = generateSampleData(props.item.chartConfig.type)
+  
+  previewInstance.setOption(sampleData)
+  
+  // 监听窗口大小变化
+  const handleResize = () => {
+    if (previewInstance && !previewInstance.isDisposed()) {
+      previewInstance.resize()
+    }
+  }
+  window.addEventListener('resize', handleResize)
+  
+  // 清理函数
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+    if (previewInstance && !previewInstance.isDisposed()) {
+      previewInstance.dispose()
+    }
+  })
+}
+
+// 生成示例数据
+const generateSampleData = (chartType: string) => {
+  const baseOption = {
+    title: {
+      text: props.item.chartConfig.title || '示例图表',
+      textStyle: {
+        fontSize: 14,
+        color: '#303133'
+      }
+    },
+    tooltip: {
+      trigger: 'axis'
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    }
+  }
+
+  switch (chartType) {
+    case 'bar':
+      return {
+        ...baseOption,
+        xAxis: {
+          type: 'category',
+          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: [120, 200, 150, 80, 70, 110, 130],
+          type: 'bar',
+          itemStyle: {
+            color: '#409eff'
+          }
+        }]
+      }
+    
+    case 'line':
+      return {
+        ...baseOption,
+        xAxis: {
+          type: 'category',
+          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: [820, 932, 901, 934, 1290, 1330, 1320],
+          type: 'line',
+          smooth: true,
+          itemStyle: {
+            color: '#67c23a'
+          }
+        }]
+      }
+    
+    case 'pie':
+      return {
+        ...baseOption,
+        tooltip: {
+          trigger: 'item'
+        },
+        series: [{
+          name: '示例数据',
+          type: 'pie',
+          radius: '50%',
+          data: [
+            { value: 1048, name: 'Search Engine' },
+            { value: 735, name: 'Direct' },
+            { value: 580, name: 'Email' },
+            { value: 484, name: 'Union Ads' },
+            { value: 300, name: 'Video Ads' }
+          ],
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
+        }]
+      }
+    
+    case 'area':
+      return {
+        ...baseOption,
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: [820, 932, 901, 934, 1290, 1330, 1320],
+          type: 'line',
+          areaStyle: {},
+          itemStyle: {
+            color: '#e6a23c'
+          }
+        }]
+      }
+    
+    case 'scatter':
+      return {
+        ...baseOption,
+        xAxis: {
+          type: 'value'
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          symbolSize: 20,
+          data: [
+            [10.0, 8.04],
+            [8.07, 6.95],
+            [13.0, 7.58],
+            [9.05, 8.81],
+            [11.0, 8.33],
+            [14.0, 7.66],
+            [13.4, 6.81],
+            [10.0, 6.33],
+            [14.0, 8.96],
+            [12.5, 6.82]
+          ],
+          type: 'scatter',
+          itemStyle: {
+            color: '#f56c6c'
+          }
+        }]
+      }
+    
+    default:
+      return baseOption
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -907,6 +1099,27 @@ watch(() => props.isPreview, async (isPreview) => {
           color: #909399;
           margin: 0;
         }
+      }
+    }
+  }
+  
+  // 预览模式样式
+  .preview-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .preview-chart-container {
+      width: 100%;
+      height: 100%;
+      min-height: 200px;
+      
+      .preview-echarts-container {
+        width: 100%;
+        height: 100%;
+        min-height: 200px;
       }
     }
   }

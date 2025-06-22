@@ -53,6 +53,10 @@ export interface AdvancedConfig {
 
 // 字段映射接口
 export interface ChartFieldMapping {
+  xAxis?: string
+  yAxis?: string
+  series?: string
+  value?: string
   xField?: string
   yField?: string
   nameField?: string
@@ -115,6 +119,7 @@ export interface ChartConfig {
         'text-title' | 'text-content'
   title?: string
   label?: string // 用于筛选器组件
+  description?: string
   xField?: string
   yField?: string
   nameField?: string
@@ -127,6 +132,7 @@ export interface ChartConfig {
   fieldMapping?: ChartFieldMapping
   dataSourceConfig?: ChartDataSourceConfig
   imageUrl?: string
+  
   // 新增全局筛选器绑定配置
   useGlobalFilters?: boolean
   globalFilterBindings?: GlobalFilterBinding[]
@@ -138,11 +144,20 @@ export interface ChartConfig {
   fieldName?: string
   placeholder?: string
   required?: boolean
+  multiple?: boolean
   options?: FilterOption[]
   defaultValue?: any
   min?: number
   max?: number
   step?: number
+  position?: number // 筛选器排序位置
+  
+  // 图表筛选器配置
+  enableFilters?: boolean
+  filterFields?: string[]
+  filterType?: 'select' | 'multiselect' | 'daterange' | 'range' | 'search'
+  filterPosition?: 'top' | 'bottom' | 'left' | 'right'
+  filterDefaults?: Record<string, any>
   
   // 文本组件专用属性
   content?: string
@@ -150,6 +165,36 @@ export interface ChartConfig {
   fontWeight?: string
   color?: string
   textAlign?: string
+  
+  // 样式配置
+  showTitle?: boolean
+  titlePosition?: 'left' | 'center' | 'right'
+  titleFontSize?: number
+  titleColor?: string
+  backgroundColor?: string
+  borderColor?: string
+  borderWidth?: number
+  borderRadius?: number
+  padding?: number
+  legendPosition?: 'top' | 'bottom' | 'left' | 'right'
+  showGrid?: boolean
+  themeColor?: string
+  enableAnimation?: boolean
+  
+  // 高级配置
+  zIndex?: number
+  opacity?: number
+  responsive?: boolean
+  draggable?: boolean
+  resizable?: boolean
+  
+  // 数据配置
+  autoRefresh?: boolean
+  refreshInterval?: number
+  
+  // 性能配置
+  enableCache?: boolean
+  cacheTime?: number
 }
 
 // 筛选器绑定接口

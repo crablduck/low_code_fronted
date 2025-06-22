@@ -3,20 +3,25 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import type { 
   LayoutItem, 
-  ChartConfig, 
-  GlobalFilter,
-  DashboardGlobalFilters
+  ChartConfig
 } from '@/shared/types/dashboard'
 import type { DataSet, DataSetField } from '@/shared/types/dataManagement'
 import { get } from '@/shared/utils/request'
 import { getDatasetDetail, getDatasetData, previewDatasetData, getDatasetFieldDistinctValues } from '@/api/dataset'
 import { dataSetApi } from '@/api/dataSource'
 
+// 定义图表实例类型，避免直接暴露echarts类型
+export interface ChartInstance {
+  dispose(): void
+  resize(): void
+  setOption(option: any): void
+  getOption(): any
+}
+
 export interface DashboardState {
   // 布局和图表
   layout: LayoutItem[]
-  selectedChart: ChartConfig | null
-  chartInstances: Map<string, echarts.ECharts>
+  chartInstances: Map<string, ChartInstance>
   
   // 数据集相关
   datasets: DataSet[]
@@ -28,29 +33,18 @@ export interface DashboardState {
   showGridHelper: boolean
   isMobile: boolean
   
-  // 全局筛选器
-  globalFilters: GlobalFilter[]
-  
   // 保存状态
   showSaveDialog: boolean
   saveForm: {
     name: string
     description: string
   }
-  
-  // 全局筛选器配置
-  globalFiltersConfig: DashboardGlobalFilters
-  
-  // 配置面板状态
-  activeConfigTab: string
-  showConfigPanel: boolean
 }
 
 export function useDashboardState() {
   // 响应式状态
   const layout = ref<LayoutItem[]>([])
-  const selectedChart = ref<ChartConfig | null>(null)
-  const chartInstances = ref<Map<string, echarts.ECharts>>(new Map())
+  const chartInstances = ref<Map<string, ChartInstance>>(new Map())
   
   // 数据集相关
   const datasets = ref<DataSet[]>([])
@@ -61,9 +55,11 @@ export function useDashboardState() {
   const isPreview = ref(false)
   const showGridHelper = ref(true)
   const isMobile = ref(false)
+  const isFullscreen = ref(false)
   
-  // 全局筛选器
-  const globalFilters = ref<GlobalFilter[]>([])
+  // 选中状态管理
+  const selectedItem = ref<any>(null)
+  const showPropertiesPanel = ref(false)
   
   // 保存相关
   const showSaveDialog = ref(false)
@@ -71,21 +67,7 @@ export function useDashboardState() {
     name: '',
     description: ''
   })
-  
-  // 全局筛选器配置
-  const globalFiltersConfig = ref<DashboardGlobalFilters>({
-    filters: [],
-    layout: {
-      position: 'top',
-      columns: 3,
-      spacing: 16
-    }
-  })
-  
-  // 配置面板状态
-  const activeConfigTab = ref('dataset')
-  const showConfigPanel = ref(false)
-  
+
   // 计算属性
   const dimensionFields = computed(() => 
     datasetFields.value.filter(field => field.fieldType === 'dimension')
@@ -125,7 +107,7 @@ export function useDashboardState() {
         selectedDataset.value = datasets.value[0]
         await loadDatasetFields(datasets.value[0].id)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('加载数据集失败:', error)
       ElMessage.error('加载数据集失败: ' + (error.message || '未知错误'))
       datasets.value = []
@@ -161,9 +143,9 @@ export function useDashboardState() {
         } else {
           // 如果没有找到数据集，尝试用 getDatasetDetail
           const response = await getDatasetDetail(Number(datasetId))
-          datasetFields.value = response.data?.fields || []
+          datasetFields.value = (response.data as any)?.fields || []
         }
-      } catch (apiError) {
+      } catch (apiError: any) {
         console.warn('API加载字段失败，使用模拟数据:', apiError.message)
         // 使用模拟字段数据
         datasetFields.value = [
@@ -186,88 +168,65 @@ export function useDashboardState() {
         ]
         console.log('使用模拟字段数据:', datasetFields.value)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('加载数据集字段失败:', error)
       ElMessage.error('加载数据集字段失败: ' + (error.message || '未知错误'))
       datasetFields.value = []
     }
   }
-  
-  // 选择图表
-  const selectChart = async (chartId: string) => {
-    const item = layout.value.find(item => item.i === chartId)
-    if (item && item.chartConfig) {
-      // 确保 fieldMapping 对象存在
-      if (!item.chartConfig.fieldMapping) {
-        item.chartConfig.fieldMapping = {}
+
+  // 选中状态管理函数 - 简化版本避免Promise问题
+  const selectItem = (item: any) => {
+    try {
+      // 避免重复选中同一个项
+      if (selectedItem.value && selectedItem.value.i === item.i) {
+        return
       }
       
-      selectedChart.value = { ...item.chartConfig, i: item.i }
+      // 直接设置新的选中状态
+      selectedItem.value = { ...item } // 创建副本避免引用问题
+      showPropertiesPanel.value = true
       
-      // 确保选中图表的 fieldMapping 也存在
-      if (!selectedChart.value.fieldMapping) {
-        selectedChart.value.fieldMapping = {}
-      }
-      
-      console.log('选中图表:', selectedChart.value)
-      
-      // 如果图表有绑定的数据集，自动加载数据集信息
-      if (selectedChart.value.datasetId) {
-        console.log('图表绑定的数据集ID:', selectedChart.value.datasetId)
-        
-        // 查找对应的数据集
-        let targetDataset = datasets.value.find(ds => ds.id === selectedChart.value.datasetId)
-        
-        if (!targetDataset) {
-          // 如果当前数据集列表中没有，尝试从API加载
-          try {
-            const { getDatasetDetail } = await import('@/api/dataset')
-            const response = await getDatasetDetail(selectedChart.value.datasetId)
-            if (response.code === 200 && response.data) {
-              targetDataset = response.data
-              // 添加到数据集列表中
-              if (!datasets.value.find(ds => ds.id === targetDataset.id)) {
-                datasets.value.push(targetDataset)
-              }
-            }
-          } catch (error) {
-            console.warn('加载数据集详情失败:', error)
-          }
-        }
-        
-        if (targetDataset) {
-          selectedDataset.value = targetDataset
-          console.log('自动选择数据集:', selectedDataset.value.name)
-          
-          // 加载数据集字段信息
-          await loadDatasetFields(targetDataset.id)
-          
-          ElMessage.success(`已选择图表"${selectedChart.value.title || '未命名图表'}"，数据集"${targetDataset.name}"`)
-        } else {
-          console.warn('未找到图表绑定的数据集:', selectedChart.value.datasetId)
-          ElMessage.warning('图表绑定的数据集不存在，请重新配置数据源')
-        }
-      } else {
-        console.log('图表未绑定数据集，显示配置面板')
-        // 如果没有绑定数据集，确保有可用的数据集列表
-        if (datasets.value.length === 0) {
-          await loadDatasets()
-        }
-      }
-      
-      // 确保配置面板显示数据源标签页
-      activeConfigTab.value = 'dataset'
-    } else {
-      console.warn('未找到图表或图表配置:', chartId, item)
+      console.log('选中组件:', item.i)
+    } catch (error) {
+      console.error('选中项目时出错:', error)
+      // 重置状态
+      selectedItem.value = null
+      showPropertiesPanel.value = false
     }
   }
-  
-  // 取消选择图表
-  const deselectChart = () => {
-    selectedChart.value = null
+
+  const clearSelection = () => {
+    try {
+      if (selectedItem.value) {
+        selectedItem.value = null
+        showPropertiesPanel.value = false
+        console.log('清除选中状态')
+      }
+    } catch (error) {
+      console.error('清除选中状态时出错:', error)
+      // 强制重置
+      selectedItem.value = null
+      showPropertiesPanel.value = false
+    }
   }
-  
-  // 删除图表
+
+  const updateSelectedItem = (updatedItem: any) => {
+    try {
+      if (selectedItem.value && selectedItem.value.i === updatedItem.i) {
+        selectedItem.value = { ...updatedItem } // 创建副本
+        // 同时更新layout中的对应项
+        const index = layout.value.findIndex(item => item.i === updatedItem.i)
+        if (index !== -1) {
+          layout.value[index] = { ...updatedItem } // 创建副本
+        }
+      }
+    } catch (error) {
+      console.error('更新选中项目时出错:', error)
+    }
+  }
+
+  // 删除图表 - 优化以防止虚拟DOM错误
   const deleteChart = async (chartId: string) => {
     try {
       await ElMessageBox.confirm('确定要删除这个图表吗？', '提示', {
@@ -276,24 +235,35 @@ export function useDashboardState() {
         type: 'warning'
       })
       
+      // 如果要删除的是当前选中的项，先清除选中状态
+      if (selectedItem.value && selectedItem.value.i === chartId) {
+        await clearSelection()
+      }
+      
       // 销毁图表实例
       const chartInstance = chartInstances.value.get(chartId)
       if (chartInstance) {
-        chartInstance.dispose()
+        try {
+          chartInstance.dispose()
+        } catch (error) {
+          console.warn('图表实例销毁失败:', error)
+        }
         chartInstances.value.delete(chartId)
       }
       
-      // 从布局中移除
-      layout.value = layout.value.filter(item => item.i !== chartId)
+      // 使用nextTick确保DOM更新的正确顺序
+      await nextTick()
       
-      // 如果是当前选中的图表，取消选中
-      if (selectedChart.value?.i === chartId) {
-        selectedChart.value = null
+      // 从布局中移除 - 使用数组splice而不是filter，避免引用问题
+      const index = layout.value.findIndex(item => item.i === chartId)
+      if (index !== -1) {
+        layout.value.splice(index, 1)
       }
       
       ElMessage.success('图表已删除')
     } catch (error) {
-      // 用户取消操作
+      // 用户取消操作或其他错误
+      console.warn('删除图表操作取消或失败:', error)
     }
   }
   
@@ -331,17 +301,29 @@ export function useDashboardState() {
         type: 'warning'
       })
       
+      // 先清除选中状态
+      await clearSelection()
+      
       // 销毁所有图表实例
-      chartInstances.value.forEach(chart => chart.dispose())
+      chartInstances.value.forEach(chart => {
+        try {
+          chart.dispose()
+        } catch (error) {
+          console.warn('图表实例销毁失败:', error)
+        }
+      })
       chartInstances.value.clear()
       
+      // 使用nextTick确保DOM更新的正确顺序
+      await nextTick()
+      
       // 清空布局
-      layout.value = []
-      selectedChart.value = null
+      layout.value.splice(0, layout.value.length)
       
       ElMessage.success('所有图表已清空')
     } catch (error) {
-      // 用户取消操作
+      // 用户取消操作或其他错误
+      console.warn('清空图表操作取消或失败:', error)
     }
   }
   
@@ -381,212 +363,126 @@ export function useDashboardState() {
     
     ElMessage.success('自动布局完成')
   }
-  
-  // 更新选中图表
-  const updateSelectedChart = () => {
-    if (!selectedChart.value) return
-    
-    const item = layout.value.find(item => item.i === selectedChart.value?.i)
-    if (item && item.chartConfig) {
-      // 确保字段映射对象存在
-      if (!item.chartConfig.fieldMapping) {
-        item.chartConfig.fieldMapping = {}
-      }
-      
-      // 更新配置并触发响应性
-      Object.assign(item.chartConfig, {
-        ...selectedChart.value,
-        fieldMapping: {
-          ...item.chartConfig.fieldMapping,
-          ...selectedChart.value.fieldMapping
-        }
-      })
-      
-      console.log(`图表 ${selectedChart.value.i} 配置已更新:`, item.chartConfig)
-    }
-  }
-  
+
   // 处理数据集变更
   const handleDatasetChange = async (datasetId: number) => {
-    if (!selectedChart.value) return
-    
-    console.log('数据集变更:', datasetId)
-    
-    // 查找对应的数据集
-    let targetDataset = datasets.value.find(ds => ds.id === datasetId)
-    
-    if (!targetDataset) {
-      // 如果当前数据集列表中没有，尝试从API加载
-      try {
-        const { getDatasetDetail } = await import('@/api/dataset')
-        const response = await getDatasetDetail(datasetId)
-        if (response.code === 200 && response.data) {
-          targetDataset = response.data
-          // 添加到数据集列表中
-          if (!datasets.value.find(ds => ds.id === targetDataset.id)) {
-            datasets.value.push(targetDataset)
-          }
-        }
-      } catch (error) {
-        console.warn('加载数据集详情失败:', error)
-        ElMessage.error('加载数据集详情失败')
-        return
-      }
-    }
-    
-    if (targetDataset) {
-      // 更新选中的数据集
-      selectedDataset.value = targetDataset
-      
-      // 更新图表的数据集ID
-      selectedChart.value.datasetId = datasetId
-      
-      // 重置字段映射，清空所有字段选择
-      if (selectedChart.value.fieldMapping) {
-        selectedChart.value.fieldMapping = {
-          xField: '',
-          yField: '',
-          nameField: '',
-          valueField: '',
-          groupField: '',
-          sizeField: '',
-          tableFields: []
-        }
-      }
-      
-      // 加载数据集字段信息
+    const dataset = datasets.value.find(d => d.id === datasetId)
+    if (dataset) {
+      selectedDataset.value = dataset
       await loadDatasetFields(datasetId)
-      
-      // 更新布局中的图表配置
-      updateSelectedChart()
-      
-      console.log('数据集切换成功:', targetDataset.name)
-      ElMessage.success(`已切换到数据集"${targetDataset.name}"`)
-    } else {
-      ElMessage.error('数据集不存在')
+      console.log('数据集变更:', dataset.name)
     }
   }
-  
+
   // 切换预览模式
   const togglePreview = () => {
     isPreview.value = !isPreview.value
-    if (isPreview.value) {
-      selectedChart.value = null
-    }
+    ElMessage.info(isPreview.value ? '已进入预览模式' : '已退出预览模式')
   }
-  
-  // 切换网格辅助
+
+  // 切换网格辅助线
   const toggleGridHelper = () => {
     showGridHelper.value = !showGridHelper.value
   }
-  
-  // 导出仪表盘配置
+
+  // 切换全屏模式
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      // 进入全屏
+      document.documentElement.requestFullscreen().then(() => {
+        isFullscreen.value = true
+        ElMessage.info('已进入全屏模式')
+      }).catch((err) => {
+        console.error('全屏模式启动失败:', err)
+        ElMessage.error('全屏模式启动失败')
+      })
+    } else {
+      // 退出全屏
+      document.exitFullscreen().then(() => {
+        isFullscreen.value = false
+        ElMessage.info('已退出全屏模式')
+      }).catch((err) => {
+        console.error('退出全屏失败:', err)
+        ElMessage.error('退出全屏失败')
+      })
+    }
+  }
+
+  // 监听全屏状态变化
+  const handleFullscreenChange = () => {
+    isFullscreen.value = !!document.fullscreenElement
+  }
+
+  // 导出仪表盘
   const exportDashboard = () => {
-    const config = {
+    const data = {
       layout: layout.value,
-      globalFilters: globalFilters.value,
-      selectedDataset: selectedDataset.value,
-      exportTime: new Date().toISOString()
+      config: {
+        title: '仪表盘导出',
+        createTime: new Date().toISOString()
+      }
     }
     
-    const blob = new Blob([JSON.stringify(config, null, 2)], {
-      type: 'application/json'
-    })
-    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `dashboard-config-${Date.now()}.json`
+    a.download = `dashboard-${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
     
-    ElMessage.success('配置已导出')
+    ElMessage.success('仪表盘已导出')
   }
-  
-  // 全局筛选器相关方法
-  const handleGlobalFiltersChange = (config: DashboardGlobalFilters) => {
-    globalFiltersConfig.value = config
-  }
-  
-  // 获取筛选器默认选项
-  const getDefaultFilterOptions = (filterType: string) => {
-    const optionsMap: Record<string, any[]> = {
-      'filter-select': [
-        { label: '北京', value: 'beijing' },
-        { label: '上海', value: 'shanghai' },
-        { label: '广州', value: 'guangzhou' },
-        { label: '深圳', value: 'shenzhen' },
-        { label: '杭州', value: 'hangzhou' }
-      ],
-      'filter-multiselect': [
-        { label: '销售部', value: 'sales' },
-        { label: '技术部', value: 'tech' },
-        { label: '市场部', value: 'marketing' },
-        { label: '财务部', value: 'finance' },
-        { label: '人事部', value: 'hr' }
-      ]
-    }
-    return optionsMap[filterType] || []
-  }
-  
-  // 获取筛选器默认值
-  const getDefaultFilterValue = (filterType: string) => {
-    const defaultValueMap: Record<string, any> = {
-      'filter-select': 'beijing',
-      'filter-multiselect': ['sales', 'tech'],
-      'filter-date': '2024-01-15',
-      'filter-daterange': ['2024-01-01', '2024-01-31'],
-      'filter-slider': 50,
-      'filter-input': '示例文本'
-    }
-    return defaultValueMap[filterType] || null
-  }
-  
-  // 智能布局：筛选器默认在顶部
+
+  // 智能布局
   const applySmartLayout = () => {
-    const filters = layout.value.filter(item => item.chartConfig && isFilterType(item.chartConfig.type))
-    const charts = layout.value.filter(item => item.chartConfig && !isFilterType(item.chartConfig.type))
+    if (layout.value.length === 0) return
     
-    // 重新排列筛选器在顶部
-    let filterY = 0
-    let filterX = 0
-    const filterHeight = 3 // 筛选器默认高度
-    const filterWidth = 4  // 筛选器默认宽度
-    
-    filters.forEach((filter, index) => {
-      filter.x = filterX
-      filter.y = filterY
-      filter.w = filterWidth
-      filter.h = filterHeight
-      
-      filterX += filterWidth
-      if (filterX + filterWidth > 12) {
-        filterX = 0
-        filterY += filterHeight
-      }
+    // 按图表类型分组布局
+    const chartItems = layout.value.filter(item => {
+      const type = item.chartConfig.type
+      return ['bar', 'line', 'pie', 'area', 'scatter'].includes(type)
     })
     
-    // 图表从筛选器下方开始
-    const chartStartY = filterY + (filters.length > 0 ? filterHeight : 0)
-    let chartX = 0
-    let chartY = chartStartY
-    
-    charts.forEach((chart, index) => {
-      chart.x = chartX
-      chart.y = chartY
-      
-      chartX += chart.w
-      if (chartX >= 12) {
-        chartX = 0
-        chartY += chart.h
-      }
+    const filterItems = layout.value.filter(item => {
+      const type = item.chartConfig.type
+      return type.startsWith('filter-')
     })
+    
+    let currentY = 0
+    
+    // 筛选器放在顶部
+    filterItems.forEach((item, index) => {
+      item.x = (index % 4) * 3
+      item.y = Math.floor(index / 4) * 2
+      item.w = 3
+      item.h = 2
+      currentY = Math.max(currentY, item.y + item.h)
+    })
+    
+    // 图表放在筛选器下方
+    chartItems.forEach((item, index) => {
+      item.x = (index % 2) * 6
+      item.y = currentY + Math.floor(index / 2) * 8
+      item.w = 6
+      item.h = 8
+    })
+    
+    ElMessage.success('智能布局完成')
   }
-  
+
+  const handleFilterBindingChange = (chartId: string, filterIds: string[]) => {
+    const chartItem = layout.value.find(item => item.i === chartId)
+    if (chartItem) {
+      // 添加filterBindings属性到chartConfig
+      (chartItem as any).filterBindings = filterIds
+      console.log(`图表 ${chartId} 绑定筛选器:`, filterIds)
+    }
+  }
+
   return {
-    // 响应式状态
+    // 状态
     layout,
-    selectedChart,
     chartInstances,
     datasets,
     selectedDataset,
@@ -594,9 +490,11 @@ export function useDashboardState() {
     isPreview,
     showGridHelper,
     isMobile,
-    globalFilters,
+    isFullscreen,
     showSaveDialog,
     saveForm,
+    selectedItem,
+    showPropertiesPanel,
     
     // 计算属性
     dimensionFields,
@@ -608,25 +506,20 @@ export function useDashboardState() {
     loadDatasets,
     loadDatasetFields,
     handleDatasetChange,
-    selectChart,
-    deselectChart,
     deleteChart,
     copyChart,
     clearAllCharts,
     selectAllCharts,
     autoLayout,
-    updateSelectedChart,
     togglePreview,
     toggleGridHelper,
+    toggleFullscreen,
+    handleFullscreenChange,
     exportDashboard,
-    
-    // 全局筛选器相关
-    globalFiltersConfig,
-    activeConfigTab,
-    showConfigPanel,
-    handleGlobalFiltersChange,
-    getDefaultFilterOptions,
-    getDefaultFilterValue,
-    applySmartLayout
+    applySmartLayout,
+    selectItem,
+    clearSelection,
+    updateSelectedItem,
+    handleFilterBindingChange
   }
 } 
