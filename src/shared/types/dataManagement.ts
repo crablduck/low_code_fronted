@@ -84,6 +84,12 @@ export interface DataSet {
   createTime: string
   updateTime?: string
   fields: DataSetField[]
+  // 过滤条件
+  filterConditions?: Array<{
+    fieldName: string
+    operator: string
+    value: any
+  }>
 }
 
 export interface DataSetCreateRequest {
@@ -100,6 +106,12 @@ export interface DataSetCreateRequest {
   sqlQuery?: string
   // 字段配置
   fields?: DataSetFieldConfig[]
+  // 过滤条件
+  filterConditions?: Array<{
+    fieldName: string
+    operator: string
+    value: any
+  }>
 }
 
 export interface DataSetUpdateRequest {
@@ -112,6 +124,12 @@ export interface DataSetUpdateRequest {
   sqlQuery?: string
   status?: 'active' | 'inactive'
   fields?: DataSetFieldConfig[]
+  // 过滤条件
+  filterConditions?: Array<{
+    fieldName: string
+    operator: string
+    value: any
+  }>
 }
 
 export interface DataSetField {

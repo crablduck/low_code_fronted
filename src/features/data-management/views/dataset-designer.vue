@@ -6,7 +6,10 @@
         <h2>{{ isEdit ? '编辑数据集' : '创建数据集' }} - {{ form.name || '未命名数据集' }}</h2>
       </div>
       <div class="header-right">
-        <el-button @click="previewDataAction" :disabled="!canPreview">数据预览</el-button>
+        <el-button @click="previewDataAction" :disabled="!canPreview" :loading="loadingPreview">
+          <el-icon><View /></el-icon>
+          数据预览
+        </el-button>
         <el-button type="primary" @click="saveDataset" :loading="saving">
           {{ isEdit ? '更新' : '保存' }}
         </el-button>
@@ -204,29 +207,59 @@
 
         <!-- 步骤3: 字段配置 -->
         <div v-show="currentStep === 2" class="step-panel">
-          <el-card>
-            <template #header>
-              <div class="fields-header">
-                <h3>字段配置</h3>
-                <div class="fields-actions">
-                  <el-button size="small" @click="selectAllFields">全选</el-button>
-                  <el-button size="small" @click="clearAllFields">清空</el-button>
-                  <el-button size="small" @click="autoConfigFields">智能配置</el-button>
-                  <el-button size="small" type="primary" @click="showAddCalculatedField = true">
-                    <el-icon><Plus /></el-icon>
-                    添加计算字段
-                  </el-button>
-                </div>
-              </div>
-            </template>
+          <el-row :gutter="16">
+            <!-- 左侧：字段配置 -->
+            <el-col :span="16">
+              <el-card>
+                <template #header>
+                  <div class="fields-header">
+                    <h3>字段配置</h3>
+                    <div class="fields-actions">
+                      <el-button size="small" @click="selectAllFields">全选</el-button>
+                      <el-button size="small" @click="clearAllFields">清空</el-button>
+                      <el-button size="small" @click="autoConfigFields">智能配置</el-button>
+                      <el-button size="small" type="primary" @click="showAddCalculatedField = true">
+                        <el-icon><Plus /></el-icon>
+                        添加计算字段
+                      </el-button>
+                    </div>
+                  </div>
+                </template>
 
-            <EnhancedFieldsConfig
-              v-model="fieldConfigs"
-              :available-fields="availableFields"
-              :query-type="form.queryType"
-              :data-source-id="form.dataSourceId"
-            />
-          </el-card>
+                <EnhancedFieldsConfig
+                  ref="fieldsConfigRef"
+                  v-model="fieldConfigs"
+                  :available-fields="availableFields"
+                  :query-type="form.queryType"
+                  :data-source-id="form.dataSourceId"
+                />
+              </el-card>
+            </el-col>
+            
+            <!-- 右侧：实时预览 -->
+            <el-col :span="8">
+              <el-card>
+                <template #header>
+                  <div class="preview-header">
+                    <h4>实时预览</h4>
+                    <el-button size="small" @click="refreshPreview" :loading="loadingPreview">
+                      <el-icon><Refresh /></el-icon>
+                    </el-button>
+                  </div>
+                </template>
+                
+                <div class="mini-preview">
+                  <DataPreview
+                    :data="previewData"
+                    :loading="loadingPreview"
+                    :limit="10"
+                    :max-height="300"
+                    @refresh="refreshPreview"
+                  />
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
         </div>
 
         <!-- 步骤4: 预览确认 -->
@@ -253,24 +286,13 @@
 
               <!-- 数据预览 -->
               <div class="data-preview">
-                <h4>数据预览</h4>
-                <el-table
-                  :data="previewData.data"
-                  style="width: 100%"
-                  v-loading="loadingPreview"
-                  max-height="400"
-                >
-                  <el-table-column
-                    v-for="column in previewData.columns"
-                    :key="column"
-                    :prop="column"
-                    :label="column"
-                    show-overflow-tooltip
-                  />
-                </el-table>
-                <div class="preview-footer">
-                  <span>共 {{ previewData.totalCount }} 条记录，显示前 100 条</span>
-                </div>
+                <DataPreview
+                  :data="previewData"
+                  :loading="loadingPreview"
+                  :limit="100"
+                  @refresh="refreshPreview"
+                  @export="exportPreviewData"
+                />
               </div>
             </div>
           </el-card>
@@ -293,12 +315,13 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { ArrowLeft, Warning, Plus } from '@element-plus/icons-vue'
+import { ArrowLeft, Warning, Plus, View, Refresh } from '@element-plus/icons-vue'
 import { dataSetApi, dataSourceApi } from '@/api/dataSource'
 import MultiTableDesigner from '../components/dataset/MultiTableDesigner.vue'
 import SQLEditor from '../components/dataset/SQLEditor.vue'
 import FieldsConfig from '../components/dataset/FieldsConfig.vue'
 import EnhancedFieldsConfig from '../components/dataset/EnhancedFieldsConfig.vue'
+import DataPreview from '../components/dataset/DataPreview.vue'
 import type { 
   DataSet, 
   DataSetCreateRequest, 
@@ -320,6 +343,7 @@ const loadingPreview = ref(false)
 const loadingDataSources = ref(false)
 const basicFormRef = ref<FormInstance>()
 const showAddCalculatedField = ref(false)
+const fieldsConfigRef = ref()
 
 const dataSources = ref<DataSource[]>([])
 const tables = ref<TableInfo[]>([])
@@ -352,6 +376,25 @@ const form = reactive<DataSetCreateRequest & {
   refreshRate: 'realtime',
   enableCache: true
 })
+
+// 操作符映射函数
+const mapOperatorToApiFormat = (operator: string) => {
+  const operatorMap = {
+    'equals': 'eq',
+    'not_equals': 'ne', 
+    'contains': 'like',
+    'not_contains': 'not_like',
+    'greater_than': 'gt',
+    'less_than': 'lt',
+    'greater_equal': 'gte',
+    'less_equal': 'lte',
+    'is_null': 'is_null',
+    'is_not_null': 'is_not_null'
+  }
+  return operatorMap[operator] || 'eq'
+}
+
+
 
 // 计算属性
 const isEdit = computed(() => !!route.params.id)
@@ -658,7 +701,7 @@ const initFieldConfigs = () => {
   }))
 }
 
-const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' | 'date' => {
+const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' => {
   const type = dataType.toLowerCase()
   
   // 数值类型 → 指标
@@ -668,12 +711,8 @@ const getFieldTypeFromDataType = (dataType: string): 'dimension' | 'metric' | 'd
     return 'metric'
   }
   
-  // 日期时间类型 → 日期
-  if (type.includes('date') || type.includes('time') || type.includes('timestamp')) {
-    return 'date'
-  }
-  
-  // 其他类型 → 维度
+  // 所有其他类型（包括日期时间）→ 维度
+  // 根据API使用指南，只有 dimension 和 metric 两种类型
   return 'dimension'
 }
 
@@ -752,17 +791,302 @@ const refreshPreview = async () => {
   
   loadingPreview.value = true
   try {
+    // 获取当前所有有效的字段配置
+    const validFields = fieldConfigs.value.filter(field => field.isVisible !== false)
+    
+    // 从 EnhancedFieldsConfig 组件实例获取计算字段和过滤条件
+    const calculatedFields = fieldsConfigRef.value?.calculatedFields || []
+    const filterConditions = fieldsConfigRef.value?.filterConditions || []
+    
+    console.log('🔍 从组件获取的数据:', {
+      fieldsConfigRef存在: !!fieldsConfigRef.value,
+      calculatedFields: calculatedFields.length,
+      filterConditions: filterConditions.length,
+      calculatedFieldsDetail: calculatedFields,
+      filterConditionsDetail: filterConditions,
+      validFields: validFields.map(f => ({ name: f.fieldName, type: f.fieldType }))
+    })
+    
+    // 构建包含计算字段信息的API字段格式
+    const apiFields = validFields.map(field => {
+      // 查找对应的计算字段
+      const calculatedField = calculatedFields.find(cf => cf.name === field.fieldName)
+      
+      console.log(`🔍 处理字段 ${field.fieldName}:`, {
+        原字段: field,
+        找到计算字段: !!calculatedField,
+        计算字段详情: calculatedField
+      })
+      
+      if (calculatedField) {
+        // 这是一个计算字段 - 使用expression，不需要aggregation
+        const result = {
+          ...field,
+          fieldType: field.fieldType === 'date' ? 'dimension' : field.fieldType as 'dimension' | 'metric',
+          isCalculated: true,
+          expression: calculatedField.formula,
+          displayName: calculatedField.displayName || field.displayName
+          // 不设置 aggregation，因为 expression 已经包含了聚合逻辑
+        }
+        console.log(`✅ 生成计算字段配置:`, result)
+        return result
+      } else {
+        // 这是一个普通字段 - 如果是metric类型，使用aggregation
+        const result: any = {
+          ...field,
+          fieldType: field.fieldType === 'date' ? 'dimension' : field.fieldType as 'dimension' | 'metric',
+          isCalculated: false
+        }
+        
+        // 只有metric类型的普通字段才需要aggregation
+        if (field.fieldType === 'metric' && field.aggregation) {
+          result.aggregation = field.aggregation
+        }
+        
+        console.log(`📊 生成普通字段配置:`, result)
+        return result
+      }
+    })
+    
+    // 转换过滤条件为API格式
+    const filters = filterConditions.map(filter => ({
+      fieldName: filter.fieldName,
+      operator: mapOperatorToApiFormat(filter.operator),
+      value: filter.value
+    }))
+    
+    console.log('🔍 增强预览配置:', {
+      totalFields: apiFields.length,
+      calculatedFieldsCount: apiFields.filter(f => f.isCalculated).length,
+      filtersCount: filters.length,
+      apiFieldsDetail: apiFields.map(f => ({
+        name: f.fieldName,
+        type: f.fieldType,
+        isCalculated: f.isCalculated,
+        expression: f.expression,
+        aggregation: f.aggregation
+      })),
+      filtersDetail: filters
+    })
+    
     if (isEdit.value) {
-      previewData.value = await dataSetApi.previewData(Number(route.params.id))
+      // 编辑模式：使用数据集ID预览
+      const response = await dataSetApi.previewDataById(Number(route.params.id))
+      previewData.value = response
     } else {
-      // TODO: 实现新建数据集的预览功能
-      ElMessage.info('新建数据集预览功能开发中')
+      // 新建模式：根据当前配置动态构建请求
+      const { useDatasetPreview } = await import('@/features/dashboard/composables/useDatasetPreview')
+      const { previewSingleSource, previewCrossSource } = useDatasetPreview()
+      
+      let result
+      
+      if (form.queryType === 'single') {
+        // 单表查询 - 使用包含计算字段的配置
+        if (!form.dataSourceId || !form.tableName) {
+          throw new Error('单表查询需要指定数据源ID和表名')
+        }
+        
+        console.log('🔍 单表预览最终配置:', {
+          dataSourceId: form.dataSourceId,
+          tableName: form.tableName,
+          fields: apiFields.length,
+          calculatedFields: apiFields.filter(f => f.isCalculated).length,
+          filters: filters.length
+        })
+        
+        result = await previewSingleSource(
+          form.dataSourceId,
+          form.tableName,
+          apiFields, // 使用包含计算字段的配置
+          filters,   // 使用转换后的过滤条件
+          100
+        )
+        
+      } else if (form.queryType === 'multi') {
+        // 多表关联 - 使用包含计算字段的配置
+        if (!form.dataSourceId || !form.tables || form.tables.length === 0) {
+          throw new Error('多表查询需要指定数据源ID和表配置')
+        }
+        
+        const tables = form.tables.map((tableName, index) => ({
+          tableName,
+          dataSourceId: form.dataSourceId,
+          alias: `t${index + 1}`
+        }))
+        
+        console.log('🔍 多表预览最终配置:', {
+          dataSourceIds: [form.dataSourceId],
+          tables: tables,
+          fields: apiFields.length,
+          calculatedFields: apiFields.filter(f => f.isCalculated).length,
+          filters: filters.length
+        })
+        
+        result = await previewCrossSource(
+          [form.dataSourceId],
+          tables,
+          form.relations || [],
+          apiFields, // 使用包含计算字段的配置
+          filters,   // 使用转换后的过滤条件
+          100
+        )
+        
+      } else if (form.queryType === 'sql') {
+        // SQL模式
+        if (!form.dataSourceId || !form.sqlQuery) {
+          throw new Error('SQL查询需要指定数据源ID和SQL语句')
+        }
+        
+        console.log('🔍 SQL预览最终配置:', {
+          dataSourceId: form.dataSourceId,
+          sqlQuery: form.sqlQuery.substring(0, 100) + '...',
+          fields: apiFields.length,
+          calculatedFields: apiFields.filter(f => f.isCalculated).length
+        })
+        
+        result = await previewSingleSource(
+          form.dataSourceId,
+          'custom_sql',
+          apiFields, // 使用包含计算字段的配置
+          filters,
+          100
+        )
+        
+      } else {
+        throw new Error('不支持的查询类型: ' + form.queryType)
+      }
+      
+      previewData.value = {
+        columns: result.columns || [],
+        data: result.data || [],
+        totalCount: result.totalCount || 0
+      }
+      
+      console.log('✅ 增强预览成功:', {
+        queryType: form.queryType,
+        requestedFields: apiFields.length,
+        calculatedFieldsUsed: apiFields.filter(f => f.isCalculated).length,
+        filtersApplied: filters.length,
+        returnedColumns: previewData.value.columns.length,
+        recordsCount: previewData.value.data.length,
+        totalCount: previewData.value.totalCount
+      })
+      
+      if (previewData.value.data.length > 0) {
+        const calculatedCount = apiFields.filter(f => f.isCalculated).length
+        const filterCount = filters.length
+        let message = `预览成功！共查询到 ${previewData.value.totalCount} 条数据`
+        if (calculatedCount > 0) {
+          message += `，包含 ${calculatedCount} 个计算字段`
+        }
+        if (filterCount > 0) {
+          message += `，应用了 ${filterCount} 个过滤条件`
+        }
+        ElMessage.success(message)
+      } else {
+        ElMessage.warning('预览成功，但查询结果为空。请检查数据源或调整查询条件')
+      }
     }
+    
   } catch (error) {
-    console.error('预览数据失败:', error)
-    ElMessage.error('预览数据失败')
+    console.error('❌ 预览数据失败:', error)
+    ElMessage.error('预览数据失败: ' + (error as Error).message)
+    
+    // 最后的降级方案：基于当前字段配置生成模拟数据
+    const mockData = generateMockPreviewData()
+    previewData.value = {
+      columns: mockData.columns,
+      data: mockData.data,
+      totalCount: mockData.data.length
+    }
+    ElMessage.info('已生成模拟数据用于预览界面展示')
   } finally {
     loadingPreview.value = false
+  }
+}
+
+const exportPreviewData = () => {
+  if (!previewData.value.data || previewData.value.data.length === 0) {
+    ElMessage.warning('没有可导出的数据')
+    return
+  }
+  
+  try {
+    // 简单的CSV导出
+    const headers = previewData.value.columns
+    const csvContent = [
+      headers.join(','),
+      ...previewData.value.data.map(row => 
+        headers.map(header => {
+          const value = row[header]
+          return typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+        }).join(',')
+      )
+    ].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${form.name || 'dataset'}_preview.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    ElMessage.success('数据导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
+
+// 基于当前字段配置生成模拟预览数据
+const generateMockPreviewData = () => {
+  const validFields = fieldConfigs.value.filter(field => field.isVisible !== false)
+  const columns = validFields.length > 0 
+    ? validFields.map(f => f.fieldName)
+    : ['id', 'name', 'status', 'create_time']
+  
+  const mockData = []
+  for (let i = 1; i <= 20; i++) {
+    const row: Record<string, any> = {}
+    validFields.forEach(fieldConfig => {
+      const fieldName = fieldConfig.fieldName
+      const fieldType = fieldConfig.fieldType
+      
+      if (fieldConfig.isCalculated && fieldConfig.expression) {
+        // 计算字段的模拟值
+        row[fieldName] = `计算结果${i}`
+      } else if (fieldType === 'metric') {
+        // 数值型字段
+        if (fieldConfig.aggregation === 'count') {
+          row[fieldName] = Math.floor(Math.random() * 1000)
+        } else {
+          row[fieldName] = Math.floor(Math.random() * 10000) / 100
+        }
+      } else if (fieldType === 'date') {
+        // 日期型字段
+        row[fieldName] = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      } else {
+        // 维度型字段
+        if (fieldName.includes('id') || fieldName.includes('Id')) {
+          row[fieldName] = i
+        } else if (fieldName.includes('name') || fieldName.includes('Name')) {
+          row[fieldName] = `${fieldConfig.displayName || fieldName}${i}`
+        } else if (fieldName.includes('status') || fieldName.includes('Status')) {
+          row[fieldName] = ['active', 'inactive', 'pending'][Math.floor(Math.random() * 3)]
+        } else {
+          row[fieldName] = `${fieldName}_${i}`
+        }
+      }
+    })
+    mockData.push(row)
+  }
+  
+  return {
+    columns,
+    data: mockData
   }
 }
 
@@ -825,8 +1149,65 @@ const loadDataset = async (id: number) => {
       isVisible: field.isVisible,
       description: field.description || '',
       sortOrder: field.sortOrder,
-      aggregation: field.aggregation
+      aggregation: field.aggregation,
+      isCalculated: field.isCalculated || false,
+      expression: field.expression
     }))
+    
+    // ✅ 加载过滤条件 - 如果数据集包含过滤条件
+    if (dataset.filterConditions && Array.isArray(dataset.filterConditions)) {
+      // 辅助函数：将后端操作符映射为前端格式
+      const mapBackendOperatorToFrontend = (operator: string): string => {
+        const operatorMap: Record<string, string> = {
+          'eq': 'equals',
+          'ne': 'not_equals',
+          'gt': 'greater_than',
+          'lt': 'less_than',
+          'gte': 'greater_equal',
+          'lte': 'less_equal',
+          'like': 'contains',
+          'not_like': 'not_contains',
+          'is_null': 'is_null',
+          'is_not_null': 'is_not_null'
+        }
+        return operatorMap[operator] || operator
+      }
+      
+      // 辅助函数：转换后端值格式为前端格式
+      const convertBackendValueToFrontend = (operator: string, value: any): string => {
+        if (value === null || value === undefined) {
+          return ''
+        }
+        
+        // 对于 LIKE 操作，移除百分号
+        if (operator === 'like' || operator === 'not_like') {
+          if (typeof value === 'string' && value.startsWith('%') && value.endsWith('%')) {
+            return value.slice(1, -1)
+          }
+        }
+        
+        // 对于数组值，转换为字符串
+        if (Array.isArray(value)) {
+          return JSON.stringify(value)
+        }
+        
+        return String(value)
+      }
+      
+      // 将后端的过滤条件格式转换为前端格式
+      const convertedFilterConditions = dataset.filterConditions.map(filter => ({
+        fieldName: filter.fieldName,
+        operator: mapBackendOperatorToFrontend(filter.operator),
+        value: convertBackendValueToFrontend(filter.operator, filter.value)
+      }))
+      
+      // 设置到字段配置组件中
+      if (fieldsConfigRef.value) {
+        fieldsConfigRef.value.filterConditions = convertedFilterConditions
+      }
+      
+      console.log('✅ 加载过滤条件:', convertedFilterConditions)
+    }
   } catch (error) {
     console.error('加载数据集失败:', error)
     ElMessage.error('加载数据集失败: ' + (error as Error).message)
@@ -855,19 +1236,104 @@ const saveDataset = async () => {
       return
     }
     
-    // 验证字段配置的完整性
-    const validatedFields = fieldConfigs.value.map((field, index) => ({
-      fieldName: field.fieldName,
-      tableName: field.tableName,
-      displayName: field.displayName || field.fieldName,
-      fieldType: field.fieldType || 'dimension', // 确保有fieldType
-      isVisible: field.isVisible !== false, // 默认可见
-      description: field.description || '',
-      sortOrder: field.sortOrder || index,
-      aggregation: field.fieldType === 'metric' ? (field.aggregation || 'sum') : undefined,
-      isCalculated: field.isCalculated || false,
-      expression: field.expression || undefined
+    // ✅ 保存前验证并修复字段配置
+    if (fieldsConfigRef.value?.validateAndFixFieldConfigs) {
+      console.log('🔧 验证并修复字段配置...')
+      fieldsConfigRef.value.validateAndFixFieldConfigs()
+    }
+    
+    // ✅ 获取过滤条件并转换操作符格式
+    const rawFilterConditions = fieldsConfigRef.value?.filterConditions || []
+    console.log('🔍 获取原始过滤条件:', rawFilterConditions)
+    
+    // 辅助函数：映射操作符到后端格式
+    const mapOperatorToBackend = (operator: string): string => {
+      const operatorMap: Record<string, string> = {
+        'equals': 'eq',
+        'not_equals': 'ne',
+        'greater_than': 'gt',
+        'less_than': 'lt',
+        'greater_equal': 'gte',
+        'less_equal': 'lte',
+        'contains': 'like',
+        'not_contains': 'not_like',
+        'is_null': 'is_null',
+        'is_not_null': 'is_not_null'
+      }
+      return operatorMap[operator] || operator
+    }
+    
+    // 辅助函数：转换过滤值格式
+    const transformFilterValue = (operator: string, value: string): any => {
+      // 对于 null 检查操作符，返回 null
+      if (operator === 'is_null' || operator === 'is_not_null') {
+        return null
+      }
+      
+      // 对于包含操作，转换为 LIKE 格式
+      if (operator === 'contains') {
+        return `%${value}%`
+      }
+      
+      if (operator === 'not_contains') {
+        return `%${value}%`
+      }
+      
+      // 尝试解析为数组（用于 IN 和 BETWEEN 操作符）
+      if (value && typeof value === 'string') {
+        try {
+          // 检查是否是数组格式的字符串
+          if (value.startsWith('[') && value.endsWith(']')) {
+            return JSON.parse(value)
+          }
+        } catch (e) {
+          // 解析失败，继续使用原值
+        }
+      }
+      
+      // 其他情况直接返回原值
+      return value
+    }
+    
+    // 转换过滤条件操作符为后端期望的格式
+    const transformedFilterConditions = rawFilterConditions.map(filter => ({
+      fieldName: filter.fieldName,
+      operator: mapOperatorToBackend(filter.operator),
+      value: transformFilterValue(filter.operator, filter.value)
     }))
+    
+    console.log('🔄 转换后的过滤条件:', transformedFilterConditions)
+    
+    // 验证字段配置的完整性 - 应用正确的配置规则
+    const validatedFields = fieldConfigs.value.map((field, index) => {
+      const baseConfig = {
+        fieldName: field.fieldName,
+        tableName: field.tableName,
+        displayName: field.displayName || field.fieldName,
+        fieldType: field.fieldType || 'dimension',
+        isVisible: field.isVisible !== false,
+        description: field.description || '',
+        sortOrder: field.sortOrder || index
+      }
+      
+      if (field.isCalculated) {
+        // ✅ 计算字段的正确配置
+        return {
+          ...baseConfig,
+          isCalculated: true,
+          expression: field.expression,
+          aggregation: undefined  // 计算字段不设置聚合方式
+        }
+      } else {
+        // ✅ 普通字段的正确配置
+        return {
+          ...baseConfig,
+          isCalculated: false,
+          expression: undefined,  // 普通字段不设置表达式
+          aggregation: field.fieldType === 'metric' ? (field.aggregation || 'sum') : undefined
+        }
+      }
+    })
     
     const submitData = {
       name: form.name,
@@ -878,7 +1344,8 @@ const saveDataset = async () => {
       tables: form.tables,
       relations: form.relations,
       sqlQuery: form.sqlQuery,
-      fields: validatedFields
+      fields: validatedFields,
+      filterConditions: transformedFilterConditions  // ✅ 添加过滤条件
     }
     
     console.log('📝 提交数据:', submitData)
@@ -886,9 +1353,30 @@ const saveDataset = async () => {
     console.log('📊 字段配置详情:', validatedFields.map(f => ({
       fieldName: f.fieldName,
       fieldType: f.fieldType,
+      isCalculated: f.isCalculated,
+      expression: f.expression,
       aggregation: f.aggregation,
       isVisible: f.isVisible
     })))
+    console.log('🔧 过滤条件详情:', transformedFilterConditions)
+    
+    // ✅ 验证配置正确性
+    const calculatedFieldsCount = validatedFields.filter(f => f.isCalculated).length
+    const metricFieldsCount = validatedFields.filter(f => f.fieldType === 'metric' && !f.isCalculated).length
+    console.log(`✅ 配置验证: 计算字段 ${calculatedFieldsCount} 个, 普通指标字段 ${metricFieldsCount} 个`)
+    
+    // 检查是否有配置错误的字段
+    const errorFields = validatedFields.filter(f => 
+      (f.isCalculated && (f.aggregation !== undefined || !f.expression)) ||
+      (!f.isCalculated && f.expression !== undefined) ||
+      (f.fieldType === 'metric' && !f.isCalculated && !f.aggregation)
+    )
+    
+    if (errorFields.length > 0) {
+      console.warn('⚠️ 发现配置错误的字段:', errorFields)
+    } else {
+      console.log('✅ 所有字段配置正确')
+    }
     
     if (isEdit.value) {
       await dataSetApi.updateDataset(Number(route.params.id), submitData)
