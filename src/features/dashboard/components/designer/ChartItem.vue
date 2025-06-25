@@ -54,8 +54,8 @@
             <el-button size="small" @click="retryLoadData" type="primary">重试</el-button>
           </div>
           
-          <!-- 占位符内容 - 仅在没有配置数据集且非预览模式时显示 -->
-          <div v-else-if="!hasValidDataConfig && !isPreview" class="placeholder-content">
+          <!-- 占位符内容 - 仅在没有配置数据集、没有chartData且非预览模式时显示 -->
+          <div v-else-if="!hasValidDataConfig && !item.chartConfig.chartData && !isPreview" class="placeholder-content">
             <div class="chart-icon">
               <el-icon v-if="item.chartConfig.type === 'bar'"><DataBoard /></el-icon>
               <el-icon v-else-if="item.chartConfig.type === 'line'"><TrendCharts /></el-icon>
@@ -71,7 +71,7 @@
           </div>
           
           <!-- 预览模式下的示例数据显示 -->
-          <div v-else-if="!hasValidDataConfig && isPreview" class="preview-placeholder">
+          <div v-else-if="!hasValidDataConfig && !item.chartConfig.chartData && isPreview" class="preview-placeholder">
             <div class="preview-chart-container">
               <div :id="`preview-echarts-${item.i}`" class="preview-echarts-container"></div>
             </div>
@@ -188,11 +188,18 @@ const hasValidDataConfig = computed(() => {
     case 'bar':
     case 'line':
     case 'area':
-      return !!(config.fieldMapping.xField && config.fieldMapping.yField)
+      // 支持多种字段映射格式
+      return !!(
+        (config.fieldMapping.xField && config.fieldMapping.yField) ||
+        (config.fieldMapping.xAxis && config.fieldMapping.yAxis)
+      )
     case 'pie':
       return !!(config.fieldMapping.nameField && config.fieldMapping.valueField)
     case 'scatter':
-      return !!(config.fieldMapping.xField && config.fieldMapping.yField)
+      return !!(
+        (config.fieldMapping.xField && config.fieldMapping.yField) ||
+        (config.fieldMapping.xAxis && config.fieldMapping.yAxis)
+      )
     case 'table':
       return !!(config.fieldMapping.tableFields && config.fieldMapping.tableFields.length > 0)
     default:
@@ -386,18 +393,30 @@ const loadAndRenderChart = async () => {
   try {
     console.log(`开始加载图表数据: ${config.title} (dataset: ${config.datasetId})`)
     
-    // 使用 dashboardDataService 的 getChartData 方法
-    const echartsOption = await getChartData(
-      config.datasetId!,
-      config.type,
-      config.fieldMapping!,
-      {
-        title: config.title,
-        showLegend: config.showLegend,
-        showToolbox: config.showToolbox,
-        dataLimit: config.dataLimit
-      }
-    )
+    let echartsOption: any = null
+    
+    // 🎯 优先检查是否有直接的chartData
+    if (config.chartData && (config.chartData.series || config.chartData.categories)) {
+      console.log(`🎉 发现直接图表数据，使用chartData渲染:`, config.chartData)
+      
+      // 直接使用chartData生成ECharts配置
+      echartsOption = generateEChartsOptionFromChartData(config.chartData, config)
+    } else {
+      console.log(`📡 没有直接图表数据，调用API获取数据`)
+      
+      // 使用 dashboardDataService 的 getChartData 方法
+      echartsOption = await getChartData(
+        config.datasetId!,
+        config.type,
+        config.fieldMapping!,
+        {
+          title: config.title,
+          showLegend: config.showLegend,
+          showToolbox: config.showToolbox,
+          dataLimit: config.dataLimit
+        }
+      )
+    }
 
     // 确保图表实例存在且有效
     if (!chartInstance.value || chartInstance.value.isDisposed()) {
@@ -407,9 +426,9 @@ const loadAndRenderChart = async () => {
 
     if (chartInstance.value && !chartInstance.value.isDisposed() && echartsOption) {
       chartInstance.value.setOption(echartsOption, true)
-      console.log(`图表渲染成功: ${config.title}`)
+      console.log(`✅ 图表渲染成功: ${config.title}`)
     } else {
-      console.warn(`图表 ${config.title} 实例无效，跳过渲染`)
+      console.warn(`❌ 图表 ${config.title} 实例无效，跳过渲染`)
     }
 
   } catch (error) {
@@ -440,6 +459,244 @@ const loadAndRenderChart = async () => {
     }
   } finally {
     isLoadingData.value = false
+  }
+}
+
+// 🎨 从chartData生成ECharts配置
+const generateEChartsOptionFromChartData = (chartData: any, config: any) => {
+  console.log(`🎨 生成ECharts配置:`, { chartData, type: config.type })
+  
+  const baseOption = {
+    title: {
+      text: config.title || '图表',
+      left: 'center',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#303133'
+      }
+    },
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      borderColor: '#ddd',
+      textStyle: {
+        color: '#333'
+      }
+    },
+    legend: {
+      show: config.showLegend || false,
+      bottom: 10,
+      textStyle: {
+        color: '#666'
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: config.showLegend ? '15%' : '3%',
+      containLabel: true
+    }
+  }
+
+  // 添加工具栏
+  if (config.showToolbox) {
+    (baseOption as any).toolbox = {
+      show: true,
+      feature: {
+        dataView: { show: true, readOnly: false },
+        magicType: { show: true, type: ['line', 'bar'] },
+        restore: { show: true },
+        saveAsImage: { show: true }
+      }
+    }
+  }
+  
+  switch (config.type) {
+    case 'bar':
+      return {
+        ...baseOption,
+        tooltip: {
+          ...baseOption.tooltip,
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: chartData.categories || [],
+          axisLabel: {
+            rotate: (chartData.categories?.length || 0) > 10 ? 45 : 0,
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#f0f0f0'
+            }
+          }
+        },
+        series: (chartData.series || []).map((s: any) => ({
+          ...s,
+          type: 'bar'  // 强制设置为柱状图
+        }))
+      }
+    
+    case 'line':
+      return {
+        ...baseOption,
+        tooltip: {
+          ...baseOption.tooltip,
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: chartData.categories || [],
+          axisLabel: {
+            rotate: (chartData.categories?.length || 0) > 10 ? 45 : 0,
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#f0f0f0'
+            }
+          }
+        },
+        series: (chartData.series || []).map((s: any) => ({
+          ...s,
+          type: 'line',  // 强制设置为折线图
+          smooth: true
+        }))
+      }
+    
+    case 'pie':
+      console.log(`🥧 饼图数据处理:`, chartData)
+      console.log(`🥧 饼图series详情:`, chartData.series)
+      
+      // 检查是否有错误的series类型
+      if (chartData.series) {
+        chartData.series.forEach((s: any, index: number) => {
+          console.log(`🥧 Series ${index}:`, { type: s.type, data: s.data })
+          if (s.type && s.type !== 'pie') {
+            console.error(`❌ 饼图中发现错误的series类型: ${s.type}，应该是 'pie'`)
+          }
+        })
+      }
+      
+      return {
+        ...baseOption,
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c} ({d}%)'
+        },
+        legend: {
+          ...baseOption.legend,
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: (chartData.series || []).map((s: any) => {
+          console.log(`🥧 处理饼图系列:`, s)
+          return {
+            name: s.name || '数据',
+            type: 'pie',  // 确保饼图类型正确
+            radius: '60%',
+            center: ['50%', '50%'],
+            data: s.data || [],
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            label: {
+              show: true,
+              formatter: '{b}: {c} ({d}%)'
+            }
+          }
+        })
+      }
+    
+    case 'area':
+      return {
+        ...baseOption,
+        tooltip: {
+          ...baseOption.tooltip,
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: chartData.categories || [],
+          boundaryGap: false,
+          axisLabel: {
+            rotate: (chartData.categories?.length || 0) > 10 ? 45 : 0,
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            color: '#666'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#e6e6e6'
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#f0f0f0'
+            }
+          }
+        },
+        series: (chartData.series || []).map((s: any) => ({
+          ...s,
+          type: 'line',  // 面积图基于折线图
+          smooth: true,
+          areaStyle: {}
+        }))
+      }
+    
+    default:
+      console.warn(`不支持的图表类型: ${config.type}`)
+      return baseOption
   }
 }
 
@@ -508,8 +765,47 @@ watch(() => props.item.chartConfig, async (newConfig, oldConfig) => {
   const styleChanged = newConfig.showLegend !== oldConfig?.showLegend || 
                       newConfig.showToolbox !== oldConfig?.showToolbox ||
                       newConfig.dataLimit !== oldConfig?.dataLimit
+  
+  // 🔍 详细检查 chartData 变化
+  const oldChartData = oldConfig?.chartData
+  const newChartData = newConfig.chartData
+  
+  // 检查是否有强制更新标记
+  const hasForceUpdate = newChartData?._forceUpdate !== oldChartData?._forceUpdate
+  
+  // 特殊处理 undefined 情况
+  let chartDataChanged = hasForceUpdate // 如果有强制更新标记，直接认为数据变化了
+  
+  if (!chartDataChanged) {
+    if (oldChartData === undefined && newChartData !== undefined) {
+      // 从无到有
+      chartDataChanged = true
+    } else if (oldChartData !== undefined && newChartData === undefined) {
+      // 从有到无
+      chartDataChanged = true
+    } else if (oldChartData !== undefined && newChartData !== undefined) {
+      // 都有值，比较内容（排除_timestamp和_forceUpdate）
+      const oldDataCopy = { ...oldChartData }
+      const newDataCopy = { ...newChartData }
+      delete oldDataCopy._timestamp
+      delete oldDataCopy._forceUpdate
+      delete newDataCopy._timestamp
+      delete newDataCopy._forceUpdate
+      
+      chartDataChanged = JSON.stringify(oldDataCopy) !== JSON.stringify(newDataCopy)
+    }
+  }
+  
+  console.log(`🔍 图表 ${props.item.i} chartData 变化检测:`, {
+    oldChartData,
+    newChartData,
+    hasForceUpdate,
+    chartDataChanged,
+    hasOldData: oldChartData !== undefined,
+    hasNewData: newChartData !== undefined
+  })
 
-  const configChanged = datasetChanged || fieldMappingChanged || typeChanged || titleChanged || styleChanged
+  const configChanged = datasetChanged || fieldMappingChanged || typeChanged || titleChanged || styleChanged || chartDataChanged
 
   if (configChanged) {
     console.log(`图表 ${props.item.i} 配置发生变化，准备重新渲染:`, {
@@ -517,7 +813,9 @@ watch(() => props.item.chartConfig, async (newConfig, oldConfig) => {
       fieldMappingChanged,
       typeChanged,
       titleChanged,
-      styleChanged
+      styleChanged,
+      chartDataChanged,
+      hasForceUpdate
     })
     
     // 如果图表类型发生变化，重新初始化图表实例

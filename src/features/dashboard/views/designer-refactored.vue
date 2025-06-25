@@ -186,6 +186,9 @@ import { useDragAndDrop } from '../composables/useDragAndDrop'
 // 导入类型
 import type { LayoutItem } from '@/shared/types/dashboard'
 
+// 导入API
+import { smartPreviewDataset } from '@/api/dataset'
+
 const {
   // 状态
   layout,
@@ -408,38 +411,245 @@ const applyFilters = async () => {
   queryLoading.value = true
   
   try {
-    console.log('应用筛选条件:', filterValues.value)
+    console.log('🔍 开始应用全局筛选条件:')
+    console.log('📝 当前所有筛选器值:', filterValues.value)
+    console.log('📝 当前筛选器组件:', filterItems.value.map(f => ({
+      id: f.i,
+      type: f.chartConfig.type,
+      label: f.chartConfig.label,
+      fieldName: f.chartConfig.fieldName,
+      defaultValue: f.chartConfig.defaultValue
+    })))
     
-    // 收集有绑定关系的图表
+    // 收集有全局筛选器绑定的图表
     const chartsToUpdate = chartLayout.value.filter(chart => 
-      chart.chartConfig.filterBindings?.length
+      chart.chartConfig.globalFilterBindings && 
+      chart.chartConfig.globalFilterBindings.length > 0
     )
     
-    // 更新每个绑定了筛选器的图表
-    for (const chart of chartsToUpdate) {
-      await updateChartWithFilters(chart, filterValues.value)
+    console.log('📊 找到需要更新的图表:', chartsToUpdate.map(c => ({
+      id: c.i,
+      title: c.chartConfig.title,
+      datasetId: c.chartConfig.datasetId,
+      bindings: c.chartConfig.globalFilterBindings?.length || 0,
+      bindingDetails: c.chartConfig.globalFilterBindings
+    })))
+    
+    if (chartsToUpdate.length === 0) {
+      ElMessage.info('没有图表绑定全局筛选器')
+      return
     }
     
-    ElMessage.success(`已应用筛选条件，更新了 ${chartsToUpdate.length} 个图表`)
+    // 并行更新所有绑定了筛选器的图表
+    const updatePromises = chartsToUpdate.map(chart => 
+      updateChartWithGlobalFilters(chart, filterValues.value)
+    )
+    
+    await Promise.all(updatePromises)
+    
+    ElMessage.success(`✅ 已应用筛选条件，更新了 ${chartsToUpdate.length} 个图表`)
   } catch (error) {
-    console.error('应用筛选失败:', error)
-    ElMessage.error('应用筛选失败')
+    console.error('❌ 应用筛选失败:', error)
+    ElMessage.error(`应用筛选失败: ${error.message}`)
   } finally {
     queryLoading.value = false
   }
 }
 
-// 更新图表数据（应用筛选条件）
-const updateChartWithFilters = async (chart: LayoutItem, filterValues: Record<string, any>) => {
-  // 这里实现具体的图表数据更新逻辑
-  console.log(`更新图表 ${chart.i} 的数据，筛选条件:`, filterValues)
+// 更新图表数据（使用全局筛选器）
+const updateChartWithGlobalFilters = async (chart: LayoutItem, filterValues: Record<string, any>) => {
+  if (!chart.chartConfig.datasetId || !chart.chartConfig.globalFilterBindings) {
+    console.warn(`图表 ${chart.i} 缺少数据集ID或筛选器绑定配置`)
+    return
+  }
   
-  // TODO: 调用实际的数据查询API
-  // const filteredData = await getChartData(chart.chartConfig, filterValues)
-  // 更新图表数据...
+  try {
+    console.log(`🔄 更新图表 ${chart.i} 数据:`, {
+      title: chart.chartConfig.title,
+      datasetId: chart.chartConfig.datasetId,
+      bindings: chart.chartConfig.globalFilterBindings
+    })
+    
+    // 构建过滤条件
+    const filters: Array<{
+      fieldName: string
+      operator: string
+      value: any
+    }> = []
+    
+    // 遍历图表的全局筛选器绑定
+    for (const binding of chart.chartConfig.globalFilterBindings) {
+      console.log(`🔗 处理绑定:`, binding)
+      
+      // 查找对应的筛选器组件
+      const filterComponent = filterItems.value.find(item => 
+        item.i === binding.filterKey
+      )
+      
+      console.log(`🔍 查找筛选器组件 ${binding.filterKey}:`, filterComponent ? {
+        id: filterComponent.i,
+        type: filterComponent.chartConfig.type,
+        fieldName: filterComponent.chartConfig.fieldName,
+        label: filterComponent.chartConfig.label
+      } : '未找到')
+      
+      if (filterComponent && binding.chartField) {
+        // 获取筛选器的当前值
+        const filterValue = filterValues[binding.filterKey]
+        
+        if (filterValue !== null && filterValue !== undefined && filterValue !== '') {
+          // 操作符映射
+          const operatorMapping: Record<string, string> = {
+            'equals': 'eq',
+            'not_equals': 'ne',
+            'contains': 'like',
+            'not_contains': 'not_like',
+            'greater_than': 'gt',
+            'greater_than_or_equal': 'gte',
+            'less_than': 'lt',
+            'less_than_or_equal': 'lte',
+            'is_null': 'is_null',
+            'is_not_null': 'is_not_null'
+          }
+          
+          const operator = binding.operator || 'equals'
+          const apiOperator = operatorMapping[operator] || 'eq'
+          
+          filters.push({
+            fieldName: binding.chartField,
+            operator: apiOperator,
+            value: filterValue
+          })
+        }
+      }
+    }
+    
+    // 调用智能预览接口
+    const response = await smartPreviewDataset(chart.chartConfig.datasetId, {
+      filters,
+      limit: chart.chartConfig.dataLimit || 50
+    })
+    
+    console.log(`数据集 ${chart.chartConfig.datasetId} 智能预览响应:`, response)
+    
+    if (response.code === 200) {
+      const chartData = transformSmartPreviewToChartData(response.data, chart.chartConfig)
+      console.log(`✅ 图表 ${chart.i} 数据获取成功:`, response.data)
+      
+      // 强制更新图表数据
+      const timestamp = Date.now()
+      chart.chartConfig = {
+        ...chart.chartConfig,
+        chartData: {
+          ...chartData,
+          _timestamp: timestamp,
+          _forceUpdate: Math.random() // 添加随机值强制更新
+        }
+      }
+      
+      // 强制更新布局
+      layout.value = layout.value.map(item => 
+        item.i === chart.i ? chart : item
+      )
+      
+      console.log(`🎨 图表 ${chart.i} 数据更新完成`)
+    } else {
+      console.error(`❌ 图表 ${chart.i} 数据获取失败:`, response.message)
+      throw new Error(response.message)
+    }
+  } catch (error) {
+    console.error(`❌ 更新图表 ${chart.i} 失败:`, error)
+    throw error
+  }
 }
 
+// 数据转换辅助方法
+const transformSmartPreviewToChartData = (smartData: any, config: any) => {
+  // 处理不同的响应数据格式
+  let records: any[] = []
+  let columns: string[] = []
+  
+  if (smartData.records && Array.isArray(smartData.records)) {
+    records = smartData.records
+    columns = smartData.columns || []
+  } else if (smartData.content && Array.isArray(smartData.content)) {
+    records = smartData.content
+    columns = smartData.columns || []
+  } else if (Array.isArray(smartData)) {
+    records = smartData
+    columns = records.length > 0 ? Object.keys(records[0]) : []
+  }
+  
+  if (!records || records.length === 0) {
+    return { series: [], categories: [] }
+  }
+  
+  const { fieldMapping, type } = config
+  
+  switch (type) {
+    case 'bar':
+    case 'line':
+    case 'area':
+      return transformToBarLineData(records, fieldMapping)
+    case 'pie':
+      return transformToPieData(records, fieldMapping)
+    default:
+      return { series: records, categories: columns }
+  }
+}
 
+// 柱状图/折线图数据转换
+const transformToBarLineData = (records: any[], fieldMapping: any) => {
+  const xField = fieldMapping.xAxis || fieldMapping.xField
+  const yField = fieldMapping.yAxis || fieldMapping.yField
+  
+  if (!xField || !yField) {
+    return { series: [], categories: [] }
+  }
+  
+  const categories = [...new Set(records.map(record => record[xField]))].filter(Boolean)
+  const seriesData = categories.map(category => {
+    const record = records.find(r => r[xField] === category)
+    return record ? (record[yField] || 0) : 0
+  })
+  
+  return {
+    categories,
+    series: [{
+      name: yField,
+      data: seriesData
+    }]
+  }
+}
+
+// 饼图数据转换
+const transformToPieData = (records: any[], fieldMapping: any) => {
+  const nameField = fieldMapping.nameField || fieldMapping.name
+  const valueField = fieldMapping.valueField || fieldMapping.value
+  
+  if (!nameField || !valueField) {
+    return { series: [] }
+  }
+  
+  const pieData = records.map(record => ({
+    name: record[nameField],
+    value: record[valueField] || 0
+  })).filter(item => item.name && item.value > 0)
+  
+  return {
+    series: [{
+      name: '数据',
+      type: 'pie',
+      data: pieData
+    }]
+  }
+}
+
+// 更新图表数据（应用筛选条件） - 保留原有方法以兼容
+const updateChartWithFilters = async (chart: LayoutItem, filterValues: Record<string, any>) => {
+  // 重定向到新的全局筛选器更新方法
+  return updateChartWithGlobalFilters(chart, filterValues)
+}
 
 // ========== 原有逻辑 ==========
 
