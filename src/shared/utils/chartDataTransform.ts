@@ -8,17 +8,29 @@ export interface DatasetApiResponse {
   message: string
   data: {
     columns: string[]
-    data: any[][]
+    data?: any[][]           // 旧格式：二维数组
+    records?: any[]          // 新格式：对象数组
     totalCount: number
   }
 }
 
 export interface ChartFieldMapping {
-  xField?: string        // 柱状图、折线图的X轴字段
-  yField?: string        // 柱状图、折线图的Y轴字段
+  // 新格式字段映射（推荐使用）
+  xAxis?: string         // 柱状图、折线图的X轴字段
+  yAxis?: string         // 柱状图、折线图的Y轴字段
+  series?: string        // 系列字段
+  
+  // 旧格式字段映射（向后兼容）
+  xField?: string        // 柱状图、折线图的X轴字段（已废弃，使用xAxis）
+  yField?: string        // 柱状图、折线图的Y轴字段（已废弃，使用yAxis）
+  
+  // 饼图字段映射
   nameField?: string     // 饼图的名称字段（已废弃，使用categoryField）
   categoryField?: string // 饼图的类别字段
   valueField?: string    // 饼图的数值字段
+  value?: string         // 饼图的数值字段（新格式）
+  
+  // 其他字段映射
   groupField?: string    // 分组字段
   tableFields?: string[] // 表格显示字段
   sizeField?: string     // 散点图气泡大小字段
@@ -38,15 +50,36 @@ export interface ChartDataResult {
  * @returns 对象数组格式的数据
  */
 export const transformToObjectArray = (apiResponse: DatasetApiResponse): any[] => {
-  const { columns, data } = apiResponse.data
+  const responseData = apiResponse.data
   
-  return data.map(row => {
-    const obj: any = {}
-    columns.forEach((column, index) => {
-      obj[column] = row[index]
+  // 🆕 新格式：如果有 records 字段，直接使用（对象数组格式）
+  if (responseData.records && Array.isArray(responseData.records)) {
+    console.log('✅ 使用新格式数据 (records):', responseData.records.length, '条记录')
+    console.log('📊 数据样本:', responseData.records.slice(0, 2))
+    return responseData.records
+  }
+  
+  // 🔄 旧格式：转换二维数组为对象数组（保持原有逻辑）
+  if (responseData.data && Array.isArray(responseData.data)) {
+    const { columns, data } = responseData
+    console.log('✅ 转换旧格式数据 (data):', data.length, '条记录')
+    console.log('📊 列名:', columns)
+    console.log('📊 数据样本:', data.slice(0, 2))
+    
+    return data.map(row => {
+      const obj: any = {}
+      columns.forEach((column, index) => {
+        obj[column] = row[index]
+      })
+      return obj
     })
-    return obj
-  })
+  }
+  
+  // ❌ 错误处理
+  console.error('❌ 数据格式不正确:', responseData)
+  console.error('期望格式1 (新):', { columns: ['col1', 'col2'], records: [{col1: 'val1', col2: 'val2'}] })
+  console.error('期望格式2 (旧):', { columns: ['col1', 'col2'], data: [['val1', 'val2']] })
+  throw new Error('数据格式不正确：缺少 records 或 data 字段')
 }
 
 /**
@@ -61,13 +94,21 @@ export const transformForBarOrLineChart = (
 ): ChartDataResult => {
   const objectData = transformToObjectArray(apiResponse)
   
-  if (!mapping.xField || !mapping.yField) {
-    throw new Error('柱状图/折线图需要配置 xField 和 yField')
+  // 兼容新旧字段映射格式
+  const xField = mapping.xAxis || mapping.xField
+  const yField = mapping.yAxis || mapping.yField
+  
+  if (!xField || !yField) {
+    console.error('字段映射配置:', mapping)
+    throw new Error('柱状图/折线图需要配置 X轴字段和Y轴字段。请检查字段映射配置：xAxis/xField 和 yAxis/yField')
   }
   
-  const xAxis = objectData.map(item => item[mapping.xField!])
+  console.log(`柱状图/折线图数据转换: xField="${xField}", yField="${yField}"`)
+  console.log('数据样本:', objectData.slice(0, 3))
+  
+  const xAxis = objectData.map(item => item[xField])
   const values = objectData.map(item => {
-    const value = item[mapping.yField!]
+    const value = item[yField]
     return typeof value === 'number' ? value : parseFloat(value) || 0
   })
   
@@ -93,14 +134,14 @@ export const transformForPieChart = (
 ): ChartDataResult => {
   const objectData = transformToObjectArray(apiResponse)
   
-  // 饼图使用原来的 nameField 和 valueField 字段映射
-  const nameField = mapping.nameField
-  const valueField = mapping.valueField
+  // 兼容新旧字段映射格式
+  const nameField = mapping.nameField || mapping.categoryField
+  const valueField = mapping.valueField || mapping.value
   
   if (!nameField || !valueField) {
     console.error('饼图字段映射配置:', mapping)
     console.error('转换后的数据样本:', objectData.slice(0, 2))
-    throw new Error('饼图需要配置 nameField 和 valueField')
+    throw new Error('饼图需要配置名称字段和数值字段。请检查字段映射配置：nameField/categoryField 和 valueField/value')
   }
   
   console.log(`饼图数据转换: nameField="${nameField}", valueField="${valueField}"`)
@@ -183,15 +224,22 @@ export const transformForScatterChart = (
 ): ChartDataResult => {
   const objectData = transformToObjectArray(apiResponse)
   
-  if (!mapping.xField || !mapping.yField) {
-    throw new Error('散点图需要配置 xField 和 yField')
+  // 兼容新旧字段映射格式
+  const xField = mapping.xAxis || mapping.xField
+  const yField = mapping.yAxis || mapping.yField
+  
+  if (!xField || !yField) {
+    console.error('字段映射配置:', mapping)
+    throw new Error('散点图需要配置 X轴字段和Y轴字段。请检查字段映射配置：xAxis/xField 和 yAxis/yField')
   }
   
+  console.log(`散点图数据转换: xField="${xField}", yField="${yField}"`)
+  
   const scatterData = objectData.map(item => {
-    const xValue = typeof item[mapping.xField!] === 'number' ? 
-      item[mapping.xField!] : parseFloat(item[mapping.xField!]) || 0
-    const yValue = typeof item[mapping.yField!] === 'number' ? 
-      item[mapping.yField!] : parseFloat(item[mapping.yField!]) || 0
+    const xValue = typeof item[xField] === 'number' ? 
+      item[xField] : parseFloat(item[xField]) || 0
+    const yValue = typeof item[yField] === 'number' ? 
+      item[yField] : parseFloat(item[yField]) || 0
     
     // 如果有size字段，添加气泡大小
     if (mapping.sizeField && item[mapping.sizeField]) {

@@ -1,332 +1,421 @@
-import { ref, computed, readonly } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { previewDatasetData } from '@/api/dataset'
-import type { DataSet, DataSetField } from '@/shared/types/dataManagement'
+import { 
+  datasetPreview, 
+  crossSourcePreview,
+  previewCalculatedField,
+  type DatasetPreviewRequest,
+  type CrossSourcePreviewRequest,
+  type CalculatedFieldPreviewRequest 
+} from '@/api/dataset'
+import type { DataPreviewDTO, DataSetFieldConfig } from '@/shared/types/dataManagement'
 
 /**
  * 数据集预览功能的组合式函数
- * 提供数据集预览数据的获取、处理和状态管理
+ * 根据API使用指南文档规范实现
  */
 export function useDatasetPreview() {
-  // 响应式状态
-  const previewData = ref<any[]>([])
-  const previewColumns = ref<string[]>([])
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-  const lastDatasetId = ref<number | null>(null)
+  const loading = ref(false)
+  const previewData = ref<DataPreviewDTO>({
+    data: [],
+    columns: [],
+    totalCount: 0
+  })
 
-  // 计算属性
-  const hasData = computed(() => previewData.value.length > 0)
-  const isEmpty = computed(() => !isLoading.value && previewData.value.length === 0)
-  const dataCount = computed(() => previewData.value.length)
+  // 单数据源预览 - 根据文档规范
+  const previewSingleSource = async (
+    dataSourceId: number,
+    tableName: string,
+    fields: DataSetFieldConfig[],
+    filters: any[] = [],
+    limit: number = 100
+  ) => {
+    loading.value = true
+    
+    try {
+      const request: DatasetPreviewRequest = {
+        dataSourceId,
+        tableName,
+        fields: fields.map(field => ({
+          fieldName: field.fieldName,
+          fieldType: field.fieldType,
+          isCalculated: field.isCalculated || false,
+          expression: field.expression,
+          aggregation: field.aggregation
+        })),
+        filters: filters.map(filter => ({
+          fieldName: filter.field || filter.fieldName,
+          operator: filter.operator,
+          value: filter.value
+        })),
+        limit
+      }
 
-  /**
-   * 加载数据集预览数据
-   * @param datasetId 数据集ID
-   * @param forceRefresh 是否强制刷新（忽略缓存）
-   */
-  const loadPreviewData = async (datasetId: number, forceRefresh = false) => {
-    // 如果是相同的数据集且不强制刷新，直接返回
-    if (!forceRefresh && lastDatasetId.value === datasetId && hasData.value) {
-      console.log(`数据集 ${datasetId} 预览数据已缓存，直接使用`)
-      return { success: true, data: previewData.value }
+      console.log('单数据源预览请求:', request)
+      const response = await datasetPreview(request)
+      const result = response.data
+      
+      // 智能处理不同的数据格式
+      let transformedData: any[] = []
+      
+      if (result.records && Array.isArray(result.records)) {
+        // 如果返回的是对象数组格式，直接使用
+        transformedData = result.records
+      } else if (result.data && Array.isArray(result.data)) {
+        // 如果返回的是二维数组格式，转换为对象数组
+        transformedData = result.data.map((row: any[]) => {
+          const obj: Record<string, any> = {}
+          result.columns.forEach((column: string, index: number) => {
+            obj[column] = row[index]
+          })
+          return obj
+        })
+      }
+      
+      previewData.value = {
+        data: transformedData,
+        columns: result.columns || [],
+        totalCount: result.totalCount || 0
+      }
+      
+      console.log('单数据源预览结果:', {
+        recordCount: previewData.value.data.length,
+        columnCount: previewData.value.columns.length,
+        totalCount: previewData.value.totalCount,
+        executionTime: result.executionTime,
+        queryType: result.queryType
+      })
+      
+      return previewData.value
+    } catch (error) {
+      ElMessage.error('单数据源预览失败')
+      console.error('单数据源预览错误:', error)
+      
+      // 优雅降级：使用模拟数据
+      const mockData = generateMockPreviewData(fields, limit)
+      previewData.value = mockData
+      ElMessage.info('使用模拟数据进行预览')
+      return mockData
+    } finally {
+      loading.value = false
     }
+  }
 
-    isLoading.value = true
-    error.value = null
+  // 跨数据源预览 - 根据文档规范
+  const previewCrossSource = async (
+    dataSourceIds: number[],
+    tables: Array<{ tableName: string; dataSourceId: number; alias: string }>,
+    relations: any[],
+    fields: DataSetFieldConfig[],
+    filters: any[] = [],
+    limit: number = 100
+  ) => {
+    loading.value = true
+    
+    try {
+      const request: CrossSourcePreviewRequest = {
+        dataSourceIds,
+        tables,
+        relations,
+        fields: fields.map(field => ({
+          fieldName: field.fieldName,
+          tableName: field.tableName || '',
+          fieldType: field.fieldType,
+          aggregation: field.aggregation
+        })),
+        filters: filters.map(filter => ({
+          fieldName: filter.field || filter.fieldName,
+          operator: filter.operator,
+          value: filter.value
+        })),
+        limit
+      }
+
+      console.log('跨数据源预览请求:', request)
+      const response = await crossSourcePreview(request)
+      const result = response.data
+      
+      // 智能处理不同的数据格式
+      let transformedData: any[] = []
+      
+      if (result.records && Array.isArray(result.records)) {
+        // 如果返回的是对象数组格式，直接使用
+        transformedData = result.records
+      } else if (result.data && Array.isArray(result.data)) {
+        // 如果返回的是二维数组格式，转换为对象数组
+        transformedData = result.data.map((row: any[]) => {
+          const obj: Record<string, any> = {}
+          result.columns.forEach((column: string, index: number) => {
+            obj[column] = row[index]
+          })
+          return obj
+        })
+      }
+      
+      previewData.value = {
+        data: transformedData,
+        columns: result.columns || [],
+        totalCount: result.totalCount || 0
+      }
+      
+      console.log('跨数据源预览结果:', {
+        recordCount: previewData.value.data.length,
+        columnCount: previewData.value.columns.length,
+        totalCount: previewData.value.totalCount,
+        executionTime: result.executionTime,
+        queryType: result.queryType || '跨数据源查询'
+      })
+      
+      return previewData.value
+    } catch (error) {
+      ElMessage.error('跨数据源预览失败')
+      console.error('跨数据源预览错误:', error)
+      
+      // 优雅降级：使用模拟数据
+      const mockData = generateMockPreviewData(fields, limit)
+      previewData.value = mockData
+      ElMessage.info('使用模拟数据进行预览')
+      return mockData
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 计算字段预览 - 根据文档规范
+  const previewCalculatedFieldResult = async (
+    expression: string,
+    fieldName: string,
+    tableName: string,
+    dataSourceId: number,
+    limit: number = 10
+  ) => {
+    loading.value = true
+    
+    try {
+      const request: CalculatedFieldPreviewRequest = {
+        expression,
+        fieldName,
+        tableName,
+        dataSourceId,
+        limit
+      }
+
+      console.log('计算字段预览请求:', request)
+      const response = await previewCalculatedField(request)
+      const result = response.data
+      
+      // 转换二维数组为对象数组格式（如果是二维数组的话）
+      let transformedData = result.records || result.data || []
+      if (Array.isArray(transformedData) && transformedData.length > 0 && Array.isArray(transformedData[0])) {
+        transformedData = transformedData.map((row: any[]) => {
+          const obj: Record<string, any> = {}
+          result.columns.forEach((column: string, index: number) => {
+            obj[column] = row[index]
+          })
+          return obj
+        })
+      }
+      
+      const previewResult = {
+        data: transformedData,
+        columns: result.columns || [fieldName],
+        totalCount: transformedData.length || 0,
+        statistics: result.statistics || {},
+        executionTime: result.executionTime
+      }
+      
+      console.log('计算字段预览结果:', previewResult)
+      return previewResult
+    } catch (error) {
+      ElMessage.error('计算字段预览失败')
+      console.error('计算字段预览错误:', error)
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 基于配置的智能预览 - 根据文档规范
+  const previewByConfig = async (config: {
+    queryType: 'single' | 'multi' | 'sql'
+    dataSourceId?: number
+    dataSourceIds?: number[]
+    tableName?: string
+    tables?: string[]
+    fields: DataSetFieldConfig[]
+    relations?: any[]
+    filters?: any[]
+    limit?: number
+  }) => {
+    const { queryType, limit = 100, filters = [] } = config
+
+    switch (queryType) {
+      case 'single':
+        if (!config.dataSourceId || !config.tableName) {
+          throw new Error('单表查询需要指定数据源ID和表名')
+        }
+        return await previewSingleSource(
+          config.dataSourceId,
+          config.tableName,
+          config.fields,
+          filters,
+          limit
+        )
+
+      case 'multi':
+        if (!config.dataSourceIds || !config.tables) {
+          throw new Error('多表查询需要指定数据源IDs和表配置')
+        }
+        const tables = config.tables.map((tableName, index) => ({
+          tableName,
+          dataSourceId: config.dataSourceIds![index] || config.dataSourceIds![0],
+          alias: `t${index + 1}`
+        }))
+        return await previewCrossSource(
+          config.dataSourceIds,
+          tables,
+          config.relations || [],
+          config.fields,
+          filters,
+          limit
+        )
+
+      case 'sql':
+        // SQL模式使用单数据源预览
+        if (!config.dataSourceId) {
+          throw new Error('SQL查询需要指定数据源ID')
+        }
+        return await previewSingleSource(
+          config.dataSourceId,
+          'custom_sql',
+          config.fields,
+          filters,
+          limit
+        )
+
+      default:
+        throw new Error('不支持的查询类型')
+    }
+  }
+
+  // 刷新预览数据
+  const refreshPreview = async (config: any) => {
+    return await previewByConfig(config)
+  }
+
+  // 生成模拟预览数据
+  const generateMockPreviewData = (fields: DataSetFieldConfig[], limit: number = 10): DataPreviewDTO => {
+    const mockRecords = []
+    const columns = fields.map(f => f.fieldName)
+    
+    for (let i = 0; i < Math.min(limit, 10); i++) {
+      const record: any = {}
+      fields.forEach(field => {
+        switch (field.fieldType) {
+          case 'dimension':
+            if (field.fieldName.includes('name') || field.fieldName.includes('姓名')) {
+              record[field.fieldName] = `用户${i + 1}`
+            } else if (field.fieldName.includes('id') || field.fieldName.includes('编号')) {
+              record[field.fieldName] = 1000 + i
+            } else if (field.fieldName.includes('status') || field.fieldName.includes('状态')) {
+              record[field.fieldName] = i % 2 === 0 ? '正常' : '异常'
+            } else {
+              record[field.fieldName] = `示例数据${i + 1}`
+            }
+            break
+          case 'metric':
+            if (field.fieldName.includes('count') || field.fieldName.includes('数量')) {
+              record[field.fieldName] = Math.floor(Math.random() * 100) + 1
+            } else if (field.fieldName.includes('amount') || field.fieldName.includes('金额')) {
+              record[field.fieldName] = (Math.random() * 10000).toFixed(2)
+            } else {
+              record[field.fieldName] = Math.floor(Math.random() * 1000)
+            }
+            break
+          default:
+            record[field.fieldName] = `数据${i + 1}`
+        }
+      })
+      mockRecords.push(record)
+    }
+    
+    return {
+      data: mockRecords,
+      columns,
+      totalCount: mockRecords.length
+    }
+  }
+
+  // 导出预览数据
+  const exportPreviewData = (filename?: string) => {
+    if (!previewData.value.data || previewData.value.data.length === 0) {
+      ElMessage.warning('没有可导出的数据')
+      return
+    }
 
     try {
-      console.log(`📊 开始加载数据集预览数据: ID=${datasetId}`)
+      const headers = previewData.value.columns
+      const csvContent = [
+        headers.join(','),
+        ...previewData.value.data.map(row => 
+          headers.map(col => {
+            const value = row[col]
+            const formattedValue = value === null || value === undefined ? '' : String(value)
+            return formattedValue.includes(',') || formattedValue.includes('"') 
+              ? `"${formattedValue.replace(/"/g, '""')}"` 
+              : formattedValue
+          }).join(',')
+        )
+      ].join('\n')
       
-      const response = await previewDatasetData(datasetId)
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
       
-      if (response.code !== 200) {
-        throw new Error(response.message || '获取预览数据失败')
-      }
-
-      if (!response.data) {
-        throw new Error('API返回的数据为空')
-      }
-
-      // 处理不同的API响应格式
-      const processedData = processApiResponse(response.data)
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename || `数据预览_${new Date().getTime()}.csv`)
+      link.style.visibility = 'hidden'
       
-      previewData.value = processedData.data
-      previewColumns.value = processedData.columns
-      lastDatasetId.value = datasetId
-
-      console.log(`✅ 数据集 ${datasetId} 预览加载成功: ${previewData.value.length} 条记录`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       
-      return { 
-        success: true, 
-        data: previewData.value,
-        columns: previewColumns.value
-      }
-
-    } catch (err: any) {
-      console.error(`❌ 数据集 ${datasetId} 预览加载失败:`, err)
-      error.value = err.message || '未知错误'
-      
-      // 清空数据
-      previewData.value = []
-      previewColumns.value = []
-      
-      ElMessage.error(`数据预览加载失败: ${error.value}`)
-      
-      return { 
-        success: false, 
-        error: error.value 
-      }
-      
-    } finally {
-      isLoading.value = false
+      ElMessage.success('数据导出成功')
+    } catch (error) {
+      console.error('导出失败:', error)
+      ElMessage.error('数据导出失败')
     }
   }
 
-  /**
-   * 处理不同格式的API响应数据
-   * @param apiData API返回的数据
-   */
-  const processApiResponse = (apiData: any): { data: any[], columns: string[] } => {
-    let processedData: any[] = []
-    let columns: string[] = []
-
-    if (apiData.columns && apiData.data) {
-      // 格式1：{ columns: string[], data: any[][] }
-      // 例如：{ columns: ['name', 'age'], data: [['张三', 25], ['李四', 30]] }
-      columns = apiData.columns
-      processedData = apiData.data.map((row: any[]) => {
-        const obj: Record<string, any> = {}
-        columns.forEach((column: string, index: number) => {
-          obj[column] = row[index]
-        })
-        return obj
-      })
-      console.log(`📋 处理列-行格式数据: ${columns.length} 列, ${processedData.length} 行`)
-      
-    } else if (apiData.content && Array.isArray(apiData.content)) {
-      // 格式2：{ content: any[], totalCount?: number }
-      // 例如：{ content: [{name: '张三', age: 25}], totalCount: 100 }
-      processedData = apiData.content
-      if (processedData.length > 0) {
-        columns = Object.keys(processedData[0])
-      }
-      console.log(`📋 处理内容格式数据: ${processedData.length} 条记录`)
-      
-    } else if (Array.isArray(apiData)) {
-      // 格式3：直接的数组格式
-      // 例如：[{name: '张三', age: 25}, {name: '李四', age: 30}]
-      processedData = apiData
-      if (processedData.length > 0) {
-        columns = Object.keys(processedData[0])
-      }
-      console.log(`📋 处理数组格式数据: ${processedData.length} 条记录`)
-      
-    } else {
-      // 未知格式
-      console.warn('⚠️ 未知的API数据格式:', apiData)
-      throw new Error('不支持的数据格式')
-    }
-
-    return { data: processedData, columns }
-  }
-
-  /**
-   * 获取字段的显示名称
-   * @param fieldName 字段名称
-   * @param datasetFields 数据集字段配置（可选）
-   */
-  const getFieldDisplayName = (fieldName: string, datasetFields?: DataSetField[]) => {
-    if (datasetFields) {
-      const field = datasetFields.find(f => f.fieldName === fieldName)
-      return field?.displayName || field?.fieldName || fieldName
-    }
-    return fieldName
-  }
-
-  /**
-   * 格式化单元格值
-   * @param value 原始值
-   * @param fieldType 字段类型（可选）
-   */
-  const formatCellValue = (value: any, fieldType?: string) => {
-    if (value === null || value === undefined) {
-      return '-'
-    }
-
-    if (typeof value === 'number') {
-      // 数字格式化
-      if (fieldType === 'metric') {
-        return value.toLocaleString()
-      }
-      return value.toString()
-    }
-
-    if (value instanceof Date) {
-      // 日期格式化
-      return value.toLocaleDateString()
-    }
-
-    if (typeof value === 'string') {
-      // 字符串长度限制
-      if (value.length > 50) {
-        return value.substring(0, 50) + '...'
-      }
-      return value
-    }
-
-    return String(value)
-  }
-
-  /**
-   * 获取预览数据的分页子集
-   * @param page 页码（从1开始）
-   * @param pageSize 每页大小
-   */
-  const getPagedData = (page = 1, pageSize = 10) => {
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    return {
-      data: previewData.value.slice(start, end),
-      total: previewData.value.length,
-      hasMore: end < previewData.value.length
-    }
-  }
-
-  /**
-   * 根据字段搜索数据
-   * @param searchText 搜索文本
-   * @param searchFields 搜索的字段列表（默认搜索所有字段）
-   */
-  const searchData = (searchText: string, searchFields?: string[]) => {
-    if (!searchText.trim()) {
-      return previewData.value
-    }
-
-    const searchLower = searchText.toLowerCase()
-    const fieldsToSearch = searchFields || previewColumns.value
-
-    return previewData.value.filter(row => {
-      return fieldsToSearch.some(field => {
-        const value = row[field]
-        if (value === null || value === undefined) return false
-        return String(value).toLowerCase().includes(searchLower)
-      })
-    })
-  }
-
-  /**
-   * 获取字段的统计信息
-   * @param fieldName 字段名称
-   */
-  const getFieldStats = (fieldName: string) => {
-    if (!hasData.value || !previewColumns.value.includes(fieldName)) {
-      return null
-    }
-
-    const values = previewData.value.map(row => row[fieldName]).filter(v => v !== null && v !== undefined)
-    const uniqueValues = [...new Set(values)]
-
-    const stats = {
-      fieldName,
-      totalCount: previewData.value.length,
-      nonNullCount: values.length,
-      nullCount: previewData.value.length - values.length,
-      uniqueCount: uniqueValues.length,
-      dataType: detectDataType(values),
-      sampleValues: uniqueValues.slice(0, 10)
-    }
-
-    // 数值字段的额外统计
-    if (stats.dataType === 'number') {
-      const numericValues = values.filter(v => typeof v === 'number')
-      if (numericValues.length > 0) {
-        Object.assign(stats, {
-          min: Math.min(...numericValues),
-          max: Math.max(...numericValues),
-          avg: numericValues.reduce((a, b) => a + b, 0) / numericValues.length
-        })
-      }
-    }
-
-    return stats
-  }
-
-  /**
-   * 检测数据类型
-   * @param values 值数组
-   */
-  const detectDataType = (values: any[]): 'string' | 'number' | 'date' | 'boolean' | 'mixed' => {
-    if (values.length === 0) return 'string'
-
-    const types = new Set(values.map(v => typeof v))
-    
-    if (types.size === 1) {
-      const type = types.values().next().value
-      if (['string', 'number', 'boolean'].includes(type)) {
-        return type
-      }
-    }
-
-    // 检查是否为日期
-    const datePattern = /^\d{4}-\d{2}-\d{2}/ // 简单的日期模式
-    if (values.every(v => typeof v === 'string' && datePattern.test(v))) {
-      return 'date'
-    }
-
-    return 'mixed'
-  }
-
-  /**
-   * 清空预览数据
-   */
-  const clearData = () => {
-    previewData.value = []
-    previewColumns.value = []
-    error.value = null
-    lastDatasetId.value = null
-  }
-
-  /**
-   * 重新加载当前数据集的预览数据
-   */
-  const refreshData = async () => {
-    if (lastDatasetId.value) {
-      return await loadPreviewData(lastDatasetId.value, true)
-    }
-    return { success: false, error: '没有可刷新的数据集' }
-  }
+  // 计算属性
+  const hasData = computed(() => previewData.value.data.length > 0)
+  const columnCount = computed(() => previewData.value.columns.length)
+  const recordCount = computed(() => previewData.value.data.length)
 
   return {
     // 状态
-    previewData: readonly(previewData),
-    previewColumns: readonly(previewColumns),
-    isLoading: readonly(isLoading),
-    error: readonly(error),
-    
-    // 计算属性
+    loading,
+    previewData,
     hasData,
-    isEmpty,
-    dataCount,
+    columnCount,
+    recordCount,
     
-    // 方法
-    loadPreviewData,
-    getFieldDisplayName,
-    formatCellValue,
-    getPagedData,
-    searchData,
-    getFieldStats,
-    clearData,
-    refreshData
+    // 方法 - 根据文档规范
+    previewSingleSource,
+    previewCrossSource,
+    previewCalculatedFieldResult,
+    previewByConfig,
+    refreshPreview,
+    exportPreviewData
   }
 }
 
-// 创建全局实例（如果需要在多个组件间共享）
-let globalPreviewInstance: ReturnType<typeof useDatasetPreview> | null = null
-
+// 全局数据集预览功能（保持兼容性）
 export function useGlobalDatasetPreview() {
-  if (!globalPreviewInstance) {
-    globalPreviewInstance = useDatasetPreview()
+  const { previewSingleSource, previewCrossSource } = useDatasetPreview()
+  
+  return {
+    previewSingleSource,
+    previewCrossSource
   }
-  return globalPreviewInstance
 } 

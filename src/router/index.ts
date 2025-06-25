@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
  * @LastEditors: KrabWW wei17306927526@gmail.com
- * @LastEditTime: 2025-06-20 17:38:24
+ * @LastEditTime: 2025-06-25 09:19:46
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 路由配置
  */
@@ -156,6 +156,12 @@ const routes: RouteRecordRaw[] = [
     name: 'TraditionalFilterDemo',
     component: () => import('@/features/dashboard/views/traditional-filter-demo.vue'),
     meta: { title: '传统样式筛选器演示' }
+  },
+  {
+    path: '/dashboard/transformer-test',
+    name: 'TransformerTest',
+    component: () => import('@/features/dashboard/views/transformer-test.vue'),
+    meta: { title: '数据转换器测试' }
   }
 ]
 

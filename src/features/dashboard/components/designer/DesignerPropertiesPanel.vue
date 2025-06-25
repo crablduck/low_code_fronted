@@ -214,6 +214,19 @@
                     />
                   </el-select>
                 </el-form-item>
+
+                <!-- 图表渲染按钮 -->
+                <div class="chart-actions">
+                  <el-button 
+                    type="primary" 
+                    @click="renderSingleChart"
+                    :disabled="!canRenderChart"
+                    icon="View"
+                    style="width: 100%"
+                  >
+                    渲染图表预览
+                  </el-button>
+                </div>
               </div>
 
               <!-- 筛选器字段配置 -->
@@ -319,10 +332,10 @@
 
                             <!-- 字段映射配置 -->
                             <div v-if="isFilterEnabled(filter.key)" class="field-mapping">
-                              <el-form-item :label="`映射到图表字段`" size="small">
+                              <el-form-item label="映射到图表字段" size="small">
                                 <el-select 
                                   :model-value="getFilterBinding(filter.key)?.chartField"
-                                  @change="updateFilterBinding(filter.key, $event)"
+                                  @change="updateFilterBinding(filter.key, 'chartField', $event)"
                                   placeholder="选择图表字段"
                                   style="width: 100%"
                                   clearable
@@ -340,8 +353,50 @@
                                       </el-tag>
                                     </el-option>
                                   </el-option-group>
+                                  <el-option-group label="指标字段">
+                                    <el-option
+                                      v-for="field in metricFields"
+                                      :key="field.fieldName"
+                                      :label="field.displayName || field.fieldName"
+                                      :value="field.fieldName"
+                                    >
+                                      <span>{{ field.displayName || field.fieldName }}</span>
+                                      <el-tag size="small" style="margin-left: 8px" type="success">
+                                        {{ field.dataType }}
+                                      </el-tag>
+                                    </el-option>
+                                  </el-option-group>
                                 </el-select>
                               </el-form-item>
+                              
+                              <!-- 操作符选择 -->
+                              <el-form-item label="过滤操作" size="small">
+                                <el-select 
+                                  :model-value="getFilterBinding(filter.key)?.operator || 'equals'"
+                                  @change="updateFilterBinding(filter.key, 'operator', $event)"
+                                  placeholder="选择操作符"
+                                  style="width: 100%"
+                                >
+                                  <el-option label="等于" value="equals" />
+                                  <el-option label="不等于" value="not_equals" />
+                                  <el-option label="包含" value="contains" />
+                                  <el-option label="不包含" value="not_contains" />
+                                  <el-option label="大于" value="greater_than" />
+                                  <el-option label="大于等于" value="greater_than_or_equal" />
+                                  <el-option label="小于" value="less_than" />
+                                  <el-option label="小于等于" value="less_than_or_equal" />
+                                  <el-option label="为空" value="is_null" />
+                                  <el-option label="不为空" value="is_not_null" />
+                                </el-select>
+                              </el-form-item>
+                              
+                              <!-- 映射说明 -->
+                              <div class="mapping-description">
+                                <el-text size="small" type="info">
+                                  <el-icon><InfoFilled /></el-icon>
+                                  {{ getFilterMappingDescription(filter.key) }}
+                                </el-text>
+                              </div>
                             </div>
                           </el-card>
                         </div>
@@ -362,7 +417,9 @@
                           <ul>
                             <li v-for="binding in enabledFilterBindings" :key="binding.filterKey">
                               <strong>{{ getGlobalFilterLabel(binding.filterKey) }}</strong> 
-                              → 
+                              <el-tag size="small" type="primary" style="margin: 0 4px">
+                                {{ getOperatorLabel(binding.operator || 'equals') }}
+                              </el-tag>
                               <span class="chart-field">{{ getFieldDisplayName(binding.chartField) }}</span>
                             </li>
                           </ul>
@@ -690,7 +747,8 @@ import {
   Filter, 
   Brush,
   TrendCharts,
-  Grid
+  Grid,
+  View
 } from '@element-plus/icons-vue'
 import type { DataSet, DataSetField } from '@/shared/types/dataManagement'
 import type { LayoutItem, GlobalFilterConfig, GlobalFilterBinding } from '@/shared/types/dashboard'
@@ -869,6 +927,32 @@ const needsValueField = computed(() => {
   return ['pie', 'gauge', 'funnel', 'liquidfill'].includes(type)
 })
 
+// 判断是否可以渲染图表
+const canRenderChart = computed(() => {
+  if (!props.selectedItem || !isChartComponent.value) return false
+  
+  const config = props.selectedItem.chartConfig
+  if (!config.datasetId) return false
+  
+  const fieldMapping = config.fieldMapping
+  const type = config.type
+  
+  // 根据图表类型检查必需字段
+  switch (type) {
+    case 'bar':
+    case 'line':
+    case 'area':
+    case 'scatter':
+      return !!(fieldMapping?.xAxis && fieldMapping?.yAxis)
+    case 'pie':
+    case 'gauge':
+    case 'funnel':
+      return !!(fieldMapping?.value)
+    default:
+      return !!config.datasetId
+  }
+})
+
 // 基于设计器中的筛选器组件动态生成全局筛选器配置
 const availableGlobalFilters = computed<GlobalFilterConfig[]>(() => {
   // 从layout中筛选出筛选器组件
@@ -1025,6 +1109,310 @@ const handleUpdate = () => {
   }
 }
 
+// 渲染单个图表
+const renderSingleChart = async () => {
+  if (!props.selectedItem || !canRenderChart.value) {
+    ElMessage.warning('请先完成图表配置')
+    return
+  }
+  
+  try {
+    const config = props.selectedItem.chartConfig
+    
+    // 构建过滤条件 - 从全局筛选器获取
+    const filters: Array<{
+      fieldName: string
+      operator: string
+      value: any
+    }> = []
+    
+    // 获取当前图表绑定的全局筛选器
+    if (config.globalFilterBindings && config.globalFilterBindings.length > 0) {
+      for (const binding of config.globalFilterBindings) {
+        // 查找对应的筛选器组件
+        const filterComponent = props.layout.find(item => 
+          item.i === binding.filterKey && item.chartConfig.type.startsWith('filter-')
+        )
+        
+        if (filterComponent && filterComponent.chartConfig.fieldName && binding.chartField && binding.operator) {
+          // 获取筛选器的当前值（这里应该获取实际的筛选器值，而不是默认值）
+          // TODO: 在实际应用中，这里应该从全局筛选器状态管理中获取当前值
+          let filterValue = filterComponent.chartConfig.defaultValue
+          
+          // 使用用户配置的操作符，而不是硬编码逻辑
+          let operator = binding.operator
+          
+          // 操作符映射：前端操作符 -> API操作符
+          const operatorMapping: Record<string, string> = {
+            'equals': 'eq',
+            'not_equals': 'ne', 
+            'contains': 'like',
+            'not_contains': 'not_like',
+            'greater_than': 'gt',
+            'greater_than_or_equal': 'gte',
+            'less_than': 'lt',
+            'less_than_or_equal': 'lte',
+            'is_null': 'is_null',
+            'is_not_null': 'is_not_null'
+          }
+          
+          // 转换为API支持的操作符
+          const apiOperator = operatorMapping[operator] || 'eq'
+          
+          // 特殊值处理
+          if (operator === 'contains' && filterValue && typeof filterValue === 'string' && !filterValue.includes('%')) {
+            filterValue = `%${filterValue}%`
+          } else if (operator === 'is_null' || operator === 'is_not_null') {
+            filterValue = null
+          }
+          
+          // 条件验证：只有有操作符配置才处理
+          if (binding.operator && (filterValue !== null && filterValue !== undefined && filterValue !== '' || operator === 'is_null' || operator === 'is_not_null')) {
+            filters.push({
+              fieldName: binding.chartField, // 使用绑定的图表字段
+              operator: apiOperator,
+              value: filterValue
+            })
+          }
+        }
+      }
+    }
+    
+
+    
+    console.log('🔍 智能预览过滤器参数构建完成:', {
+      totalBindings: config.globalFilterBindings?.length || 0,
+      validFilters: filters.length,
+      filterDetails: filters.map(f => ({
+        field: f.fieldName,
+        operator: f.operator,
+        value: f.value
+      }))
+    })
+    
+    // 调用智能预览接口
+    const { smartPreviewDataset } = await import('@/api/dataset')
+    
+    const previewOptions = {
+      filters: filters,
+      limit: 50 // 限制50条数据用于预览
+    }
+    
+    console.log('调用智能预览接口:', config.datasetId, previewOptions)
+    
+    const response = await smartPreviewDataset(config.datasetId, previewOptions)
+    
+    if (response.code === 200 && response.data) {
+      console.log('智能预览响应:', response.data)
+      
+      // 处理不同的响应数据格式
+      let records: any[] = []
+      let totalCount = 0
+      let columns: string[] = []
+      
+      const data = response.data as any
+      
+      if (data.records && Array.isArray(data.records)) {
+        // 格式1: { columns: string[], records: any[], totalCount: number }
+        records = data.records
+        totalCount = data.totalCount || records.length
+        columns = data.columns || []
+      } else if (data.content && Array.isArray(data.content)) {
+        // 格式2: 分页格式 { content: any[], totalElements: number, ... }
+        records = data.content
+        totalCount = data.totalElements || records.length
+        columns = data.columns || []
+      } else if (Array.isArray(data)) {
+        // 格式3: 直接是数组
+        records = data
+        totalCount = records.length
+        columns = records.length > 0 ? Object.keys(records[0]) : []
+      }
+      
+      // 转换数据格式为图表可用格式
+      const chartData = transformSmartPreviewToChartData({ 
+        columns, 
+        records 
+      }, config)
+      
+      console.log('转换后的图表数据:', chartData)
+      
+      // 更新图表配置中的数据
+      if (!config.chartData) {
+        config.chartData = {}
+      }
+      
+      // 强制更新 chartData，确保触发响应式更新
+      const oldChartData = config.chartData
+      config.chartData = { ...chartData, _timestamp: Date.now() }
+      
+      console.log('🔄 强制更新图表数据:', {
+        oldData: oldChartData,
+        newData: config.chartData,
+        timestamp: config.chartData._timestamp
+      })
+      
+      // 触发图表更新
+      handleUpdate()
+      
+      ElMessage.success(`图表数据加载成功！共${totalCount}条记录`)
+    } else {
+      throw new Error(response.message || '获取数据失败')
+    }
+  } catch (error) {
+    console.error('渲染图表失败:', error)
+    ElMessage.error(`渲染图表失败: ${error.message}`)
+  }
+}
+
+// 将智能预览数据转换为图表数据格式
+const transformSmartPreviewToChartData = (smartData: any, config: any) => {
+  const { columns, records } = smartData
+  const { fieldMapping, type } = config
+  
+  if (!records || !Array.isArray(records) || records.length === 0) {
+    return { series: [], categories: [] }
+  }
+  
+  console.log('开始转换数据:', { columns, records: records.length, fieldMapping, type })
+  
+  switch (type) {
+    case 'bar':
+    case 'line':
+    case 'area':
+      return transformToBarLineData(records, fieldMapping)
+    case 'pie':
+      return transformToPieData(records, fieldMapping)
+    case 'scatter':
+      return transformToScatterData(records, fieldMapping)
+    default:
+      return { series: records, categories: columns }
+  }
+}
+
+// 转换为柱状图/折线图数据
+const transformToBarLineData = (records: any[], fieldMapping: any) => {
+  const xField = fieldMapping.xAxis
+  const yField = fieldMapping.yAxis
+  const seriesField = fieldMapping.series
+  
+  console.log('🔍 柱状图/折线图数据转换调试:')
+  console.log('- 字段映射:', fieldMapping)
+  console.log('- X轴字段:', xField)
+  console.log('- Y轴字段:', yField)
+  console.log('- 分组字段:', seriesField)
+  console.log('- 原始数据:', records)
+  
+  if (!xField || !yField) {
+    console.log('❌ 缺少必要字段映射，返回空数据')
+    return { series: [], categories: [] }
+  }
+  
+  // 提取分类（X轴数据）
+  const categories = [...new Set(records.map(record => record[xField]))].filter(Boolean)
+  console.log('- 提取的分类:', categories)
+  
+  if (!seriesField) {
+    // 没有分组字段，单系列数据
+    const seriesData = categories.map(category => {
+      const record = records.find(r => r[xField] === category)
+      const value = record ? (record[yField] || 0) : 0
+      console.log(`  - ${category}: ${value}`)
+      return value
+    })
+    
+    const result = {
+      categories,
+      series: [{
+        name: yField,
+        data: seriesData
+        // 注意：这里不设置type，由generateEChartsOptionFromChartData根据图表类型设置
+      }]
+    }
+    
+    console.log('✅ 单系列转换结果:', result)
+    return result
+  } else {
+    // 有分组字段，多系列数据
+    const seriesNames = [...new Set(records.map(record => record[seriesField]))].filter(Boolean)
+    console.log('- 分组名称:', seriesNames)
+    
+    const series = seriesNames.map(seriesName => {
+      const seriesData = categories.map(category => {
+        const record = records.find(r => r[xField] === category && r[seriesField] === seriesName)
+        return record ? (record[yField] || 0) : 0
+      })
+      
+      return {
+        name: seriesName,
+        data: seriesData
+        // 注意：这里不设置type，由generateEChartsOptionFromChartData根据图表类型设置
+      }
+    })
+    
+    const result = { categories, series }
+    console.log('✅ 多系列转换结果:', result)
+    return result
+  }
+}
+
+// 转换为饼图数据
+const transformToPieData = (records: any[], fieldMapping: any) => {
+  const nameField = fieldMapping.name || fieldMapping.nameField
+  const valueField = fieldMapping.value || fieldMapping.valueField
+  
+  console.log('🔍 饼图数据转换调试:')
+  console.log('- 字段映射:', fieldMapping)
+  console.log('- 名称字段:', nameField)
+  console.log('- 数值字段:', valueField)
+  console.log('- 原始数据:', records)
+  
+  if (!nameField || !valueField) {
+    console.log('❌ 缺少必要字段映射，返回空数据')
+    return { series: [] }
+  }
+  
+  const pieData = records.map(record => ({
+    name: record[nameField],
+    value: record[valueField] || 0
+  })).filter(item => item.name && item.value > 0)
+  
+  console.log('- 转换后的饼图数据:', pieData)
+  
+  const result = {
+    series: [{
+      name: '数据',
+      type: 'pie',  // 明确设置饼图类型
+      data: pieData
+    }]
+  }
+  
+  console.log('✅ 饼图转换结果:', result)
+  return result
+}
+
+// 转换为散点图数据
+const transformToScatterData = (records: any[], fieldMapping: any) => {
+  const xField = fieldMapping.xAxis
+  const yField = fieldMapping.yAxis
+  
+  if (!xField || !yField) {
+    return { series: [] }
+  }
+  
+  const scatterData = records.map(record => [
+    record[xField] || 0,
+    record[yField] || 0
+  ]).filter(point => point[0] !== null && point[1] !== null)
+  
+  return {
+    series: [{
+      name: '散点数据',
+      data: scatterData
+    }]
+  }
+}
+
 // 关闭面板
 const handleClose = () => {
   emit('close')
@@ -1058,7 +1446,7 @@ const getFilterBinding = (filterKey: string) => {
 
 const toggleFilterBinding = (filterKey: string, enabled: boolean) => {
   if (!props.selectedItem?.chartConfig.globalFilterBindings) {
-    props.selectedItem!.chartConfig.globalFilterBindings = []
+    props.selectedItem.chartConfig.globalFilterBindings = []
   }
   
   if (enabled) {
@@ -1081,12 +1469,27 @@ const toggleFilterBinding = (filterKey: string, enabled: boolean) => {
   handleUpdate()
 }
 
-const updateFilterBinding = (filterKey: string, chartField: string) => {
-  const binding = getFilterBinding(filterKey)
-  if (binding) {
-    binding.chartField = chartField
-    handleUpdate()
+const updateFilterBinding = (filterKey: string, property: string, value: any) => {
+  if (!props.selectedItem?.chartConfig.globalFilterBindings) {
+    props.selectedItem.chartConfig.globalFilterBindings = []
   }
+  
+  const existingBinding = props.selectedItem.chartConfig.globalFilterBindings.find(
+    binding => binding.filterKey === filterKey
+  )
+  
+  if (existingBinding) {
+    existingBinding[property] = value
+  } else {
+    const newBinding = {
+      filterKey,
+      chartField: property === 'chartField' ? value : undefined,
+      operator: property === 'operator' ? value : 'equals'
+    }
+    props.selectedItem.chartConfig.globalFilterBindings.push(newBinding)
+  }
+  
+  handleUpdate()
 }
 
 const getGlobalFilterLabel = (filterKey: string) => {
@@ -1133,6 +1536,47 @@ const getFilterControlTypeTag = (controlType: string) => {
 
 const showGlobalFilterTip = () => {
   ElMessage.info('请先从左侧面板拖拽筛选器组件到设计器中，然后回到这里进行图表与筛选器的绑定配置')
+}
+
+// 获取筛选器映射描述
+const getFilterMappingDescription = (filterKey: string) => {
+  const binding = getFilterBinding(filterKey)
+  if (!binding?.chartField || !binding?.operator) {
+    return '请完成字段映射和操作符配置'
+  }
+  
+  const filter = availableGlobalFilters.value.find(f => f.key === filterKey)
+  const operatorMap = {
+    'equals': '等于',
+    'not_equals': '不等于', 
+    'contains': '包含',
+    'not_contains': '不包含',
+    'greater_than': '大于',
+    'greater_than_or_equal': '大于等于',
+    'less_than': '小于',
+    'less_than_or_equal': '小于等于',
+    'is_null': '为空',
+    'is_not_null': '不为空'
+  }
+  
+  return `当 ${filter?.label} 的值 ${operatorMap[binding.operator]} 图表的 ${getFieldDisplayName(binding.chartField)} 字段时，图表将自动筛选`
+}
+
+// 获取操作符标签
+const getOperatorLabel = (operator: string) => {
+  const operatorMap = {
+    'equals': '等于',
+    'not_equals': '不等于', 
+    'contains': '包含',
+    'not_contains': '不包含',
+    'greater_than': '大于',
+    'greater_than_or_equal': '大于等于',
+    'less_than': '小于',
+    'less_than_or_equal': '小于等于',
+    'is_null': '为空',
+    'is_not_null': '不为空'
+  }
+  return operatorMap[operator] || operator
 }
 
 // 监听选中项变化，只在首次选中时重置标签页
@@ -1344,6 +1788,18 @@ watch(() => props.selectedItem, (newItem, oldItem) => {
         font-weight: 600;
         padding-bottom: 8px;
         border-bottom: 1px solid #e4e7ed;
+      }
+    }
+
+    // 图表操作按钮样式
+    .chart-actions {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e4e7ed;
+      
+      .el-button {
+        height: 36px;
+        font-weight: 500;
       }
     }
 

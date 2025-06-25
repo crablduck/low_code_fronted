@@ -44,6 +44,8 @@ app.use(router)
 if (import.meta.env.DEV) {
   fixPassiveEventListeners()
   initStagewiseToolbar()
+  
+
 }
 
 // 调试信息 - 检查环境变量是否正确加载

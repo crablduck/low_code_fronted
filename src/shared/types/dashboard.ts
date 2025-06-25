@@ -5,7 +5,13 @@ export enum DashboardStatus {
 
 export enum DashboardType {
   CUSTOM = 'custom',
-  TEMPLATE = 'template'
+  TEMPLATE = 'template',
+  ANALYTICS = 'analytics',
+  OPERATIONAL = 'operational',
+  EXECUTIVE = 'executive',
+  REALTIME = 'realtime',
+  MEDICAL = 'medical',
+  FINANCIAL = 'financial'
 }
 
 // 图表数据源配置接口
@@ -99,6 +105,7 @@ export interface CascadeFilterConfig {
 export interface GlobalFilterBinding {
   filterKey: string
   chartField: string
+  operator?: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater_than' | 'greater_than_or_equal' | 'less_than' | 'less_than_or_equal' | 'is_null' | 'is_not_null'
 }
 
 export interface DashboardGlobalFilters {
@@ -191,10 +198,15 @@ export interface ChartConfig {
   // 数据配置
   autoRefresh?: boolean
   refreshInterval?: number
-  
-  // 性能配置
   enableCache?: boolean
   cacheTime?: number
+  
+  // 图表数据
+  chartData?: {
+    series?: any[]
+    categories?: any[]
+    [key: string]: any
+  }
 }
 
 // 筛选器绑定接口
@@ -249,6 +261,7 @@ export interface DashboardQuery {
   pageSize?: number
   name?: string
   status?: DashboardStatus
+  type?: DashboardType
 }
 
 // 仪表盘列表响应接口

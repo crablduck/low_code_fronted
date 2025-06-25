@@ -16,13 +16,26 @@ const router = useRouter()
 // 搜索表单
 const searchForm = ref<DashboardQuery>({
   name: '',
-  status: undefined
+  status: undefined,
+  type: undefined
 })
 
 // 状态选项
 const statusOptions = [
   { label: '草稿', value: DashboardStatus.DRAFT },
   { label: '已发布', value: DashboardStatus.PUBLISHED }
+]
+
+// 类型选项
+const typeOptions = [
+  { label: '自定义', value: DashboardType.CUSTOM },
+  { label: '模板', value: DashboardType.TEMPLATE },
+  { label: '分析型', value: DashboardType.ANALYTICS },
+  { label: '运营型', value: DashboardType.OPERATIONAL },
+  { label: '管理层', value: DashboardType.EXECUTIVE },
+  { label: '实时监控', value: DashboardType.REALTIME },
+  { label: '医疗专用', value: DashboardType.MEDICAL },
+  { label: '财务报表', value: DashboardType.FINANCIAL }
 ]
 
 // 表格数据
@@ -58,18 +71,67 @@ const getStatusLabel = (status: DashboardStatus) => {
 const getTypeType = (type: DashboardType) => {
   const map: Record<DashboardType, string> = {
     [DashboardType.CUSTOM]: 'primary',
-    [DashboardType.TEMPLATE]: 'success'
+    [DashboardType.TEMPLATE]: 'success',
+    [DashboardType.ANALYTICS]: 'info',
+    [DashboardType.OPERATIONAL]: 'warning',
+    [DashboardType.EXECUTIVE]: 'danger',
+    [DashboardType.REALTIME]: '',
+    [DashboardType.MEDICAL]: 'success',
+    [DashboardType.FINANCIAL]: 'warning'
   }
-  return map[type]
+  return map[type] || 'info'
 }
 
 // 获取类型标签文本
 const getTypeLabel = (type: DashboardType) => {
   const map: Record<DashboardType, string> = {
     [DashboardType.CUSTOM]: '自定义',
-    [DashboardType.TEMPLATE]: '模板'
+    [DashboardType.TEMPLATE]: '模板',
+    [DashboardType.ANALYTICS]: '分析型',
+    [DashboardType.OPERATIONAL]: '运营型',
+    [DashboardType.EXECUTIVE]: '管理层',
+    [DashboardType.REALTIME]: '实时监控',
+    [DashboardType.MEDICAL]: '医疗专用',
+    [DashboardType.FINANCIAL]: '财务报表'
   }
-  return map[type]
+  return map[type] || '未知类型'
+}
+
+// 格式化时间显示
+const formatDateTime = (dateTime: any) => {
+  if (!dateTime) return '-'
+  
+  try {
+    let date: Date
+    
+    if (typeof dateTime === 'string') {
+      date = new Date(dateTime)
+    } else if (typeof dateTime === 'object' && dateTime instanceof Date) {
+      date = dateTime
+    } else if (typeof dateTime === 'object') {
+      // 处理可能的时间戳对象
+      date = new Date(dateTime.toString())
+    } else {
+      date = new Date(dateTime)
+    }
+    
+    if (isNaN(date.getTime())) {
+      return '-'
+    }
+    
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  } catch (error) {
+    console.warn('时间格式化失败:', error)
+    return '-'
+  }
 }
 
 // 加载表格数据
@@ -80,7 +142,8 @@ const loadTableData = async () => {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
       name: searchForm.value.name,
-      status: searchForm.value.status
+      status: searchForm.value.status,
+      type: searchForm.value.type
     })
     
     if (result.code === 200) {
@@ -107,7 +170,8 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.value = {
     name: '',
-    status: undefined
+    status: undefined,
+    type: undefined
   }
   handleSearch()
 }
@@ -203,6 +267,16 @@ onMounted(() => {
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="searchForm.type" placeholder="请选择类型" clearable>
+            <el-option
+              v-for="item in typeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>搜索
@@ -233,8 +307,16 @@ onMounted(() => {
           <el-tag :type="getTypeType(row.type)">{{ getTypeLabel(row.type) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="180" />
-      <el-table-column prop="updateTime" label="更新时间" width="180" />
+      <el-table-column prop="createTime" label="创建时间" width="180">
+        <template #default="{ row }">
+          {{ formatDateTime(row.createTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="updateTime" label="更新时间" width="180">
+        <template #default="{ row }">
+          {{ formatDateTime(row.updateTime) }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-button-group>

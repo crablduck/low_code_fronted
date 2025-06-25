@@ -585,36 +585,35 @@ const handleNodeClick = (data: TreeNode) => {
 const loadPreviewData = async (datasetId: number) => {
   loadingPreview.value = true
   try {
-    // 使用新的 GET 接口直接预览数据集
-    const response = await previewDatasetData(datasetId.toString())
+    // 使用智能预览接口
+    const { smartPreviewDataset } = await import('@/api/dataset')
+    const response = await smartPreviewDataset(datasetId, {
+      limit: 100
+    })
     
-    // 处理返回的数据结构 - 数据已经通过适配器处理
-    console.log('完整的响应数据:', response)
+    console.log('智能预览响应数据:', response)
     
     if (response.code === 200 && response.data) {
-      const { columns, data, totalCount } = response.data
+      const { columns, records, totalCount } = response.data
       
-      console.log('预览数据原始返回:', { columns, data, totalCount })
+      console.log('预览数据原始返回:', { columns, records, totalCount })
       
-      // 检查 data 是否存在且为数组
-      if (!Array.isArray(data)) {
-        console.error('数据格式错误，data 不是数组:', data)
-        throw new Error('返回的数据格式不正确')
-      }
+      // 智能处理不同的数据格式
+      let transformedData: any[] = []
       
-      if (!Array.isArray(columns)) {
-        console.error('列格式错误，columns 不是数组:', columns)
-        throw new Error('返回的列格式不正确')
-      }
-      
-      // 将二维数组转换为对象数组，以适配 el-table
-      const transformedData = data.map((row: any[]) => {
-        const rowObj: Record<string, any> = {}
-        columns.forEach((column: string, index: number) => {
-          rowObj[column] = row[index]
+      if (records && Array.isArray(records)) {
+        // 如果返回的是对象数组格式，直接使用
+        transformedData = records
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        // 如果返回的是二维数组格式，转换为对象数组
+        transformedData = response.data.data.map((row: any[]) => {
+          const rowObj: Record<string, any> = {}
+          columns.forEach((column: string, index: number) => {
+            rowObj[column] = row[index]
+          })
+          return rowObj
         })
-        return rowObj
-      })
+      }
       
       console.log('转换后的数据:', transformedData)
       

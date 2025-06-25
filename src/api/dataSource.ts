@@ -214,6 +214,26 @@ export const dataSetApi = {
     return { columns: [], data: [], totalCount: 0 }
   },
 
+  // 基于数据集ID预览数据
+  previewDataById: async (datasetId: number, limit: number = 100): Promise<DataPreviewDTO> => {
+    const response = await get(dataSourceService, `/api/datasets/${datasetId}/preview?limit=${limit}`)
+    return response.data
+  },
+
+  // 基于配置预览数据（用于新建数据集）
+  previewDataByConfig: async (config: {
+    dataSourceId: number
+    queryType: string
+    tableName?: string
+    tables?: string[]
+    relations?: any[]
+    sqlQuery?: string
+    fields?: any[]
+  }): Promise<DataPreviewDTO> => {
+    const response = await post(dataSourceService, '/api/datasets/preview-by-config', config)
+    return response.data
+  },
+
   // 验证SQL查询
   validateSQL: async (dataSourceId: number, sql: string): Promise<{ valid: boolean; error?: string }> => {
     const response = await post(dataSourceService, `/api/datasources/${dataSourceId}/validate-sql`, { sql })
