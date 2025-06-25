@@ -2,7 +2,7 @@
  * @Author: Mr.Crab wei17306927526@gmail.com
  * @Date: 2025-05-23 16:26:02
  * @LastEditors: KrabWW wei17306927526@gmail.com
- * @LastEditTime: 2025-06-25 09:19:46
+ * @LastEditTime: 2025-06-25 15:08:31
  * @FilePath: /workflow-system/src/router/index.ts
  * @Description: 路由配置
  */

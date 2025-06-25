@@ -554,7 +554,31 @@ const generateEChartsOptionFromChartData = (chartData: any, config: any) => {
         },
         series: (chartData.series || []).map((s: any) => ({
           ...s,
-          type: 'bar'  // 强制设置为柱状图
+          type: 'bar',  // 强制设置为柱状图
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#83bff6' },
+                { offset: 0.5, color: '#188df0' },
+                { offset: 1, color: '#188df0' }
+              ]
+            }
+          },
+          emphasis: {
+            itemStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#2378f7' },
+                  { offset: 0.7, color: '#2378f7' },
+                  { offset: 1, color: '#83bff6' }
+                ]
+              }
+            }
+          }
         }))
       }
     
@@ -597,7 +621,24 @@ const generateEChartsOptionFromChartData = (chartData: any, config: any) => {
         series: (chartData.series || []).map((s: any) => ({
           ...s,
           type: 'line',  // 强制设置为折线图
-          smooth: true
+          smooth: true,
+          lineStyle: {
+            color: '#5470c6',
+            width: 2
+          },
+          itemStyle: {
+            color: '#5470c6'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
+                { offset: 1, color: 'rgba(84, 112, 198, 0.1)' }
+              ]
+            }
+          }
         }))
       }
     
@@ -1050,6 +1091,30 @@ const generateSampleData = (chartType: string) => {
     
     default:
       return baseOption
+  }
+}
+
+const transformToBarLineData = (records: any[], fieldMapping: any) => {
+  const xField = fieldMapping.xAxis || fieldMapping.xField
+  const yField = fieldMapping.yAxis || fieldMapping.yField
+  
+  if (!xField || !yField) {
+    return { series: [], categories: [] }
+  }
+  
+  const categories = [...new Set(records.map(record => record[xField]))].filter(Boolean)
+  const seriesData = categories.map(category => {
+    const record = records.find(r => r[xField] === category)
+    return record ? (record[yField] || 0) : 0
+  })
+  
+  return {
+    categories,
+    series: [{
+      name: yField,
+      type: 'bar',  // 默认类型，会在后续根据实际图表类型覆盖
+      data: seriesData
+    }]
   }
 }
 </script>

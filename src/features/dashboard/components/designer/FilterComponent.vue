@@ -11,7 +11,6 @@
         v-if="config.type === 'filter-select'"
         v-model="currentValue"
         :placeholder="config.placeholder || '请选择'"
-        :disabled="isPreview"
         clearable
         style="width: 200px"
         @change="handleValueChange"
@@ -29,7 +28,6 @@
         v-else-if="config.type === 'filter-multiselect'"
         v-model="currentValue"
         :placeholder="config.placeholder || '请选择'"
-        :disabled="isPreview"
         multiple
         clearable
         style="width: 200px"
@@ -49,7 +47,6 @@
         v-model="currentValue"
         type="date"
         :placeholder="config.placeholder || '选择日期'"
-        :disabled="isPreview"
         style="width: 200px"
         @change="handleValueChange"
       />
@@ -62,7 +59,6 @@
         range-separator="至"
         start-placeholder="开始日期"
         end-placeholder="结束日期"
-        :disabled="isPreview"
         style="width: 240px"
         @change="handleValueChange"
       />
@@ -74,7 +70,6 @@
           :min="config.min || 0"
           :max="config.max || 100"
           :step="config.step || 1"
-          :disabled="isPreview"
           style="width: 160px"
           @change="handleValueChange"
         />
@@ -86,7 +81,6 @@
         v-else-if="config.type === 'filter-input'"
         v-model="currentValue"
         :placeholder="config.placeholder || '请输入'"
-        :disabled="isPreview"
         style="width: 200px"
         @input="handleValueChange"
       />

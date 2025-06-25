@@ -28,37 +28,20 @@ export const validateChartConfig = (chartConfig: ChartConfig): boolean => {
  */
 export const serializeLayout = (layout: LayoutItem[]): string => {
   try {
-    const serialized = layout.map(item => ({
-      x: item.x,
-      y: item.y,
-      w: item.w,
-      h: item.h,
-      i: item.i,
-      chartConfig: {
-        // 基础配置
-        i: item.chartConfig.i,
-        id: item.chartConfig.id || item.chartConfig.i,
-        type: item.chartConfig.type,
-        title: item.chartConfig.title,
-        
-        // 字段映射配置
-        xField: item.chartConfig.xField,
-        yField: item.chartConfig.yField,
-        nameField: item.chartConfig.nameField,
-        valueField: item.chartConfig.valueField,
-        tableFields: item.chartConfig.tableFields,
-        
-        // 图表样式配置
-        showLegend: item.chartConfig.showLegend,
-        showToolbox: item.chartConfig.showToolbox,
-        dataLimit: item.chartConfig.dataLimit,
-        
-        // 数据源配置
-        datasetId: item.chartConfig.datasetId,
-        fieldMapping: item.chartConfig.fieldMapping,
-        dataSourceConfig: item.chartConfig.dataSourceConfig
+    const serialized = layout.map(item => {
+      // 深拷贝 chartConfig，排除 runtime 数据
+      const { chartData, ...persistConfig } = item.chartConfig
+
+      return {
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+        i: item.i,
+        // 直接保存完整配置（内含 useGlobalFilters / globalFilterBindings 等）
+        chartConfig: persistConfig
       }
-    }))
+    })
     
     console.log('序列化布局数据:', serialized)
     return JSON.stringify(serialized)
@@ -89,28 +72,12 @@ export const deserializeLayout = (layoutString: string): LayoutItem[] => {
       w: item.w || 4,
       h: item.h || 4,
       i: item.i,
+      // 直接使用完整的chartConfig配置
       chartConfig: {
         i: item.i,
-        id: item.chartConfig.id || item.i,
-        type: item.chartConfig.type,
-        title: item.chartConfig.title,
-        
-        // 恢复字段映射配置
-        xField: item.chartConfig.xField,
-        yField: item.chartConfig.yField,
-        nameField: item.chartConfig.nameField,
-        valueField: item.chartConfig.valueField,
-        tableFields: item.chartConfig.tableFields,
-        
-        // 恢复图表样式配置
-        showLegend: item.chartConfig.showLegend,
-        showToolbox: item.chartConfig.showToolbox,
-        dataLimit: item.chartConfig.dataLimit,
-        
-        // 恢复数据源配置
-        datasetId: item.chartConfig.datasetId,
-        fieldMapping: item.chartConfig.fieldMapping,
-        dataSourceConfig: item.chartConfig.dataSourceConfig
+        id: item.chartConfig?.id || item.i,
+        type: item.chartConfig?.type || 'bar',
+        ...item.chartConfig
       }
     }))
     

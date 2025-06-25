@@ -170,6 +170,7 @@ import {
   Picture,
   Search
 } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
 
 // 导入组件
 import DesignerToolbar from '../components/designer/DesignerToolbar.vue'
@@ -184,10 +185,13 @@ import { useDashboardState } from '../composables/useDashboardState'
 import { useDragAndDrop } from '../composables/useDragAndDrop'
 
 // 导入类型
-import type { LayoutItem } from '@/shared/types/dashboard'
+import type { LayoutItem, ChartConfig } from '@/shared/types/dashboard'
+import { DashboardStatus, DashboardType } from '@/shared/types/dashboard'
 
 // 导入API
 import { smartPreviewDataset } from '@/api/dataset'
+import { createDashboard, updateDashboard, getDashboardDetail } from '@/api/dashboard'
+import { serializeLayout } from '@/shared/utils/dashboardPersistence'
 
 const {
   // 状态
@@ -231,6 +235,9 @@ const {
   exportDashboard,
   applySmartLayout
 } = useDashboardState()
+
+const route = useRoute()
+const router = useRouter()
 
 // 模拟数据源数据（暂时不联动，避免错误）
 const dataSources = ref([
@@ -713,21 +720,44 @@ const handleItemClick = (item: LayoutItem) => {
 }
 
 // 保存仪表盘
-const saveDashboard = () => {
+const saveDashboard = async () => {
   if (!saveForm.name.trim()) {
     ElMessage.warning('请输入仪表盘名称')
     return
   }
   
-  // TODO: 调用保存API
-  console.log('保存仪表盘:', {
-    name: saveForm.name,
-    description: saveForm.description,
-    layout: layout.value
-  })
-  
-  showSaveDialog.value = false
-  ElMessage.success('仪表盘保存成功')
+  try {
+    // 序列化布局数据
+    const serializedLayout = serializeLayout(layout.value)
+    
+    const dashboardData = {
+      name: saveForm.name,
+      description: saveForm.description,
+      layout: serializedLayout,
+      status: DashboardStatus.DRAFT,
+      type: DashboardType.CUSTOM,
+      config_json: {
+        layout: layout.value
+      }
+    }
+    
+    if (route.params.id) {
+      // 更新已有仪表盘
+      await updateDashboard(String(route.params.id), dashboardData)
+      ElMessage.success('仪表盘更新成功')
+    } else {
+      // 创建新仪表盘
+      await createDashboard(dashboardData)
+      ElMessage.success('仪表盘创建成功')
+    }
+    
+    showSaveDialog.value = false
+    
+    // 保存成功后返回列表页
+    router.push('/dashboard/list')
+  } catch (error: any) {
+    ElMessage.error('保存失败：' + error.message)
+  }
 }
 
 // 网格布局事件处理
@@ -747,6 +777,62 @@ const onMoved = (i: string, newX: number, newY: number) => {
   console.log('组件移动完成:', i, { newX, newY })
 }
 
+// 加载仪表盘数据
+const loadDashboard = async () => {
+  if (!route.params.id) return
+
+  try {
+    console.log('开始加载仪表盘数据:', route.params.id)
+    const res = await getDashboardDetail(String(route.params.id))
+    console.log('仪表盘详情响应:', res)
+    
+    if (res.code === 200 && res.data) {
+      // 设置基本信息
+      saveForm.name = res.data.name
+      saveForm.description = res.data.description || ''
+
+      // 设置布局数据
+      if (res.data.layout) {
+        layout.value = res.data.layout
+      }
+
+      // 恢复过滤器配置
+      if (res.data.config?.globalFilters) {
+        // 找出所有过滤器组件
+        const filterComponents = layout.value.filter(item => 
+          item.chartConfig.type.startsWith('filter-')
+        )
+
+        // 恢复过滤器的值和配置
+        filterComponents.forEach(filter => {
+          const filterConfig = res.data.config.globalFilters[filter.i]
+          if (filterConfig) {
+            // 更新过滤器配置
+            filter.chartConfig = {
+              ...filter.chartConfig,
+              ...filterConfig
+            }
+
+            // 恢复过滤器值
+            if (filterConfig.value !== undefined) {
+              filterValues.value[filter.i] = filterConfig.value
+            }
+          }
+        })
+      }
+
+      // 初始化所有图表
+      await nextTick()
+      // initCharts()
+    } else {
+      ElMessage.error(res.message || '加载仪表盘失败')
+    }
+  } catch (error: any) {
+    console.error('加载仪表盘失败:', error)
+    ElMessage.error('加载仪表盘失败：' + error.message)
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   checkMobile()
@@ -757,6 +843,11 @@ onMounted(async () => {
   
   // 加载数据集
   await loadDatasets()
+
+  // 加载仪表盘数据（如果是编辑模式）
+  if (route.params.id) {
+    await loadDashboard()
+  }
 })
 
 onUnmounted(() => {
