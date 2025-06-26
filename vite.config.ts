@@ -10,19 +10,15 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { resolve } from 'path'
-import { codeInspectorPlugin } from 'code-inspector-plugin'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    vueJsx(),
-    codeInspectorPlugin({
-      bundler: 'vite',
-    })
+    vueJsx()
   ],
   server: {
-    port: 3000,
+    port: 5174,
     host: true,
     proxy: {
       '/api': {
