@@ -47,18 +47,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       'echarts',
-      'vue3-grid-layout-next',
-      '@univerjs/core',
-      '@univerjs/design',
-      '@univerjs/engine-render',
-      '@univerjs/engine-formula',
-      '@univerjs/ui',
-      '@univerjs/sheets',
-      '@univerjs/sheets-ui',
-      '@univerjs/presets',
-      '@univerjs/presets/preset-sheets-core',
-      '@univerjs/presets/preset-sheets-drawing',
-      '@univerjs/presets/preset-sheets-advanced'
+      'vue3-grid-layout-next'
     ]
   },
   build: {
@@ -67,20 +56,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['vue', 'vue-router', 'pinia'],
           element: ['element-plus'],
-          charts: ['echarts'],
-          univer: [
-            '@univerjs/core',
-            '@univerjs/design',
-            '@univerjs/engine-render',
-            '@univerjs/engine-formula',
-            '@univerjs/ui',
-            '@univerjs/sheets',
-            '@univerjs/sheets-ui',
-            '@univerjs/presets',
-            '@univerjs/presets/preset-sheets-core',
-            '@univerjs/presets/preset-sheets-drawing',
-            '@univerjs/presets/preset-sheets-advanced'
-          ]
+          charts: ['echarts']
         }
       }
     }
