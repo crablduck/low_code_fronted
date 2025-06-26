@@ -31,25 +31,32 @@ export const initStagewiseToolbar = async () => {
 }
 
 /**
- * 修复 passive 事件监听器警告
+ * 修复被动事件监听器
+ * 解决 Chrome 中 'Unable to preventDefault inside passive event listener' 警告
  */
-export const fixPassiveEventListeners = () => {
-  if (!import.meta.env.DEV) return
-  
-  const originalAddEventListener = EventTarget.prototype.addEventListener
-  EventTarget.prototype.addEventListener = function(type, listener, options) {
-    if (typeof options === 'boolean') {
-      options = { capture: options }
+export function fixPassiveEventListeners() {
+  if (typeof window !== 'undefined') {
+    const supportsPassive = (() => {
+      let passive = false;
+      try {
+        const options = Object.defineProperty({}, 'passive', {
+          get() {
+            passive = true;
+            return true;
+          }
+        });
+        window.addEventListener('test', null as any, options);
+        window.removeEventListener('test', null as any, options);
+      } catch (e) {
+        // 忽略错误
+      }
+      return passive;
+    })();
+
+    if (supportsPassive) {
+      const noop = () => {};
+      window.addEventListener('touchstart', noop, { passive: true });
+      window.removeEventListener('touchstart', noop);
     }
-    if (!options) {
-      options = {}
-    }
-    
-    // 为滚动相关事件添加 passive 选项
-    if (['wheel', 'mousewheel', 'touchstart', 'touchmove'].includes(type)) {
-      options.passive = options.passive !== false
-    }
-    
-    return originalAddEventListener.call(this, type, listener, options)
   }
 } 
