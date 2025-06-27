@@ -237,3 +237,143 @@ CMD ["npm", "run", "preview"]
 
 **让低代码开发更简单，让医疗信息化更高效！** 🏥✨
 # low_code_fronted
+
+## 项目说明
+这是一个工作流系统的前端项目，支持独立运行和 iframe 嵌入模式。
+
+## 环境要求
+- Node.js >= 16
+- pnpm >= 7
+
+## 开发说明
+
+### 1. 独立运行模式
+```bash
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev
+```
+
+### 2. iframe 嵌入模式
+本项目支持作为 iframe 嵌入到其他应用中。主要修改包括：
+- 隐藏顶部导航栏
+- 环境变量配置
+- 认证机制适配
+
+#### 2.1 环境变量配置
+在 `.env.development` 中配置：
+```env
+# 仪表盘服务地址
+VITE_DASHBOARD_URL=http://localhost:6001
+
+# 数据源服务地址
+VITE_DATASOURCE_BASE_URL=http://localhost:8080
+
+# API基础地址
+VITE_API_BASE_URL=http://localhost:48080
+```
+
+## Git Submodule 使用说明
+
+### 1. 首次克隆项目
+如果你是首次克隆主项目，需要执行：
+```bash
+# 克隆主项目
+git clone <main-project-url>
+
+# 初始化并更新子模块
+git submodule init
+git submodule update
+```
+
+### 2. 更新子模块
+当 workflow-system 有更新时，执行：
+```bash
+# 更新所有子模块到最新版本
+git submodule update --remote
+
+# 或者只更新特定子模块
+git submodule update --remote workflow-system
+```
+
+### 3. 提交子模块更新
+如果你修改了子模块的内容：
+```bash
+# 1. 进入子模块目录
+cd workflow-system
+
+# 2. 创建新分支
+git checkout -b feature/your-feature
+
+# 3. 提交修改
+git add .
+git commit -m "feat: your feature description"
+
+# 4. 推送到远程仓库
+git push origin feature/your-feature
+
+# 5. 在 GitHub 上创建 Pull Request
+# 访问: https://github.com/crablduck/low_code_fronted/pulls
+```
+
+### 4. 常见问题
+
+#### 4.1 子模块更新冲突
+如果在更新子模块时遇到冲突：
+```bash
+# 1. 保存当前修改
+git stash
+
+# 2. 更新子模块
+git submodule update --remote
+
+# 3. 恢复修改并解决冲突
+git stash pop
+```
+
+#### 4.2 子模块分支切换
+如果需要切换子模块的分支：
+```bash
+cd workflow-system
+git checkout <branch-name>
+cd ..
+git add workflow-system
+git commit -m "chore: switch workflow-system to branch <branch-name>"
+```
+
+## 项目结构
+```
+workflow-system/
+├── src/                    # 源代码目录
+│   ├── api/               # API 接口
+│   ├── components/        # 公共组件
+│   ├── features/          # 功能模块
+│   ├── shared/           # 共享资源
+│   └── ...
+├── .env.development       # 开发环境配置
+└── ...
+```
+
+## 注意事项
+1. 不要直接在 main 分支上修改代码
+2. 所有功能开发请创建新分支
+3. 提交代码前请确保通过所有测试
+4. 环境变量文件（.env.*）不会被 git 追踪，需要手动配置
+
+## 更新日志
+
+### 2024-03-xx
+- 添加 iframe 嵌入支持
+- 优化环境变量配置
+- 修复已知问题
+
+## 贡献指南
+1. Fork 项目
+2. 创建功能分支
+3. 提交修改
+4. 创建 Pull Request
+
+## 许可证
+[MIT License](LICENSE)
