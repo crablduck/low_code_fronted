@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <!-- 顶部导航栏 -->
-    <el-header class="header">
+    <el-header class="header" v-show="false">
       <div class="header-content">
         <!-- Logo 和标题 -->
         <div class="logo-section" @click="goHome">
@@ -53,13 +53,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  DataBoard,
-  User,
-  ArrowDown,
-  SwitchButton,
-  Setting
-} from '@element-plus/icons-vue'
+import { DataBoard, User, ArrowDown, SwitchButton, Setting } from '@element-plus/icons-vue'
 import NavigationMenu from './NavigationMenu.vue'
 
 // 响应式数据
@@ -112,7 +106,7 @@ const goHome = () => {
   padding: 8px 16px;
   border-radius: 12px;
   transition: all 0.3s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
@@ -147,7 +141,7 @@ const goHome = () => {
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: all 0.3s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
@@ -187,12 +181,12 @@ const goHome = () => {
   font-size: 14px;
   padding: 8px 16px;
   border-radius: 6px;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
   }
-  
+
   .el-icon {
     margin-right: 8px;
     font-size: 16px;
@@ -203,11 +197,11 @@ const goHome = () => {
   .logo-text {
     display: none;
   }
-  
+
   .username {
     display: none;
   }
-  
+
   .user-section {
     min-width: 60px;
   }
@@ -216,4 +210,4 @@ const goHome = () => {
     padding: 0 12px;
   }
 }
-</style> 
+</style>
